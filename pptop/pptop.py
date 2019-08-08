@@ -9,13 +9,13 @@ import psutil
 import os
 import time
 import tabulate
-
 import curses
-
 import atasker
 import threading
-
 import logging
+import socket
+import struct
+import pickle
 
 from types import SimpleNamespace
 
@@ -71,6 +71,25 @@ def select_process(stdscr):
 
 
 scr_lock = threading.Lock()
+client_lock = threading.Lock()
+
+client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+
+
+def client_command(cmd):
+    with client_lock:
+        try:
+            client.sendall(struct.pack('L', len(cmd)) + cmd.encode())
+            data = client.recv(8)
+        except:
+            raise RuntimeError('Injector is gone')
+        if not data:
+            raise RuntimeError('Injector error')
+        l = struct.unpack('L', data)
+        data = client.recv(l[0])
+        if data[0] != 0:
+            raise RuntimeError('Injector command error')
+        return data[1:]
 
 
 @atasker.background_worker(delay=1)
@@ -78,6 +97,7 @@ def show_process_info(stdscr, p, **kwargs):
     height, width = stdscr.getmaxyx()
     with scr_lock:
         try:
+            result = client_command('test')
             ct = p.cpu_times()
             stdscr.move(0, 0)
             stdscr.addstr('Process: ')
@@ -97,11 +117,20 @@ def show_process_info(stdscr, p, **kwargs):
             stdscr.addstr(
                 str(p.num_threads()),
                 curses.color_pair(3) | curses.A_BOLD)
+            stdscr.addstr(', files: ')
+            stdscr.addstr(
+                str(len(p.open_files())),
+                curses.color_pair(3) | curses.A_BOLD)
             stdscr.clrtoeol()
             stdscr.refresh()
         except psutil.NoSuchProcess:
             stdscr.clear()
             stdscr.addstr(0, 0, 'Process is gone', curses.color_pair(2))
+            stdscr.refresh()
+            return False
+        except RuntimeError:
+            stdscr.clear()
+            stdscr.addstr(0, 0, 'Process server is gone', curses.color_pair(2))
             stdscr.refresh()
             return False
 
@@ -120,7 +149,8 @@ def fancy_tabulate(stdscr, table, cursor=None):
                       curses.color_pair(3) | curses.A_REVERSE)
         for i, t in enumerate(d[2:]):
             stdscr.addstr(
-                5 + i, 0, t.ljust(width),
+                5 + i, 0,
+                t.ljust(width)[:width - 1],
                 curses.color_pair(7) | curses.A_REVERSE
                 if cursor == i else curses.A_NORMAL)
 
@@ -196,42 +226,42 @@ def handle_pager_event(stdscr, cursor_id, max_pos):
 
 @atasker.background_worker(delay=1)
 def show_open_files(stdscr, p, **kwargs):
-    height, width = stdscr.getmaxyx()
-    files = []
-    for f in p.open_files():
-        files.append({
-            'path': f.path,
-            'fd': f.fd,
-            'pos.': f.position,
-            'mode': f.mode
-        })
-    files = sorted(files, key=lambda k: k['path'])
-    with scr_lock:
-        print_section_title(stdscr, 'Open files')
-        handle_pager_event(stdscr, 'files', len(files) - 1)
-        if _d.key_event:
-            _d.key_event = None
-        fancy_tabulate(
-            stdscr,
-            files[_cursors.files_shift:_cursors.files_shift + height -
-                  reserved_lines],
-            cursor=_cursors.files_cursor - _cursors.files_shift)
-        stdscr.clrtobot()
-        print_bottom_bar(stdscr)
-        stdscr.refresh()
+    try:
+        height, width = stdscr.getmaxyx()
+        files = []
+        for f in p.open_files():
+            files.append({
+                'path': f.path,
+                'fd': f.fd,
+                'pos.': f.position,
+                'mode': f.mode
+            })
+        files = sorted(files, key=lambda k: k['path'])
+        with scr_lock:
+            print_section_title(stdscr, 'Open files')
+            handle_pager_event(stdscr, 'files', len(files) - 1)
+            if _d.key_event:
+                _d.key_event = None
+            fancy_tabulate(
+                stdscr,
+                files[_cursors.files_shift:_cursors.files_shift + height -
+                      reserved_lines],
+                cursor=_cursors.files_cursor - _cursors.files_shift)
+            stdscr.clrtobot()
+            print_bottom_bar(stdscr)
+            stdscr.refresh()
+    except:
+        return False
 
 
 @atasker.background_worker(delay=1)
 def show_threads(stdscr, p, **kwargs):
     height, width = stdscr.getmaxyx()
-    threads = []
-    for th in p.threads():
-        threads.append({
-            'id': th.id,
-            'user': th.user_time,
-            'system': th.system_time
-        })
-    threads = sorted(threads, key=lambda k: k['user'] + k['system'])
+    try:
+        threads = pickle.loads(client_command('threads'))
+    except:
+        return False
+    threads = sorted(threads, key=lambda k: k['ident'])
     with scr_lock:
         print_section_title(stdscr, 'Threads')
         handle_pager_event(stdscr, 'threads', len(threads) - 1)
@@ -241,7 +271,7 @@ def show_threads(stdscr, p, **kwargs):
         fancy_tabulate(
             stdscr,
             threads[_cursors.threads_shift:_cursors.threads_shift + height -
-                  reserved_lines],
+                    reserved_lines],
             cursor=_cursors.threads_cursor - _cursors.threads_shift)
         print_bottom_bar(stdscr)
         stdscr.refresh()
@@ -273,6 +303,13 @@ def pptop(stdscr):
     else:
         p = psutil.Process(work_pid)
     if not p: return
+
+    client.settimeout(5)
+    try:
+        client.connect('/tmp/.pptop_777')
+    except:
+        raise RuntimeError('Unable to connect to process')
+
     height, width = stdscr.getmaxyx()
     stdscr.clear()
     curses.curs_set(0)
@@ -297,7 +334,6 @@ def pptop(stdscr):
                     _d.key_event = k
                     _d.current_worker.trigger()
         except:
-            raise
             return
 
 
