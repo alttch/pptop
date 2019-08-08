@@ -152,8 +152,8 @@ reserved_lines = 6
 
 def handle_pager_event(stdscr, cursor_id, max_pos):
     height, width = stdscr.getmaxyx()
-    crs = getattr(_d, cursor_id + '_cursor')
-    shf = getattr(_d, cursor_id + '_shift')
+    crs = getattr(_cursors, cursor_id + '_cursor')
+    shf = getattr(_cursors, cursor_id + '_shift')
     if _d.key_event:
         if _d.key_event == 'KEY_DOWN':
             crs += 1
@@ -190,8 +190,8 @@ def handle_pager_event(stdscr, cursor_id, max_pos):
         shf = max_pos - height + reserved_lines + 1
         if shf < 0:
             shf = 0
-    setattr(_d, cursor_id + '_cursor', crs)
-    setattr(_d, cursor_id + '_shift', shf)
+    setattr(_cursors, cursor_id + '_cursor', crs)
+    setattr(_cursors, cursor_id + '_shift', shf)
 
 
 @atasker.background_worker(delay=1)
@@ -213,20 +213,49 @@ def show_open_files(stdscr, p, **kwargs):
             _d.key_event = None
         fancy_tabulate(
             stdscr,
-            files[_d.files_shift:_d.files_shift + height - reserved_lines],
-            cursor=_d.files_cursor - _d.files_shift)
+            files[_cursors.files_shift:_cursors.files_shift + height -
+                  reserved_lines],
+            cursor=_cursors.files_cursor - _cursors.files_shift)
         stdscr.clrtobot()
         print_bottom_bar(stdscr)
         stdscr.refresh()
 
 
-_d = SimpleNamespace(
-    current_worker=None, files_cursor=0, files_shift=0, key_event=None)
+@atasker.background_worker(delay=1)
+def show_threads(stdscr, p, **kwargs):
+    height, width = stdscr.getmaxyx()
+    threads = []
+    for th in p.threads():
+        threads.append({
+            'id': th.id,
+            'user': th.user_time,
+            'system': th.system_time
+        })
+    threads = sorted(threads, key=lambda k: k['user'] + k['system'])
+    with scr_lock:
+        print_section_title(stdscr, 'Threads')
+        handle_pager_event(stdscr, 'threads', len(threads) - 1)
+        if _d.key_event:
+            _d.key_event = None
+        stdscr.clrtobot()
+        fancy_tabulate(
+            stdscr,
+            threads[_cursors.threads_shift:_cursors.threads_shift + height -
+                  reserved_lines],
+            cursor=_cursors.threads_cursor - _cursors.threads_shift)
+        print_bottom_bar(stdscr)
+        stdscr.refresh()
+
+
+_d = SimpleNamespace(current_worker=None, key_event=None)
+
+_cursors = SimpleNamespace(
+    files_cursor=0, files_shift=0, threads_cursor=0, threads_shift=0)
 
 default_page = show_open_files
 
 
-def main(stdscr):
+def pptop(stdscr):
 
     def switch_worker(new_worker):
         if _d.current_worker:
@@ -251,7 +280,8 @@ def main(stdscr):
     atasker.background_task(show_process_info.start)(stdscr=stdscr, p=p)
     worker_shortcuts = {
         'KEY_F(5)': show_function_profiler,
-        'KEY_F(6)': show_open_files
+        'KEY_F(6)': show_open_files,
+        'KEY_F(7)': show_threads
     }
     while True:
         try:
@@ -271,10 +301,15 @@ def main(stdscr):
             return
 
 
-atasker.task_supervisor.start()
-# work_pid = 114958
-try:
-    curses.wrapper(main)
-except Exception as e:
-    print(e)
-atasker.task_supervisor.stop(wait=False)
+def main():
+    atasker.task_supervisor.start()
+    # work_pid = 114958
+    try:
+        curses.wrapper(pptop)
+    except Exception as e:
+        print(e)
+    atasker.task_supervisor.stop(wait=False)
+
+
+if __name__ == '__main__':
+    main()
