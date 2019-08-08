@@ -190,6 +190,6 @@ def main(stdscr):
 
 
 atasker.task_supervisor.start()
-work_pid = 114958
+# work_pid = 114958
 curses.wrapper(main)
 atasker.task_supervisor.stop(wait=False)
