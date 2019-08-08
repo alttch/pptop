@@ -140,6 +140,7 @@ def show_open_files(stdscr, p, **kwargs):
         })
     with scr_lock:
         print_section_title(stdscr, 'Files')
+        files = sorted(files, key=lambda k: k['path'])
         fancy_tabulate(stdscr, files)
         stdscr.clrtobot()
         stdscr.refresh()
@@ -189,6 +190,6 @@ def main(stdscr):
 
 
 atasker.task_supervisor.start()
-# work_pid = 114958
+work_pid = 114958
 curses.wrapper(main)
 atasker.task_supervisor.stop(wait=False)
