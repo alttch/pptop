@@ -184,6 +184,7 @@ def main(stdscr):
                 switch_worker(worker_shortcuts[k])
             else:
                 show_process_info.trigger()
+                _d.current_worker.trigger()
         except:
             raise
             return
