@@ -85,13 +85,13 @@ client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 def client_command(cmd):
     with client_lock:
         try:
-            client.sendall(struct.pack('L', len(cmd)) + cmd.encode())
-            data = client.recv(8)
+            client.sendall(struct.pack('I', len(cmd)) + cmd.encode())
+            data = client.recv(4)
         except:
             raise RuntimeError('Injector is gone')
         if not data:
             raise RuntimeError('Injector error')
-        l = struct.unpack('L', data)
+        l = struct.unpack('I', data)
         data = client.recv(l[0])
         if data[0] != 0:
             raise RuntimeError('Injector command error')

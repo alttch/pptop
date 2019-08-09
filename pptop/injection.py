@@ -12,12 +12,12 @@ server exchange data via simple binary/text protocol:
 
 Client request:
 
-    bytes 1-8 : frame length
-    bytes 8-N : text command frame in format <CMD>[|DATA]
+    bytes 1-4 : frame length
+    bytes 4-N : text command frame in format <CMD>[|DATA]
 
 Server response:
 
-    bytes 1-8 : frame length
+    bytes 1-4 : frame length
     bytes 8-N : frame
 
     First frame byte: command status:
@@ -46,7 +46,7 @@ def loop(cpid):
 
     def send_data(conn, data):
         import struct
-        conn.sendall(struct.pack('L', len(data)) + data)
+        conn.sendall(struct.pack('I', len(data)) + data)
 
     def send_pickle(conn, data):
         import pickle
@@ -78,9 +78,9 @@ def loop(cpid):
         connection.settimeout(timeout)
         while True:
             try:
-                data = connection.recv(8)
+                data = connection.recv(4)
                 if data:
-                    l = struct.unpack('L', data)
+                    l = struct.unpack('I', data)
                     cmd = connection.recv(l[0]).decode().strip()
                 else:
                     break
@@ -154,7 +154,12 @@ def test():
 
 
 import threading
+f = open('/tmp/test-test', 'w')
+f2 = open('/tmp/test-test2', 'w')
 t = threading.Thread(target=test)
+t2 = threading.Thread(target=test, name='test thread 2')
 t.setDaemon(True)
+t2.setDaemon(True)
 t.start()
+t2.start()
 start(777)
