@@ -213,13 +213,17 @@ def handle_pager_event(stdscr, cursor_id, max_pos):
             shf -= 1
         if shf < 0:
             shf = 0
-    if max_pos <= height - reserved_lines + 1:
+    if max_pos == 0:
+        crs = 0
         shf = 0
-    if crs > max_pos:
-        crs = max_pos
-        shf = max_pos - height + reserved_lines + 1
-        if shf < 0:
+    else:
+        if max_pos <= height - reserved_lines + 1:
             shf = 0
+        if crs > max_pos:
+            crs = max_pos
+            shf = max_pos - height + reserved_lines + 1
+            if shf < 0:
+                shf = 0
     setattr(_cursors, cursor_id + '_cursor', crs)
     setattr(_cursors, cursor_id + '_shift', shf)
 
@@ -258,24 +262,26 @@ def show_function_profiler(stdscr, p, **kwargs):
         return False
     sess = []
     for s in data:
-        sess.append({
-            'function':
-            '{}.{}'.format(format_mod_name(s[1], _d.client_path), s[0]),
-            'ncall':
-            s[3],
-            'nacall':
-            s[4],
-            'ttot':
-            s[6],
-            'tsub':
-            s[7],
-            'tavg':
-            s[11],
-            'file':
-            '{}:{}'.format(s[1], s[2]),
-            'bultin':
-            s[5]
-        })
+        mod = format_mod_name(s[1], _d.client_path)
+        if not mod.startswith('pptop.'):
+            sess.append({
+                'function':
+                '{}.{}'.format(mod, s[0]),
+                'ncall':
+                s[3],
+                'nacall':
+                s[4],
+                'ttot':
+                s[6],
+                'tsub':
+                s[7],
+                'tavg':
+                s[11],
+                'file':
+                '{}:{}'.format(s[1], s[2]),
+                'builtin':
+                s[5]
+            })
     sess = sorted(sess, key=lambda k: k['ttot'], reverse=True)
     ks = ['ttot', 'tsub', 'tavg']
     for s in sess:
@@ -372,8 +378,8 @@ def pptop(stdscr):
     if curses.has_colors():
         curses.start_color()
         curses.use_default_colors()
-    for i in range(0, curses.COLORS):
-        curses.init_pair(i + 1, i, -1)
+        for i in range(0, curses.COLORS):
+            curses.init_pair(i + 1, i, -1)
     if not work_pid:
         p = select_process(stdscr)
     else:
