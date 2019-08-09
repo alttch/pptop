@@ -232,52 +232,65 @@ def print_ansi_str(stdscr, txt):
     stdscr.addstr(ansi_to_plain(txt))
     stdscr.clrtoeol()
 
+
 def print_empty_sep(stdscr):
     height, width = stdscr.getmaxyx()
     stdscr.addstr(4, 0, ' ' * (width - 1),
                   curses.color_pair(3) | curses.A_REVERSE)
 
+
+def format_mod_name(f, path):
+    for p in path:
+        if f.startswith(p):
+            f = f[len(p) + 1:]
+            break
+    if f.endswith('.py'):
+        f = f[:-3]
+    return f.replace('/', '.')
+
+
 @atasker.background_worker(delay=1)
 def show_function_profiler(stdscr, p, **kwargs):
     height, width = stdscr.getmaxyx()
     try:
-        sess = pickle.loads(client_command('pyinstrument'))
+        data = pickle.loads(client_command('profiler'))
     except:
         return False
-    profiler.last_session = sess
-    data = profiler.output_text(color=False).split('\n')[7:-2]
+    sess = []
+    for s in data:
+        sess.append({
+            'function':
+            '{}.{}'.format(format_mod_name(s[1], _d.client_path), s[0]),
+            'ncall':
+            s[3],
+            'nacall':
+            s[4],
+            'ttot':
+            s[6],
+            'tsub':
+            s[7],
+            'tavg':
+            s[11],
+            'file':
+            '{}:{}'.format(s[1], s[2]),
+            'bultin':
+            s[5]
+        })
+    sess = sorted(sess, key=lambda k: k['ttot'], reverse=True)
+    ks = ['ttot', 'tsub', 'tavg']
+    for s in sess:
+        for k in ks:
+            s[k] = '{:.3f}'.format(s[k])
     with scr_lock:
-        handle_pager_event(stdscr, 'profiler', len(data) - 1)
+        print_section_title(stdscr, 'Function profiler')
+        handle_pager_event(stdscr, 'profiler', len(sess) - 1)
         if _d.key_event:
             _d.key_event = None
-        print_section_title(stdscr, 'Function profiler')
-        print_empty_sep(stdscr)
-        cursor = _cursors.profiler_cursor - _cursors.profiler_shift
-        stdscr.move(5, 0)
-        stdscr.clrtoeol()
-        for i, t in enumerate(
-                data[_cursors.profiler_shift:_cursors.profiler_shift + height -
-                     reserved_lines]):
-            if cursor == i:
-                stdscr.addstr(
-                    5 + i, 0,
-                    t.ljust(width)[:width - 1],
-                    curses.color_pair(7) | curses.A_REVERSE
-                    if cursor == i else curses.A_NORMAL)
-            else:
-                stdscr.move(5 + i, 0)
-                strs = re.split(' ', t)
-                for s in strs[:-1]:
-                    try:
-                        stdscr.addstr(
-                            str(float(s)),
-                            curses.color_pair(5) | curses.A_BOLD)
-                    except Exception as e:
-                        stdscr.addstr(s)
-                    stdscr.addstr(' ')
-                stdscr.addstr(strs[-1], curses.color_pair(9))
-                stdscr.clrtoeol()
-        stdscr.clrtobot()
+        fancy_tabulate(
+            stdscr,
+            sess[_cursors.profiler_shift:_cursors.profiler_shift + height -
+                 reserved_lines],
+            cursor=_cursors.profiler_cursor - _cursors.profiler_shift)
         print_bottom_bar(stdscr)
         stdscr.refresh()
 
@@ -318,7 +331,9 @@ def show_threads(stdscr, p, **kwargs):
         threads = pickle.loads(client_command('threads'))
     except:
         return False
-    threads = sorted(threads, key=lambda k: k['ident'])
+    threads = sorted(threads, key=lambda k: k['ttot'], reverse=True)
+    for t in threads:
+        t['ttot'] = '{:.3f}'.format(t['ttot'])
     with scr_lock:
         print_section_title(stdscr, 'Threads')
         handle_pager_event(stdscr, 'threads', len(threads) - 1)
@@ -333,7 +348,7 @@ def show_threads(stdscr, p, **kwargs):
         stdscr.refresh()
 
 
-_d = SimpleNamespace(current_worker=None, key_event=None)
+_d = SimpleNamespace(current_worker=None, key_event=None, client_path=[])
 
 _cursors = SimpleNamespace(
     files_cursor=0,
@@ -370,6 +385,8 @@ def pptop(stdscr):
         client.connect('/tmp/.pptop_777')
     except:
         raise RuntimeError('Unable to connect to process')
+
+    _d.client_path = pickle.loads(client_command('path'))
 
     try:
         height, width = stdscr.getmaxyx()

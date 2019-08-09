@@ -18,7 +18,7 @@ Client request:
 Server response:
 
     bytes 1-4 : frame length
-    bytes 8-N : frame
+    bytes 4-N : frame
 
     First frame byte: command status:
 
@@ -31,15 +31,23 @@ Server response:
 Commands:
 
     test            Test server
-    threads         Get running threads
-    pyinstrument    Get pyinstrument profiler session data
+    path            Get sys.path
+    threads         Get threads data
+    profile         Get profiler data
     bye             End communcation
 
 If client closes connection, connection is timed out (default: 10 sec) or
 server receives "bye" command, it immediately terminates itself.
 '''
+import threading
+
+from types import SimpleNamespace
 
 timeout = 10
+
+_d = SimpleNamespace(clients=0)
+
+_d_lock = threading.Lock()
 
 
 def loop(cpid):
@@ -56,11 +64,11 @@ def loop(cpid):
         send_data(conn, b'\x00')
 
     import socket
+    import sys
     import os
-    import threading
     import struct
     import pickle
-    import pyinstrument
+    import yappi
     server_address = '/tmp/.pptop_{}'.format(cpid)
     try:
         os.unlink(server_address)
@@ -71,10 +79,12 @@ def loop(cpid):
     os.chmod(server_address, 0o600)
     server.listen(0)
     server.settimeout(timeout)
-    pi_profiler = pyinstrument.Profiler()
-    pi_profiler.start()
     try:
         connection, client_address = server.accept()
+        with _d_lock:
+            _d.clients += 1
+            if not yappi.is_running():
+                yappi.start()
         connection.settimeout(timeout)
         while True:
             try:
@@ -97,25 +107,32 @@ def loop(cpid):
                         send_ok(connection)
                     elif cmd == 'bye':
                         break
-                    elif cmd == 'pyinstrument':
-                        pi_profiler.stop()
-                        # pickle profiler data locally to start it back asap
-                        data = pickle.dumps(pi_profiler.last_session)
-                        pi_profiler.start()
-                        send_data(connection, b'\x00' + data)
+                    elif cmd == 'path':
+                        send_pickle(connection, sys.path)
+                    elif cmd == 'profiler':
+                        d = yappi.get_func_stats()
+                        for v in d:
+                            del v[9]
+                        send_pickle(connection, d)
                     elif cmd == 'threads':
                         result = []
+                        yi = {}
+                        for d in yappi.get_thread_stats():
+                            yi[d[2]] = (d[3], d[4])
                         for t in threading.enumerate():
                             try:
                                 target = '{}.{}'.format(t._target.__module__,
                                                         t._target.__name__)
                             except:
                                 target = None
+                            y = yi.get(t.ident)
                             result.append({
                                 'ident': t.ident,
                                 'daemon': t.daemon,
                                 'name': t.getName(),
-                                'target': target if target else ''
+                                'target': target if target else '',
+                                'ttot': y[0] if y else 0,
+                                'scnt': y[1] if y else 0
                             })
                         send_pickle(connection, result)
                     else:
@@ -133,7 +150,9 @@ def loop(cpid):
     except:
         pass
     try:
-        pi_profiler.stop()
+        with _d_lock:
+            _d.clients -= 1
+            if not _d.clients: yappi.stop()
     except:
         pass
     try:
@@ -143,17 +162,20 @@ def loop(cpid):
 
 
 def start(cpid):
-    import threading
     loop(cpid)
 
 
 def test():
     import time
     while True:
-        time.sleep(1)
+        z()
+        time.sleep(0.2)
 
 
-import threading
+def z():
+    pass
+
+
 f = open('/tmp/test-test', 'w')
 f2 = open('/tmp/test-test2', 'w')
 t = threading.Thread(target=test)
