@@ -263,7 +263,7 @@ def show_function_profiler(stdscr, p, **kwargs):
     sess = []
     for s in data:
         mod = format_mod_name(s[1], _d.client_path)
-        if not mod.startswith('pptop.'):
+        if not mod.startswith('!pptop.'):
             sess.append({
                 'function':
                 '{}.{}'.format(mod, s[0]),
