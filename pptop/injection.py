@@ -44,6 +44,10 @@ def loop(cpid):
                 break
             if cmd:
                 try:
+                    cmd, cmd_data = cmd.split('|')
+                except:
+                    cmd_data = None
+                try:
                     if cmd == 'test':
                         send_ok(connection)
                     elif cmd == 'bye':
