@@ -2,7 +2,6 @@ __author__ = "Altertech Group, https://www.altertech.com/"
 __copyright__ = "Copyright (C) 2019 Altertech Group"
 __license__ = "MIT"
 __version__ = "0.0.1"
-
 '''
 Client-server communication
 
@@ -60,6 +59,7 @@ def loop(cpid):
     import os
     import threading
     import struct
+    import pickle
     import pyinstrument
     server_address = '/tmp/.pptop_{}'.format(cpid)
     try:
@@ -99,8 +99,10 @@ def loop(cpid):
                         break
                     elif cmd == 'pyinstrument':
                         pi_profiler.stop()
-                        send_pickle(connection, pi_profiler.last_session)
+                        # pickle profiler data locally to start it back asap
+                        data = pickle.dumps(pi_profiler.last_session)
                         pi_profiler.start()
+                        send_data(connection, b'\x00' + data)
                     elif cmd == 'threads':
                         result = []
                         for t in threading.enumerate():
