@@ -371,29 +371,39 @@ def pptop(stdscr):
     except:
         raise RuntimeError('Unable to connect to process')
 
-    height, width = stdscr.getmaxyx()
-    stdscr.clear()
-    curses.curs_set(0)
-    switch_worker(default_page)
-    atasker.background_task(show_process_info.start)(stdscr=stdscr, p=p)
-    worker_shortcuts = {
-        'KEY_F(5)': show_function_profiler,
-        'KEY_F(6)': show_open_files,
-        'KEY_F(7)': show_threads
-    }
-    while True:
-        try:
-            k = stdscr.getkey()
-            if not show_process_info.is_active() or k in ['q', 'KEY_F(10)']:
+    try:
+        height, width = stdscr.getmaxyx()
+        stdscr.clear()
+        curses.curs_set(0)
+        switch_worker(default_page)
+        atasker.background_task(show_process_info.start)(stdscr=stdscr, p=p)
+        worker_shortcuts = {
+            'KEY_F(5)': show_function_profiler,
+            'KEY_F(6)': show_open_files,
+            'KEY_F(7)': show_threads
+        }
+        while True:
+            try:
+                k = stdscr.getkey()
+                if not show_process_info.is_active() or k in ['q', 'KEY_F(10)']:
+                    return
+                elif k in worker_shortcuts:
+                    switch_worker(worker_shortcuts[k])
+                else:
+                    with scr_lock:
+                        _d.key_event = k
+                        _d.current_worker.trigger()
+            except:
                 return
-            elif k in worker_shortcuts:
-                switch_worker(worker_shortcuts[k])
-            else:
-                with scr_lock:
-                    _d.key_event = k
-                    _d.current_worker.trigger()
+    finally:
+        try:
+            client_command('bye')
         except:
-            return
+            pass
+        try:
+            client.close()
+        except:
+            pass
 
 
 def main():

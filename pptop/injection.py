@@ -1,3 +1,47 @@
+__author__ = "Altertech Group, http://www.altertech.com/"
+__copyright__ = "Copyright (C) 2019 Altertech Group"
+__license__ = "MIT"
+__version__ = "0.0.1"
+'''
+Client-server communication
+
+After injection, client asks server to create socket /tmp/.pptop_<Client-PID>
+
+Server accepts only one connection to socket. After connection, client and
+server exchange data via simple binary/text protocol:
+
+Client request:
+
+    bytes 1-8 : frame length
+    bytes 8-N : text command frame in format <CMD>[|DATA]
+
+Server response:
+
+    bytes 1-8 : frame length
+    bytes 8-N : frame
+
+    First frame byte: command status:
+
+        0x00 - OK
+        0x01 - Command not found
+        0x02 - Command failed
+
+    Frame bytes 2-N: pickled data
+
+Commands:
+
+    test            Test server
+    threads         Get running threads
+    pyinstrument    Get pyinstrument profiler session data
+    bye             End communcation
+
+If client closes connection, connection is timed out (default: 10 sec) or
+server receives "bye" command, it immediately terminates itself.
+'''
+
+timeout = 10
+
+
 def loop(cpid):
 
     def send_data(conn, data):
@@ -25,12 +69,12 @@ def loop(cpid):
     server.bind(server_address)
     os.chmod(server_address, 0o600)
     server.listen(0)
-    server.settimeout(10)
+    server.settimeout(timeout)
     pi_profiler = pyinstrument.Profiler()
     pi_profiler.start()
     try:
         connection, client_address = server.accept()
-        connection.settimeout(30)
+        connection.settimeout(timeout)
         while True:
             try:
                 data = connection.recv(8)
@@ -44,7 +88,7 @@ def loop(cpid):
                 break
             if cmd:
                 try:
-                    cmd, cmd_data = cmd.split('|')
+                    cmd, cmd_data = cmd.split('|', 1)
                 except:
                     cmd_data = None
                 try:
