@@ -15,6 +15,7 @@ def loop(cpid):
     import os
     import threading
     import struct
+    import pyinstrument
     server_address = '/tmp/.pptop_{}'.format(cpid)
     try:
         os.unlink(server_address)
@@ -25,9 +26,10 @@ def loop(cpid):
     os.chmod(server_address, 0o600)
     server.listen(0)
     server.settimeout(10)
+    pi_profiler = pyinstrument.Profiler()
+    pi_profiler.start()
     try:
         connection, client_address = server.accept()
-        print(client_address)
         connection.settimeout(30)
         while True:
             try:
@@ -46,6 +48,10 @@ def loop(cpid):
                         send_ok(connection)
                     elif cmd == 'bye':
                         break
+                    elif cmd == 'pyinstrument':
+                        pi_profiler.stop()
+                        send_pickle(connection, pi_profiler.last_session)
+                        pi_profiler.start()
                     elif cmd == 'threads':
                         result = []
                         for t in threading.enumerate():
@@ -71,7 +77,14 @@ def loop(cpid):
     except:
         raise
         pass
-    server.close()
+    try:
+        server.close()
+    except:
+        pass
+    try:
+        pi_profiler.stop()
+    except:
+        pass
     try:
         os.unlink(server_address)
     except:

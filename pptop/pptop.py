@@ -16,12 +16,15 @@ import logging
 import socket
 import struct
 import pickle
+import pyinstrument
 
 from types import SimpleNamespace
 
 logging.getLogger('asyncio').setLevel(logging.CRITICAL)
 
 work_pid = None
+
+profiler = pyinstrument.Profiler()
 
 
 def select_process(stdscr):
@@ -145,7 +148,7 @@ def fancy_tabulate(stdscr, table, cursor=None):
     if table:
         height, width = stdscr.getmaxyx()
         d = tabulate.tabulate(table, headers='keys').split('\n')
-        stdscr.addstr(4, 0, d[0].ljust(width),
+        stdscr.addstr(4, 0, d[0].ljust(width)[:width - 1],
                       curses.color_pair(3) | curses.A_REVERSE)
         for i, t in enumerate(d[2:]):
             stdscr.addstr(
@@ -156,7 +159,7 @@ def fancy_tabulate(stdscr, table, cursor=None):
 
 
 def print_bottom_bar(stdscr):
-    hlp = {'F5': 'Prof', 'F6': 'Files', 'F7': 'Thrds'}
+    hlp = {'F5': 'Prof', 'F6': 'Files', 'F7': 'Thrds', 'F10': 'Quit'}
     height, width = stdscr.getmaxyx()
     stdscr.move(height - 1, 0)
     stdscr.addstr(' ' * (width - 1), curses.color_pair(7) | curses.A_REVERSE)
@@ -165,16 +168,6 @@ def print_bottom_bar(stdscr):
         stdscr.addstr(h)
         stdscr.addstr(t.ljust(6), curses.color_pair(7) | curses.A_REVERSE)
     return
-
-
-@atasker.background_worker(delay=1)
-def show_function_profiler(stdscr, p, **kwargs):
-    height, width = stdscr.getmaxyx()
-    with scr_lock:
-        print_section_title(stdscr, 'Function profiler')
-        stdscr.clrtobot()
-        print_bottom_bar(stdscr)
-        stdscr.refresh()
 
 
 reserved_lines = 6
@@ -222,6 +215,36 @@ def handle_pager_event(stdscr, cursor_id, max_pos):
             shf = 0
     setattr(_cursors, cursor_id + '_cursor', crs)
     setattr(_cursors, cursor_id + '_shift', shf)
+
+
+@atasker.background_worker(delay=1)
+def show_function_profiler(stdscr, p, **kwargs):
+    height, width = stdscr.getmaxyx()
+    try:
+        sess = pickle.loads(client_command('pyinstrument'))
+    except:
+        return False
+    profiler.last_session = sess
+    data = profiler.output_text().split('\n')[7:-2]
+    with scr_lock:
+        handle_pager_event(stdscr, 'profiler', len(data) - 1)
+        if _d.key_event:
+            _d.key_event = None
+        print_section_title(stdscr, 'Function profiler')
+        cursor = _cursors.profiler_cursor - _cursors.profiler_shift
+        stdscr.move(4, 0)
+        stdscr.clrtoeol()
+        for i, t in enumerate(
+                data[_cursors.profiler_shift:_cursors.profiler_shift + height -
+                     reserved_lines]):
+            stdscr.addstr(
+                5 + i, 0,
+                t.ljust(width)[:width - 1],
+                curses.color_pair(7) | curses.A_REVERSE
+                if cursor == i else curses.A_NORMAL)
+        stdscr.clrtobot()
+        print_bottom_bar(stdscr)
+        stdscr.refresh()
 
 
 @atasker.background_worker(delay=1)
@@ -280,9 +303,14 @@ def show_threads(stdscr, p, **kwargs):
 _d = SimpleNamespace(current_worker=None, key_event=None)
 
 _cursors = SimpleNamespace(
-    files_cursor=0, files_shift=0, threads_cursor=0, threads_shift=0)
+    files_cursor=0,
+    files_shift=0,
+    threads_cursor=0,
+    threads_shift=0,
+    profiler_cursor=0,
+    profiler_shift=0)
 
-default_page = show_open_files
+default_page = show_function_profiler
 
 
 def pptop(stdscr):
@@ -323,9 +351,7 @@ def pptop(stdscr):
     while True:
         try:
             k = stdscr.getkey()
-            if not show_process_info.is_active():
-                return
-            if k == 'q':
+            if not show_process_info.is_active() or k in ['q', 'KEY_F(10)']:
                 return
             elif k in worker_shortcuts:
                 switch_worker(worker_shortcuts[k])
