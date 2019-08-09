@@ -1,7 +1,8 @@
-__author__ = "Altertech Group, http://www.altertech.com/"
+__author__ = "Altertech Group, https://www.altertech.com/"
 __copyright__ = "Copyright (C) 2019 Altertech Group"
 __license__ = "MIT"
 __version__ = "0.0.1"
+
 '''
 Client-server communication
 
