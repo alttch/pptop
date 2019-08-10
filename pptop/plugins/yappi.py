@@ -26,10 +26,10 @@ class Plugin(GenericPlugin):
         self.data = sess
         return True
 
-    def formatted_data(self, max_records):
+    def formatted_data(self, limit):
         ks = ['ttot', 'tsub', 'tavg']
         data = []
-        for s in self.data[self.shift:self.shift + max_records - 1]:
+        for s in self.data[self.shift:self.shift + limit - 1]:
             z = s.copy()
             for k in ks:
                 z[k] = '{:.3f}'.format(z[k])

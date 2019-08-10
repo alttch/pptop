@@ -7,9 +7,9 @@ class Plugin(GenericPlugin):
         self.short_name = 'Thrds'
         self.sorting_col = 'ttot'
 
-    def formatted_data(self, max_records):
+    def formatted_data(self, limit):
         data = []
-        for t in self.data[self.shift:self.shift + max_records - 1]:
+        for t in self.data[self.shift:self.shift + limit - 1]:
             z = t.copy()
             z['ttot'] = '{:.3f}'.format(z['ttot'])
             yield z

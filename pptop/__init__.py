@@ -18,18 +18,60 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.name = mod.__name__.rsplit('.', 1)[-1]
         self.title = None
         self.short_name = None
-        self.stdscr = None  # ncurses stdscr object
+        self.stdscr = None  # curses stdscr object
         self.data = []
         self.sorting_col = None
         self.sorting_rev = True
 
     def on_load(self):
+        '''
+        Executed on plugin load (on pptop startup)
+        '''
         pass
 
     def on_unload(self):
+        '''
+        Executed on plugin unload (on pptop shutdown)
+        '''
         pass
 
+    def get_process(self):
+        '''
+        Get connected process
+
+        Returns:
+            psutil.Process object
+        '''
+        return None
+
+    def get_process_path(self):
+        '''
+        Get sys.path of connected process
+
+        Useful e.g. to format module names
+
+        Returns:
+            sys.path object
+        '''
+        return None
+
+    def command(cmd, data=None):
+        '''
+        Execute command on connected process
+
+        Args:
+            cmd: command to execute
+            data: command data (optional, free format)
+        '''
+        return None
+
     def handle_pager_event(self, window):
+        '''
+        Pager event handler
+
+        Args:
+            window: plugin working window
+        '''
         height, width = window.getmaxyx()
         max_pos = len(self.data) - 1
         if self.key_event:
@@ -102,6 +144,9 @@ class GenericPlugin(BackgroundIntervalWorker):
                     self.cursor = max_pos - 1
 
     def print_section_title(self):
+        '''
+        Print section title
+        '''
         height, width = self.stdscr.getmaxyx()
         self.stdscr.addstr(3, 0, ' ' + self.title.ljust(width - 1),
                            curses.color_pair(4) | curses.A_BOLD)
@@ -109,11 +154,22 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.stdscr.clrtoeol()
 
     def print_empty_sep(self):
+        '''
+        Print empty separator instead of table header
+        '''
         height, width = self.stdscr.getmaxyx()
         self.stdscr.addstr(4, 0, ' ' * (width - 1),
                            curses.color_pair(3) | curses.A_REVERSE)
 
     def load_data(self):
+        '''
+        Load data from connected process
+
+        Default method sends command cmd=<plugin_name>
+
+        Returns:
+            if False is returned, the plugin is stopped
+        '''
         try:
             self.data = pickle.loads(self.command(self.name))
             return True
@@ -121,9 +177,18 @@ class GenericPlugin(BackgroundIntervalWorker):
             return False
 
     def process_data(self):
+        '''
+        Format loaded data into table
+
+        Returns:
+            if False is returned, the plugin is stopped
+        '''
         return True
 
     def sort_data(self):
+        '''
+        Sort data
+        '''
         if self.data:
             if not self.sorting_col:
                 self.sorting_col = list(self.data[0])[0]
@@ -132,11 +197,29 @@ class GenericPlugin(BackgroundIntervalWorker):
                 key=lambda k: k[self.sorting_col],
                 reverse=self.sorting_rev)
 
-    def formatted_data(self, max_records):
-        for d in self.data[self.shift:self.shift + max_records - 1]:
+    def formatted_data(self, limit):
+        '''
+        Format part of data for rendering
+
+        The method should use self.shift variable to determine current data
+        offset
+
+        Args:
+            limit: max records limit
+
+        Returns:
+            The method should return generator object
+        '''
+        for d in self.data[self.shift:self.shift + limit - 1]:
             yield d
 
     def get_render_window(self):
+        '''
+        Get plugin working window
+
+        Returns:
+            curses window object
+        '''
         height, width = self.stdscr.getmaxyx()
         return curses.newwin(height - 6, width, 5, 0)
 
@@ -159,22 +242,41 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.on_stop()
 
     def on_start(self):
+        '''
+        Called after plugin startup
+        '''
         pass
 
     def on_stop(self):
+        '''
+        Called after plugin shutdown
+        '''
         pass
 
     def handle_key_event(self, event, window):
+        '''
+        Handle custom key event
+
+        Args:
+            event: curses getkey() event
+            window: plugin working window
+
+        Returns:
+            can return False to stop plugin
+        '''
         return True
 
     def run(self, **kwargs):
+        '''
+        Primary plugin executor method
+        '''
         if not self.key_event or self.key_event == ' ':
-            if not self.load_data() or not self.process_data():
+            if self.load_data() is False or self.process_data() is False:
                 return False
         with self.scr_lock:
             window = self.get_render_window()
             self.handle_pager_event(window)
-            if not self.handle_key_event(self.key_event, window):
+            if self.handle_key_event(self.key_event, window) is False:
                 return False
             if self.key_event:
                 self.key_event = None
@@ -183,6 +285,12 @@ class GenericPlugin(BackgroundIntervalWorker):
             window.refresh()
 
     def render(self, window):
+        '''
+        Renders plugin output
+
+        Args:
+            window: curses window object
+        '''
         height, width = window.getmaxyx()
         fancy_tabulate(
             window,

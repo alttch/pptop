@@ -218,40 +218,30 @@ def run(stdscr):
 
     _d.process_path = pickle.loads(command('path'))
 
-    try:
-        height, width = stdscr.getmaxyx()
-        stdscr.clear()
-        stdscr.refresh()
-        curses.curs_set(0)
-        switch_plugin(_d.default_plugin, stdscr)
-        atasker.background_task(show_process_info.start)(stdscr=stdscr, p=p)
-        while True:
-            try:
-                k = stdscr.getkey()
-                stdscr.addstr(4,0,k)
-                stdscr.clrtoeol()
-                stdscr.refresh()
-                if not show_process_info.is_active():
-                    return
-                elif k in plugin_shortcuts:
-                    switch_plugin(plugin_shortcuts[k], stdscr)
-                elif k in ['q', 'KEY_F(10)']:
-                    return
-                else:
-                    with scr_lock:
-                        _d.current_plugin['p'].key_event = k
-                        _d.current_plugin['p'].trigger()
-            except:
+    height, width = stdscr.getmaxyx()
+    stdscr.clear()
+    stdscr.refresh()
+    curses.curs_set(0)
+    switch_plugin(_d.default_plugin, stdscr)
+    atasker.background_task(show_process_info.start)(stdscr=stdscr, p=p)
+    while True:
+        try:
+            k = stdscr.getkey()
+            stdscr.addstr(4,0,k)
+            stdscr.clrtoeol()
+            stdscr.refresh()
+            if not show_process_info.is_active():
                 return
-    finally:
-        try:
-            command('bye')
+            elif k in plugin_shortcuts:
+                switch_plugin(plugin_shortcuts[k], stdscr)
+            elif k in ['q', 'KEY_F(10)']:
+                return
+            else:
+                with scr_lock:
+                    _d.current_plugin['p'].key_event = k
+                    _d.current_plugin['p'].trigger()
         except:
-            pass
-        try:
-            client.close()
-        except:
-            pass
+            return
 
 
 def start():
@@ -310,9 +300,18 @@ def start():
     atasker.task_supervisor.start()
     try:
         curses.wrapper(run)
+        for p, v in plugins.items():
+            v['p'].on_unload()
     except Exception as e:
         raise
         print(e)
-    for p, v in plugins.items():
-        v['p'].on_unload()
+    finally:
+        try:
+            command('bye')
+        except:
+            pass
+        try:
+            client.close()
+        except:
+            pass
     atasker.task_supervisor.stop(wait=False)
