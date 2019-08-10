@@ -16,7 +16,7 @@ setuptools.setup(
     url='https://github.com/alttch/pptop',
     packages=setuptools.find_packages(),
     license='MIT',
-    install_requires=['psutil', 'tabulate', 'atasker', 'pyinstrument'],
+    install_requires=['psutil', 'tabulate', 'atasker', 'yappi'],
     classifiers=('Programming Language :: Python :: 3',
                  'License :: OSI Approved :: MIT License',
                  'Topic :: Software Development :: Debuggers',

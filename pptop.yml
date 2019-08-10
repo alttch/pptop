@@ -1,0 +1,11 @@
+plugins:
+  yappi:
+    default: true
+    shortcut: KEY_F(5)
+    interval: 1
+  open_files:
+    shortcut: KEY_F(6)
+    interval: 1
+  threads:
+    shortcut: KEY_F(7)
+    interval: 1

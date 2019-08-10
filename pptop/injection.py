@@ -43,7 +43,7 @@ import threading
 
 from types import SimpleNamespace
 
-timeout = 10
+timeout = 60
 
 _d = SimpleNamespace(clients=0)
 
@@ -68,7 +68,6 @@ def loop(cpid):
     import os
     import struct
     import pickle
-    import yappi
     server_address = '/tmp/.pptop_{}'.format(cpid)
     try:
         os.unlink(server_address)
@@ -81,17 +80,16 @@ def loop(cpid):
     server.settimeout(timeout)
     try:
         connection, client_address = server.accept()
+        injections = {}
         with _d_lock:
             _d.clients += 1
-            if not yappi.is_running():
-                yappi.start()
         connection.settimeout(timeout)
         while True:
             try:
                 data = connection.recv(4)
                 if data:
                     l = struct.unpack('I', data)
-                    cmd = connection.recv(l[0]).decode().strip()
+                    cmd = connection.recv(l[0])
                 else:
                     break
             except:
@@ -99,42 +97,75 @@ def loop(cpid):
                 break
             if cmd:
                 try:
-                    cmd, cmd_data = cmd.split('|', 1)
+                    cmd, cmd_data = cmd.split(b'\xff', 1)
+                    cmd_data = pickle.loads(cmd_data)
                 except:
                     cmd_data = None
                 try:
+                    print(cmd)
+                    cmd = cmd.decode()
                     if cmd == 'test':
                         send_ok(connection)
                     elif cmd == 'bye':
                         break
                     elif cmd == 'path':
                         send_pickle(connection, sys.path)
-                    elif cmd == 'profiler':
-                        d = yappi.get_func_stats()
-                        for v in d:
-                            del v[9]
-                        send_pickle(connection, d)
-                    elif cmd == 'threads':
-                        result = []
-                        yi = {}
-                        for d in yappi.get_thread_stats():
-                            yi[d[2]] = (d[3], d[4])
-                        for t in threading.enumerate():
-                            try:
-                                target = '{}.{}'.format(t._target.__module__,
-                                                        t._target.__name__)
-                            except:
-                                target = None
-                            y = yi.get(t.ident)
-                            result.append({
-                                'ident': t.ident,
-                                'daemon': t.daemon,
-                                'name': t.getName(),
-                                'target': target if target else '',
-                                'ttot': y[0] if y else 0,
-                                'scnt': y[1] if y else 0
-                            })
-                        send_pickle(connection, result)
+                    elif cmd == 'inject':
+                        print(cmd_data)
+                        injection_id = cmd_data['id']
+                        injections[injection_id] = {
+                            'g': {
+                                'g': SimpleNamespace()
+                            },
+                            'u': cmd_data.get('u')
+                        }
+                        if 'l' in cmd_data:
+                            code = compile(
+                                cmd_data['l'] + '\ninjection_load()',
+                                'pptop.__injection_load_' + injection_id,
+                                'exec')
+                            exec(code, injections[injection_id]['g'])
+                            print(injections[injection_id]['g'].get('g'))
+                        if 'i' in cmd_data:
+                            src = cmd_data['i'] + '\n_r = injection()'
+                        else:
+                            src = '_r = None'
+                        injections[injection_id]['i'] = compile(
+                            src, 'pptop.__injection_' + injection_id, 'exec')
+                        print('injection completed {}'.format(injection_id))
+                        send_ok(connection)
+                    elif cmd in injections:
+                        g = injections[cmd]['g']
+                        exec(injections[cmd]['i'], g)
+                        print(g.get('g'))
+                        print(g['_r'])
+                        send_pickle(connection, g['_r'])
+                    # elif cmd == 'profiler':
+                    # d = yappi.get_func_stats()
+                    # for v in d:
+                    # del v[9]
+                    # send_pickle(connection, d)
+                    # elif cmd == 'threads':
+                    # result = []
+                    # yi = {}
+                    # for d in yappi.get_thread_stats():
+                    # yi[d[2]] = (d[3], d[4])
+                    # for t in threading.enumerate():
+                    # try:
+                    # target = '{}.{}'.format(t._target.__module__,
+                    # t._target.__name__)
+                    # except:
+                    # target = None
+                    # y = yi.get(t.ident)
+                    # result.append({
+                    # 'ident': t.ident,
+                    # 'daemon': t.daemon,
+                    # 'name': t.getName(),
+                    # 'target': target if target else '',
+                    # 'ttot': y[0] if y else 0,
+                    # 'scnt': y[1] if y else 0
+                    # })
+                    # send_pickle(connection, result)
                     else:
                         send_data(connection, b'\x01')
                 except:
@@ -145,6 +176,18 @@ def loop(cpid):
     except:
         raise
         pass
+    for i, v in injections.items():
+        u = v.get('u')
+        if u:
+            try:
+                code = compile(u + '\ninjection_unload()',
+                               'pptop.__injection_unload_' + injection_id,
+                               'exec')
+                exec(code, v['g'])
+                print('injection removed {}'.format(i))
+            except:
+                raise
+                pass
     try:
         server.close()
     except:
@@ -152,7 +195,6 @@ def loop(cpid):
     try:
         with _d_lock:
             _d.clients -= 1
-            if not _d.clients: yappi.stop()
     except:
         pass
     try:
