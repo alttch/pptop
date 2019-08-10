@@ -10,6 +10,7 @@ from atasker import BackgroundIntervalWorker
 
 tabulate.PRESERVE_WHITESPACE = True
 
+
 class GenericPlugin(BackgroundIntervalWorker):
 
     def __init__(self, *args, **kwargs):
@@ -102,59 +103,63 @@ class GenericPlugin(BackgroundIntervalWorker):
                     self.sorting_rev = False
                 elif self.key_event == 'kUP3':
                     self.sorting_rev = True
-            if self.cursor_enabled:
-                if self.key_event == 'KEY_DOWN':
+            if self.key_event == 'KEY_LEFT':
+                self.hshift -= 1
+                if self.hshift < 0:
+                    self.hshift = 0
+            elif self.key_event == 'KEY_RIGHT':
+                self.hshift += 1
+            if self.key_event == 'KEY_DOWN':
+                if self.cursor_enabled:
                     self.cursor += 1
                     if self.cursor > max_pos:
                         self.cursor = max_pos
                     if self.cursor - self.shift >= height - 1:
                         self.shift += 1
-                elif self.key_event == 'KEY_UP':
+                else:
+                    self.cursor += 1
+                    self.shift += 1
+            elif self.key_event == 'KEY_UP':
+                if self.cursor_enabled:
                     self.cursor -= 1
-                elif self.key_event == 'KEY_LEFT':
-                    self.hshift -= 1
-                    if self.hshift < 0:
-                        self.hshift = 0
-                elif self.key_event == 'KEY_RIGHT':
-                    self.hshift += 1
-                elif self.key_event == 'KEY_NPAGE':
-                    self.cursor += height - 1
-                    self.shift += height - 1
-                elif self.key_event == 'KEY_PPAGE':
-                    self.cursor -= height + 1
-                    self.shift -= height + 1
-                elif self.key_event == 'KEY_HOME':
-                    self.hshift = 0
-                    self.cursor = 0
-                    self.shift = 0
-                elif self.key_event == 'KEY_END':
-                    self.cursor = max_pos
-                    self.shift = max_pos - height + 2
-                if self.cursor < 0:
+                else:
+                    self.cursor -= 1
                     self.shift -= 1
-                    self.cursor = 0
-                if self.cursor - self.shift < 0:
-                    self.cursor = self.shift - 1
-                    if self.cursor < 0: self.cursor = 0
-                    self.shift -= 1
-                if self.shift < 0:
-                    self.shift = 0
-        if self.cursor_enabled:
-            if max_pos == 0:
+            elif self.key_event == 'KEY_NPAGE':
+                self.cursor += height - 1
+                self.shift += height - 1
+            elif self.key_event == 'KEY_PPAGE':
+                self.cursor -= height + 1
+                self.shift -= height + 1
+            elif self.key_event == 'KEY_HOME':
+                self.hshift = 0
                 self.cursor = 0
                 self.shift = 0
-            else:
-                if self.cursor > max_pos:
-                    self.cursor = max_pos
-                    self.shift = max_pos - height + 2
-                    if self.shift < 0:
-                        self.shift = 0
-                if max_pos < height:
-                    self.shift = 0
-                    if self.cursor > max_pos:
-                        self.cursor = max_pos - 1
+            elif self.key_event == 'KEY_END':
+                self.cursor = max_pos
+                self.shift = max_pos - height + 2
+            if self.cursor < 0:
+                self.shift -= 1
+                self.cursor = 0
+            if self.cursor - self.shift < 0:
+                self.cursor = self.shift - 1
+                if self.cursor < 0: self.cursor = 0
+                self.shift -= 1
+            if self.shift < 0:
+                self.shift = 0
+        if max_pos == 0:
+            self.cursor = 0
+            self.shift = 0
         else:
-            self.cursor = -1
+            if self.cursor > max_pos:
+                self.cursor = max_pos
+                self.shift = max_pos - height + 2
+                if self.shift < 0:
+                    self.shift = 0
+            if max_pos < height:
+                self.shift = 0
+                if self.cursor > max_pos:
+                    self.cursor = max_pos - 1
 
     def print_section_title(self):
         '''
@@ -327,7 +332,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         fancy_tabulate(
             window,
             self.formatted_data(height),
-            cursor=self.cursor - self.shift,
+            cursor=(self.cursor - self.shift) if self.cursor_enabled else -1,
             hshift=self.hshift,
             sorting_col=self.sorting_col,
             sorting_rev=self.sorting_rev)

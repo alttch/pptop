@@ -104,7 +104,12 @@ def select_process(stdscr):
     selector.start()
     while True:
         try:
-            k = stdscr.getkey()
+            try:
+                k = stdscr.getkey()
+            except KeyboardInterrupt:
+                return
+            except:
+                continue
             if k in ['q', 'KEY_F(10)']:
                 selector.stop(wait=False)
                 return
@@ -120,6 +125,7 @@ def select_process(stdscr):
                     selector.key_event = k
                     selector.trigger()
         except:
+            raise
             return
 
     return
@@ -277,7 +283,12 @@ def run(stdscr):
     atasker.background_task(show_process_info.start)(stdscr=stdscr, p=p)
     while True:
         try:
-            k = stdscr.getkey()
+            try:
+                k = stdscr.getkey()
+            except KeyboardInterrupt:
+                return
+            except:
+                continue
             if not show_process_info.is_active():
                 return
             elif k in plugin_shortcuts:
