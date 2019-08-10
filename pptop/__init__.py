@@ -132,8 +132,8 @@ class GenericPlugin(BackgroundIntervalWorker):
                 key=lambda k: k[self.sorting_col],
                 reverse=self.sorting_rev)
 
-    def formatted_data(self, start, stop):
-        for d in self.data[start:stop]:
+    def formatted_data(self, max_records):
+        for d in self.data[self.shift:self.shift + max_records - 1]:
             yield d
 
     def get_render_window(self):
@@ -186,7 +186,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         height, width = window.getmaxyx()
         fancy_tabulate(
             window,
-            self.formatted_data(self.shift, self.shift + height - 1),
+            self.formatted_data(height),
             cursor=self.cursor - self.shift,
             hshift=self.hshift,
             sorting_col=self.sorting_col,
