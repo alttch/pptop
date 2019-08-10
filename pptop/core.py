@@ -18,6 +18,8 @@ import importlib
 
 from types import SimpleNamespace
 
+from pptop import GenericPlugin
+
 logging.getLogger('asyncio').setLevel(logging.CRITICAL)
 
 work_pid = None
@@ -29,50 +31,81 @@ bottom_bar_help = {10: 'Quit'}
 plugin_shortcuts = {}
 
 
-def select_process(stdscr):
-    processes = []
-    for p in psutil.process_iter():
-        name = p.name()
-        if name in ['python', 'python3'] and p.pid != os.getpid():
-            processes.append(p)
-    if not processes:
-        raise Exception('No processed found')
-    stdscr.clear()
-    curses.curs_set(0)
-    if curses.can_change_color():
-        curses.init_color(0, 0, 0, 0)
-    height, width = stdscr.getmaxyx()
-    stdscr.addstr(0, 0, 'Select process', curses.color_pair(4) | curses.A_BOLD)
-    stdscr.addstr(1, 0, '-' * width, curses.color_pair(9))
-    index = 0
-    while True:
-        i = 0
-        for p in processes:
-            try:
-                line = '{} {:<7} {}'.format('>' if index == i else ' ', p.pid,
-                                            ' '.join(p.cmdline()))
-                stdscr.addstr(
-                    i + 3, 0, '{}'.format(line[:width]), curses.A_REVERSE
-                    if i == index else curses.A_NORMAL)
-                i += 1
-            except:
-                break
+def enter_is_terminate(x):
+    if x == 10:
+        x = 7
+    return x
 
+
+def apply_filter(stdscr, plugin):
+    height, width = stdscr.getmaxyx()
+    with scr_lock:
+        stdscr.addstr(4, 1, 'f: ')
+        editwin = curses.newwin(1, width - 3, 4, 4)
+        from curses.textpad import Textbox
+        curses.curs_set(2)
+        box = Textbox(editwin)
         stdscr.refresh()
+        box.edit(enter_is_terminate)
+        plugin.filter = box.gather().strip().lower()
+        curses.curs_set(0)
+        stdscr.move(4, 0)
+        stdscr.clrtoeol()
+        stdscr.refresh()
+        plugin.trigger()
+
+
+def select_process(stdscr):
+
+    class ProcesSelector(GenericPlugin):
+
+        def load_data(self):
+            self.data.clear()
+            for p in psutil.process_iter():
+                name = p.name()
+                if name in ['python', 'python3'] and p.pid != os.getpid():
+                    self.data.append({
+                        'pid': p.pid,
+                        'command line': ' '.join(p.cmdline())
+                    })
+
+        def run(self, *args, **kwargs):
+            super().run(*args, **kwargs)
+
+    with scr_lock:
+        stdscr.clear()
+        curses.curs_set(0)
+    selector = ProcesSelector(interval=1)
+    selector.events = 0
+    selector.stdscr = stdscr
+    selector.sorting_rev = False
+    selector.scr_lock = scr_lock
+    selector.finish_event = threading.Event()
+    selector.key_event = None
+    selector.lock = threading.Lock()
+    selector.title = 'Select process'
+    selector.start()
+    while True:
         try:
             k = stdscr.getkey()
-            if k == 'KEY_DOWN':
-                index += 1
-                if index > len(processes) - 1: index = 0
-            elif k == 'KEY_UP':
-                index -= 1
-                if index < 0: index = len(processes) - 1
-            elif k == 'q':
+            if k in ['q', 'KEY_F(10)']:
+                selector.stop(wait=False)
                 return
+            elif k == 'f':
+                apply_filter(stdscr, selector)
             elif k == '\n':
-                return processes[index]
+                selector.stop(wait=False)
+                if not selector.dtd:
+                    return None
+                return psutil.Process(selector.dtd[selector.cursor]['pid'])
+            else:
+                with scr_lock:
+                    selector.key_event = k
+                    selector.trigger()
         except:
             return
+
+    return
 
 
 scr_lock = threading.Lock()
@@ -227,16 +260,14 @@ def run(stdscr):
     while True:
         try:
             k = stdscr.getkey()
-            with scr_lock:
-                stdscr.addstr(4, 0, k)
-                stdscr.clrtoeol()
-                stdscr.refresh()
             if not show_process_info.is_active():
                 return
             elif k in plugin_shortcuts:
                 switch_plugin(plugin_shortcuts[k], stdscr)
             elif k in ['q', 'KEY_F(10)']:
                 return
+            elif k == 'f':
+                apply_filter(stdscr, _d.current_plugin['p'])
             else:
                 with scr_lock:
                     _d.current_plugin['p'].key_event = k

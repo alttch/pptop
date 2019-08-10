@@ -9,7 +9,7 @@ class Plugin(GenericPlugin):
 
     def formatted_data(self, limit):
         data = []
-        for t in self.data[self.shift:self.shift + limit - 1]:
+        for t in self.dtd[self.shift:self.shift + limit - 1]:
             z = t.copy()
             z['ttot'] = '{:.3f}'.format(z['ttot'])
             yield z

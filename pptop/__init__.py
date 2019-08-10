@@ -3,6 +3,8 @@ import pickle
 import curses
 import tabulate
 import sys
+import readline
+import threading
 
 from atasker import BackgroundIntervalWorker
 
@@ -20,6 +22,8 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.short_name = None
         self.stdscr = None  # curses stdscr object
         self.data = []
+        self.dtd = []
+        self.filter = ''
         self.sorting_col = None
         self.sorting_rev = True
 
@@ -73,11 +77,11 @@ class GenericPlugin(BackgroundIntervalWorker):
             window: plugin working window
         '''
         height, width = window.getmaxyx()
-        max_pos = len(self.data) - 1
+        max_pos = len(self.dtd) - 1
         if self.key_event:
             if self.key_event in ['kLFT3', 'kRIT3']:
-                if self.data:
-                    cols = list(self.data[0])
+                if self.dtd:
+                    cols = list(self.dtd[0])
                     if not self.sorting_col:
                         self.sorting_col = cols[0]
                     try:
@@ -126,6 +130,7 @@ class GenericPlugin(BackgroundIntervalWorker):
                 self.cursor = 0
             if self.cursor - self.shift < 0:
                 self.cursor = self.shift - 1
+                if self.cursor < 0: self.cursor = 0
                 self.shift -= 1
             if self.shift < 0:
                 self.shift = 0
@@ -189,11 +194,11 @@ class GenericPlugin(BackgroundIntervalWorker):
         '''
         Sort data
         '''
-        if self.data:
+        if self.dtd:
             if not self.sorting_col:
-                self.sorting_col = list(self.data[0])[0]
-            self.data = sorted(
-                self.data,
+                self.sorting_col = list(self.dtd[0])[0]
+            self.dtd = sorted(
+                self.dtd,
                 key=lambda k: k[self.sorting_col],
                 reverse=self.sorting_rev)
 
@@ -210,7 +215,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         Returns:
             The method should return generator object
         '''
-        for d in self.data[self.shift:self.shift + limit - 1]:
+        for d in self.dtd[self.shift:self.shift + limit - 1]:
             yield d
 
     def get_render_window(self):
@@ -266,6 +271,19 @@ class GenericPlugin(BackgroundIntervalWorker):
         '''
         return True
 
+    def apply_filter(self):
+        if not self.filter:
+            self.dtd = self.data
+        else:
+            self.dtd.clear()
+            self.stdscr.addstr(4, 1, 'f="{}"'.format(self.filter))
+            self.stdscr.refresh()
+            for d in self.data:
+                for k, v in d.items():
+                    if str(v).lower().find(self.filter) > -1:
+                        self.dtd.append(d)
+                        break
+
     def run(self, **kwargs):
         '''
         Primary plugin executor method
@@ -274,7 +292,9 @@ class GenericPlugin(BackgroundIntervalWorker):
             if self.load_data() is False or self.process_data() is False:
                 return False
         with self.scr_lock:
+            self.stdscr.refresh()
             window = self.get_render_window()
+            self.apply_filter()
             self.handle_pager_event(window)
             if self.handle_key_event(self.key_event, window) is False:
                 return False
