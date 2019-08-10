@@ -118,9 +118,9 @@ def show_process_info(stdscr, p, **kwargs):
         return False
 
     height, width = stdscr.getmaxyx()
-    with scr_lock:
-        try:
-            result = command('test')
+    try:
+        result = command('test')
+        with scr_lock:
             ct = p.cpu_times()
             stdscr.move(0, 0)
             stdscr.addstr('Process: ')
@@ -147,14 +147,14 @@ def show_process_info(stdscr, p, **kwargs):
             stdscr.clrtoeol()
             print_bottom_bar(stdscr)
             stdscr.refresh()
-        except psutil.AccessDenied:
-            return error('Access denied')
-        except psutil.NoSuchProcess:
-            return error('Process is gone')
-        except RuntimeError:
-            return error('Process server is gone')
-        except Exception as e:
-            return error(e)
+    except psutil.AccessDenied:
+        return error('Access denied')
+    except psutil.NoSuchProcess:
+        return error('Process is gone')
+    except RuntimeError:
+        return error('Process server is gone')
+    except Exception as e:
+        return error(e)
 
 
 def print_bottom_bar(stdscr):
@@ -227,9 +227,10 @@ def run(stdscr):
     while True:
         try:
             k = stdscr.getkey()
-            stdscr.addstr(4,0,k)
-            stdscr.clrtoeol()
-            stdscr.refresh()
+            with scr_lock:
+                stdscr.addstr(4, 0, k)
+                stdscr.clrtoeol()
+                stdscr.refresh()
             if not show_process_info.is_active():
                 return
             elif k in plugin_shortcuts:
