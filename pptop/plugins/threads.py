@@ -8,7 +8,6 @@ class Plugin(GenericPlugin):
         self.sorting_col = 'ttot'
 
     def formatted_data(self, limit):
-        data = []
         for t in self.dtd[self.shift:self.shift + limit - 1]:
             z = t.copy()
             z['ttot'] = '{:.3f}'.format(z['ttot'])

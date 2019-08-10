@@ -28,7 +28,6 @@ class Plugin(GenericPlugin):
 
     def formatted_data(self, limit):
         ks = ['ttot', 'tsub', 'tavg']
-        data = []
         for s in self.dtd[self.shift:self.shift + limit - 1]:
             z = s.copy()
             for k in ks:
