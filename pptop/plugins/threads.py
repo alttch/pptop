@@ -5,12 +5,14 @@ class Plugin(GenericPlugin):
 
     def on_load(self):
         self.short_name = 'Thrds'
+        self.sorting_col = 'ttot'
 
-    def prepare_data(self):
-        self.data = sorted(self.data, key=lambda k: k['ttot'], reverse=True)
-        for t in self.data:
-            t['ttot'] = '{:.3f}'.format(t['ttot'])
-        return True
+    def formatted_data(self, start, stop):
+        data = []
+        for t in self.data[start:stop]:
+            z = t.copy()
+            z['ttot'] = '{:.3f}'.format(z['ttot'])
+            yield z
 
 
 def injection_load():

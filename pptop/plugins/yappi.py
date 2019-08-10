@@ -6,8 +6,9 @@ class Plugin(GenericPlugin):
     def on_load(self):
         self.short_name = 'Prof'
         self.title = 'Function profiler (yappi)'
+        self.sorting_col = 'ttot'
 
-    def prepare_data(self):
+    def process_data(self):
         sess = []
         for s in self.data:
             mod = format_mod_name(s[1], self.get_process_path())
@@ -21,14 +22,18 @@ class Plugin(GenericPlugin):
                     'tavg': s[11],
                     'file': '{}:{}'.format(s[1], s[2]),
                     'builtin': s[5]
-                    })
-        sess = sorted(sess, key=lambda k: k['ttot'], reverse=True)
-        ks = ['ttot', 'tsub', 'tavg']
-        for s in sess:
-            for k in ks:
-                s[k] = '{:.3f}'.format(s[k])
+                })
         self.data = sess
         return True
+
+    def formatted_data(self, start, stop):
+        ks = ['ttot', 'tsub', 'tavg']
+        data = []
+        for s in self.data[start:stop]:
+            z = s.copy()
+            for k in ks:
+                z[k] = '{:.3f}'.format(z[k])
+            yield z
 
 
 def injection_load():
@@ -47,5 +52,6 @@ def injection_unload():
 def injection():
     import yappi
     d = yappi.get_func_stats()
-    for v in d: del v[9]
+    for v in d:
+        del v[9]
     return d

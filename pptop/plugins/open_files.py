@@ -6,6 +6,7 @@ class Plugin(GenericPlugin):
         import os
         self.title = 'Open files'
         self.short_name = 'Files'
+        self.sorting_rev = False
 
     def load_data(self):
         try:
@@ -20,7 +21,3 @@ class Plugin(GenericPlugin):
             return True
         except:
             return False
-
-    def prepare_data(self):
-        self.data = sorted(self.data, key=lambda k: k['path'])
-        return True

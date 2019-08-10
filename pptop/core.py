@@ -228,6 +228,9 @@ def run(stdscr):
         while True:
             try:
                 k = stdscr.getkey()
+                stdscr.addstr(4,0,k)
+                stdscr.clrtoeol()
+                stdscr.refresh()
                 if not show_process_info.is_active():
                     return
                 elif k in plugin_shortcuts:
