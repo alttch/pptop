@@ -30,20 +30,20 @@ class Plugin(GenericPlugin):
             yield z
 
 
-def injection_load():
+def injection_load(*args, **kwargs):
     import yappi
     import threading
     if not yappi.is_running():
         yappi.start()
 
 
-def injection_unload():
+def injection_unload(*args, **kwargs):
     import yappi
     if yappi.is_running():
         yappi.stop()
 
 
-def injection():
+def injection(*args, **kwargs):
     import yappi
     import threading
     result = []
