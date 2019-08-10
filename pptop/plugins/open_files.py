@@ -1,6 +1,15 @@
 from pptop import GenericPlugin
 
+
 class Plugin(GenericPlugin):
+    '''
+    open_files plugin: files, open by process
+
+        path: full file path
+        fd: file descriptor
+        pos: position in file
+        mode: work mode
+    '''
 
     def on_load(self):
         import os

@@ -1,7 +1,23 @@
-__author__ = "Altertech Group, https://www.altertech.com/"
-__copyright__ = "Copyright (C) 2019 Altertech Group"
+'''
+Global shortcuts:
+
+    Arrow keys  : Navigation
+    f, /        : Filter data
+    Alt+arrows  : Sorting
+    q, F10      : Quit program
+
+ppTOP v{version} (c) Altertech
+This product is available under {license} license.
+
+https://github.com/alttch/pptop
+'''
+
+__author__ = "Altertech, https://www.altertech.com/"
+__copyright__ = "Copyright (C) 2019 Altertech"
 __license__ = "MIT"
 __version__ = "0.0.1"
+
+__doc__ = __doc__.format(version=__version__, license=__license__)
 
 import curses
 import atasker
@@ -44,6 +60,7 @@ def apply_filter(stdscr, plugin):
         editwin = curses.newwin(1, width - 3, 4, 4)
         from curses.textpad import Textbox
         curses.curs_set(2)
+        editwin.addstr(0, 0, plugin.filter)
         box = Textbox(editwin)
         stdscr.refresh()
         box.edit(enter_is_terminate)
@@ -91,7 +108,7 @@ def select_process(stdscr):
             if k in ['q', 'KEY_F(10)']:
                 selector.stop(wait=False)
                 return
-            elif k == 'f':
+            elif k in ('f', '/'):
                 apply_filter(stdscr, selector)
             elif k == '\n':
                 selector.stop(wait=False)
@@ -223,6 +240,7 @@ def run(stdscr):
             _d.current_plugin['p'].stop(wait=False)
         p = new_plugin['p']
         p.stdscr = stdscr
+        p._previous_plugin = _d.current_plugin
         p.key_event = None
         if not new_plugin['inj']:
             command('inject', new_plugin['i'])
@@ -266,7 +284,7 @@ def run(stdscr):
                 switch_plugin(plugin_shortcuts[k], stdscr)
             elif k in ['q', 'KEY_F(10)']:
                 return
-            elif k == 'f':
+            elif k in ('f', '/'):
                 apply_filter(stdscr, _d.current_plugin['p'])
             else:
                 with scr_lock:
@@ -285,7 +303,7 @@ def start():
     for i, v in config.get('plugins', {}).items():
         try:
             mod = importlib.import_module('pptop.plugins.' + i)
-        except:
+        except ModuleNotFoundError:
             mod = importlib.import_module('pptopcontrib.' + i)
         plugin = {'m': mod}
         plugins[i] = plugin

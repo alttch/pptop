@@ -3,6 +3,8 @@ plugins:
     default: true
     shortcut: KEY_F(5)
     interval: 1
+  help:
+    shortcut: KEY_F(1)
   open_files:
     shortcut: KEY_F(6)
     interval: 1

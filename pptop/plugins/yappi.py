@@ -2,6 +2,11 @@ from pptop import GenericPlugin, format_mod_name
 
 
 class Plugin(GenericPlugin):
+    '''
+    yappi plugin: function profiler
+
+    requires yappi profiler module https://github.com/sumerc/yappi
+    '''
 
     def on_load(self):
         self.short_name = 'Prof'
@@ -21,7 +26,7 @@ class Plugin(GenericPlugin):
                     'tsub': s[7],
                     'tavg': s[11],
                     'file': '{}:{}'.format(s[1], s[2]),
-                    'builtin': s[5]
+                    'builtin': 'builtin' if s[5] else ''
                 })
         self.data = sess
         return True

@@ -8,6 +8,7 @@ import threading
 
 from atasker import BackgroundIntervalWorker
 
+tabulate.PRESERVE_WHITESPACE = True
 
 class GenericPlugin(BackgroundIntervalWorker):
 
@@ -26,6 +27,8 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.filter = ''
         self.sorting_col = None
         self.sorting_rev = True
+        self.sorting_enabled = True
+        self.cursor_enabled = True
 
     def on_load(self):
         '''
@@ -79,74 +82,79 @@ class GenericPlugin(BackgroundIntervalWorker):
         height, width = window.getmaxyx()
         max_pos = len(self.dtd) - 1
         if self.key_event:
-            if self.key_event in ['kLFT3', 'kRIT3']:
-                if self.dtd:
-                    cols = list(self.dtd[0])
-                    if not self.sorting_col:
-                        self.sorting_col = cols[0]
-                    try:
-                        pos = cols.index(self.sorting_col)
-                        pos += 1 if self.key_event == 'kRIT3' else -1
-                        if pos > len(cols) - 1:
-                            pos = 0
-                        elif pos < 0:
-                            pos = len(cols) - 1
-                        self.sorting_col = cols[pos]
-                    except:
-                        pass
-            elif self.key_event == 'kDN3':
-                self.sorting_rev = False
-            elif self.key_event == 'kUP3':
-                self.sorting_rev = True
-            if self.key_event == 'KEY_DOWN':
-                self.cursor += 1
-                if self.cursor > max_pos:
-                    self.cursor = max_pos
-                if self.cursor - self.shift >= height - 1:
-                    self.shift += 1
-            elif self.key_event == 'KEY_UP':
-                self.cursor -= 1
-            elif self.key_event == 'KEY_LEFT':
-                self.hshift -= 1
-                if self.hshift < 0:
+            if self.sorting_enabled:
+                if self.key_event in ['kLFT3', 'kRIT3']:
+                    if self.dtd:
+                        cols = list(self.dtd[0])
+                        if not self.sorting_col:
+                            self.sorting_col = cols[0]
+                        try:
+                            pos = cols.index(self.sorting_col)
+                            pos += 1 if self.key_event == 'kRIT3' else -1
+                            if pos > len(cols) - 1:
+                                pos = 0
+                            elif pos < 0:
+                                pos = len(cols) - 1
+                            self.sorting_col = cols[pos]
+                        except:
+                            pass
+                elif self.key_event == 'kDN3':
+                    self.sorting_rev = False
+                elif self.key_event == 'kUP3':
+                    self.sorting_rev = True
+            if self.cursor_enabled:
+                if self.key_event == 'KEY_DOWN':
+                    self.cursor += 1
+                    if self.cursor > max_pos:
+                        self.cursor = max_pos
+                    if self.cursor - self.shift >= height - 1:
+                        self.shift += 1
+                elif self.key_event == 'KEY_UP':
+                    self.cursor -= 1
+                elif self.key_event == 'KEY_LEFT':
+                    self.hshift -= 1
+                    if self.hshift < 0:
+                        self.hshift = 0
+                elif self.key_event == 'KEY_RIGHT':
+                    self.hshift += 1
+                elif self.key_event == 'KEY_NPAGE':
+                    self.cursor += height - 1
+                    self.shift += height - 1
+                elif self.key_event == 'KEY_PPAGE':
+                    self.cursor -= height + 1
+                    self.shift -= height + 1
+                elif self.key_event == 'KEY_HOME':
                     self.hshift = 0
-            elif self.key_event == 'KEY_RIGHT':
-                self.hshift += 1
-            elif self.key_event == 'KEY_NPAGE':
-                self.cursor += height - 1
-                self.shift += height - 1
-            elif self.key_event == 'KEY_PPAGE':
-                self.cursor -= height + 1
-                self.shift -= height + 1
-            elif self.key_event == 'KEY_HOME':
-                self.hshift = 0
-                self.cursor = 0
-                self.shift = 0
-            elif self.key_event == 'KEY_END':
-                self.cursor = max_pos
-                self.shift = max_pos - height + 2
-            if self.cursor < 0:
-                self.shift -= 1
-                self.cursor = 0
-            if self.cursor - self.shift < 0:
-                self.cursor = self.shift - 1
-                if self.cursor < 0: self.cursor = 0
-                self.shift -= 1
-            if self.shift < 0:
-                self.shift = 0
-        if max_pos == 0:
-            self.cursor = 0
-            self.shift = 0
-        else:
-            if self.cursor > max_pos:
-                self.cursor = max_pos
-                self.shift = max_pos - height + 2
+                    self.cursor = 0
+                    self.shift = 0
+                elif self.key_event == 'KEY_END':
+                    self.cursor = max_pos
+                    self.shift = max_pos - height + 2
+                if self.cursor < 0:
+                    self.shift -= 1
+                    self.cursor = 0
+                if self.cursor - self.shift < 0:
+                    self.cursor = self.shift - 1
+                    if self.cursor < 0: self.cursor = 0
+                    self.shift -= 1
                 if self.shift < 0:
                     self.shift = 0
-            if max_pos < height:
+        if self.cursor_enabled:
+            if max_pos == 0:
+                self.cursor = 0
                 self.shift = 0
+            else:
                 if self.cursor > max_pos:
-                    self.cursor = max_pos - 1
+                    self.cursor = max_pos
+                    self.shift = max_pos - height + 2
+                    if self.shift < 0:
+                        self.shift = 0
+                if max_pos < height:
+                    self.shift = 0
+                    if self.cursor > max_pos:
+                        self.cursor = max_pos - 1
+        else:
+            self.cursor = -1
 
     def print_section_title(self):
         '''
@@ -194,13 +202,14 @@ class GenericPlugin(BackgroundIntervalWorker):
         '''
         Sort data
         '''
-        if self.dtd:
-            if not self.sorting_col:
-                self.sorting_col = list(self.dtd[0])[0]
-            self.dtd = sorted(
-                self.dtd,
-                key=lambda k: k[self.sorting_col],
-                reverse=self.sorting_rev)
+        if self.sorting_enabled:
+            if self.dtd:
+                if not self.sorting_col:
+                    self.sorting_col = list(self.dtd[0])[0]
+                self.dtd = sorted(
+                    self.dtd,
+                    key=lambda k: k[self.sorting_col],
+                    reverse=self.sorting_rev)
 
     def formatted_data(self, limit):
         '''
@@ -229,13 +238,13 @@ class GenericPlugin(BackgroundIntervalWorker):
         return curses.newwin(height - 6, width, 5, 0)
 
     def start(self, *args, **kwargs):
-        super().start(*args, **kwargs)
         if self.title is None:
             self.title = self.name.capitalize()
         if self.short_name is None:
             self.short_name = self.name[:6].capitalize()
         with self.scr_lock:
             self.print_section_title()
+        super().start(*args, **kwargs)
         self.on_start()
 
     def stop(self, *args, **kwargs):
@@ -276,7 +285,10 @@ class GenericPlugin(BackgroundIntervalWorker):
             self.dtd = self.data
         else:
             self.dtd.clear()
-            self.stdscr.addstr(4, 1, 'f="{}"'.format(self.filter))
+            self.stdscr.addstr(4, 1, 'f="')
+            self.stdscr.addstr(self.filter,
+                               curses.color_pair(5) | curses.A_BOLD)
+            self.stdscr.addstr('"')
             self.stdscr.refresh()
             for d in self.data:
                 for k, v in d.items():

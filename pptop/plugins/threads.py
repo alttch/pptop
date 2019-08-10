@@ -2,10 +2,26 @@ from pptop import GenericPlugin
 
 
 class Plugin(GenericPlugin):
+    '''
+    threads plugin: process thread stats
+
+        ident: thread ident (Python)
+        daemon: is thread running as daemon
+        name: thread name
+        target: target function
+        ttot: time spent total
+        scnt: schedule count
+
+    requires yappi profiler module https://github.com/sumerc/yappi
+    '''
 
     def on_load(self):
         self.short_name = 'Thrds'
         self.sorting_col = 'ttot'
+
+    def process_data(self):
+        for d in self.data:
+            d['daemon'] = 'daemon' if d['daemon'] else ''
 
     def formatted_data(self, limit):
         for t in self.dtd[self.shift:self.shift + limit - 1]:
