@@ -31,6 +31,7 @@ import threading
 import psutil
 import os
 import importlib
+import signal
 
 from types import SimpleNamespace
 
@@ -46,6 +47,11 @@ plugins = {}
 bottom_bar_help = {10: 'Quit'}
 plugin_shortcuts = {}
 
+resize_lock = threading.Lock()
+resize_event = threading.Event()
+
+editor_active = threading.Event()
+
 
 def enter_is_terminate(x):
     if x == 10:
@@ -56,20 +62,24 @@ def enter_is_terminate(x):
 def apply_filter(stdscr, plugin):
     height, width = stdscr.getmaxyx()
     with scr_lock:
-        stdscr.addstr(4, 1, 'f: ')
-        editwin = curses.newwin(1, width - 3, 4, 4)
-        from curses.textpad import Textbox
-        curses.curs_set(2)
-        editwin.addstr(0, 0, plugin.filter)
-        box = Textbox(editwin)
-        stdscr.refresh()
-        box.edit(enter_is_terminate)
-        plugin.filter = box.gather().strip().lower()
-        curses.curs_set(0)
-        stdscr.move(4, 0)
-        stdscr.clrtoeol()
-        stdscr.refresh()
-        plugin.trigger()
+        try:
+            editor_active.set()
+            stdscr.addstr(4, 1, 'f: ')
+            editwin = curses.newwin(1, width - 3, 4, 4)
+            from curses.textpad import Textbox
+            curses.curs_set(2)
+            editwin.addstr(0, 0, plugin.filter)
+            box = Textbox(editwin)
+            stdscr.refresh()
+            box.edit(enter_is_terminate)
+            plugin.filter = box.gather().strip().lower()
+            curses.curs_set(0)
+            stdscr.move(4, 0)
+            stdscr.clrtoeol()
+            stdscr.refresh()
+            plugin.trigger()
+        finally:
+            editor_active.clear()
 
 
 def select_process(stdscr):
@@ -85,6 +95,11 @@ def select_process(stdscr):
                         'pid': p.pid,
                         'command line': ' '.join(p.cmdline())
                     })
+
+        def render(self):
+            super().render()
+            self.stdscr.move(self.stdscr.getmaxyx()[0] - 1, 0)
+            self.stdscr.clrtoeol()
 
         def run(self, *args, **kwargs):
             super().run(*args, **kwargs)
@@ -102,13 +117,21 @@ def select_process(stdscr):
     selector.lock = threading.Lock()
     selector.title = 'Select process'
     selector.start()
+    selector.show()
     while True:
         try:
             try:
+                if resize_event.is_set():
+                    raise Exception('resize')
                 k = stdscr.getkey()
             except KeyboardInterrupt:
                 return
             except:
+                with resize_lock:
+                    if resize_event.is_set():
+                        resize_event.clear()
+                        resize_handler(stdscr)
+                        selector.resize()
                 continue
             if k in ['q', 'KEY_F(10)']:
                 selector.stop(wait=False)
@@ -209,6 +232,14 @@ def show_process_info(stdscr, p, **kwargs):
         return error('Process is gone')
     except RuntimeError:
         return error('Process server is gone')
+    except curses.error:
+        try:
+            for i in range(2):
+                stdscr.move(i, 0)
+                stdscr.clrtoeol()
+            stdscr.refresh()
+        except:
+            pass
     except Exception as e:
         return error(e)
 
@@ -226,7 +257,11 @@ def print_bottom_bar(stdscr):
 
 
 _d = SimpleNamespace(
-    current_plugin=None, process_path=[], default_plugin=None, process=None)
+    current_plugin=None,
+    process_path=[],
+    default_plugin=None,
+    process=None,
+    stdscr=None)
 
 _cursors = SimpleNamespace(
     files_cursor=0,
@@ -235,6 +270,22 @@ _cursors = SimpleNamespace(
     threads_shift=0,
     profiler_cursor=0,
     profiler_shift=0)
+
+
+def sigwinch_handler(signum=None, frame=None):
+    with resize_lock:
+        resize_event.set()
+
+
+def resize_handler(stdscr):
+    # shutil works in 100% cases
+    import shutil
+    width, height = shutil.get_terminal_size()
+    with scr_lock:
+        curses.resizeterm(height, width)
+        stdscr.resize(height, width)
+        stdscr.clear()
+        stdscr.refresh()
 
 
 def run(stdscr):
@@ -251,8 +302,12 @@ def run(stdscr):
         if not new_plugin['inj']:
             command('inject', new_plugin['i'])
             new_plugin['inj'] = True
-        p.start()
+        if not p.is_started(): p.start()
+        p.show()
         _d.current_plugin = new_plugin
+
+    signal.signal(signal.SIGWINCH, sigwinch_handler)
+    _d.stdscr = stdscr
 
     if curses.has_colors():
         curses.start_color()
@@ -284,10 +339,18 @@ def run(stdscr):
     while True:
         try:
             try:
+                if resize_event.is_set():
+                    raise Exception('resize')
                 k = stdscr.getkey()
             except KeyboardInterrupt:
                 return
             except:
+                with resize_lock:
+                    if resize_event.is_set():
+                        resize_event.clear()
+                        resize_handler(stdscr)
+                        _d.current_plugin['p'].resize()
+                        show_process_info.trigger()
                 continue
             if not show_process_info.is_active():
                 return

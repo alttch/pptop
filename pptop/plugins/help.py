@@ -5,9 +5,6 @@ import textwrap
 
 class Plugin(GenericPlugin):
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(interval=3600)
-
     def on_load(self):
         self.short_name = 'Help'
         self.sorting_enabled = False

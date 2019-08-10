@@ -30,6 +30,8 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.sorting_rev = True
         self.sorting_enabled = True
         self.cursor_enabled = True
+        self.window = None
+        self._visible = False
 
     def on_load(self):
         '''
@@ -73,14 +75,11 @@ class GenericPlugin(BackgroundIntervalWorker):
         '''
         return None
 
-    def handle_pager_event(self, window):
+    def handle_pager_event(self):
         '''
         Pager event handler
-
-        Args:
-            window: plugin working window
         '''
-        height, width = window.getmaxyx()
+        height, width = self.window.getmaxyx()
         max_pos = len(self.dtd) - 1
         if self.key_event:
             if self.sorting_enabled:
@@ -232,32 +231,39 @@ class GenericPlugin(BackgroundIntervalWorker):
         for d in self.dtd[self.shift:self.shift + limit - 1]:
             yield d
 
-    def get_render_window(self):
+    def init_render_window(self):
         '''
-        Get plugin working window
-
-        Returns:
-            curses window object
+        Init plugin working window
         '''
         height, width = self.stdscr.getmaxyx()
-        return curses.newwin(height - 6, width, 5, 0)
+        self.window = curses.newwin(height - 6, width, 5, 0)
 
     def start(self, *args, **kwargs):
         if self.title is None:
             self.title = self.name.capitalize()
         if self.short_name is None:
             self.short_name = self.name[:6].capitalize()
-        with self.scr_lock:
-            self.print_section_title()
         super().start(*args, **kwargs)
         self.on_start()
 
+    def show(self):
+        with self.scr_lock:
+            self._visible = True
+            self.init_render_window()
+            self.print_section_title()
+            self.output()
+
+    def hide(self):
+        with self.scr_lock:
+            if self.window:
+                self.window.move(0, 0)
+                self.window.clrtoeol()
+                self._visible = False
+                self.stdscr.refresh()
+
     def stop(self, *args, **kwargs):
         super().stop(*args, **kwargs)
-        with self.scr_lock:
-            self.stdscr.move(3, 0)
-            self.stdscr.clrtoeol()
-            self.stdscr.refresh()
+        self.hide()
         self.on_stop()
 
     def on_start(self):
@@ -272,13 +278,23 @@ class GenericPlugin(BackgroundIntervalWorker):
         '''
         pass
 
-    def handle_key_event(self, event, window):
+    def resize(self):
+        '''
+        Automatically called on screen resize
+        '''
+        with self.scr_lock:
+            self.init_render_window()
+            self.print_section_title()
+            self.key_event = 'KEY_RESIZE'
+            self.handle_pager_event()
+            self.output()
+
+    def handle_key_event(self, event):
         '''
         Handle custom key event
 
         Args:
             event: curses getkey() event
-            window: plugin working window
 
         Returns:
             can return False to stop plugin
@@ -309,28 +325,30 @@ class GenericPlugin(BackgroundIntervalWorker):
             if self.load_data() is False or self.process_data() is False:
                 return False
         with self.scr_lock:
-            self.stdscr.refresh()
-            window = self.get_render_window()
-            self.apply_filter()
-            self.handle_pager_event(window)
-            if self.handle_key_event(self.key_event, window) is False:
-                return False
-            if self.key_event:
-                self.key_event = None
-            self.sort_data()
-            self.render(window)
-            window.refresh()
+            if self._visible:
+                return self.output()
 
-    def render(self, window):
+    def output(self):
+        self.stdscr.refresh()
+        self.apply_filter()
+        self.handle_pager_event()
+        if self.handle_key_event(self.key_event) is False:
+            return False
+        if self.key_event:
+            self.key_event = None
+        self.sort_data()
+        self.render()
+        self.window.refresh()
+        self.stdscr.refresh()
+        return True
+
+    def render(self):
         '''
         Renders plugin output
-
-        Args:
-            window: curses window object
         '''
-        height, width = window.getmaxyx()
+        height, width = self.window.getmaxyx()
         fancy_tabulate(
-            window,
+            self.window,
             self.formatted_data(height),
             cursor=(self.cursor - self.shift) if self.cursor_enabled else -1,
             hshift=self.hshift,
@@ -358,6 +376,8 @@ def fancy_tabulate(stdscr,
     def format_str(s, width):
         return s[hshift:].ljust(width - 1)[:width - 1]
 
+    stdscr.move(0, 0)
+    stdscr.clrtobot()
     height, width = stdscr.getmaxyx()
     if table:
         d = tabulate.tabulate(table, headers='keys').split('\n')
@@ -381,7 +401,6 @@ def fancy_tabulate(stdscr,
     else:
         stdscr.addstr(0, 0, ' ' * (width - 1),
                       curses.color_pair(3) | curses.A_REVERSE)
-    stdscr.clrtobot()
 
 
 ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
