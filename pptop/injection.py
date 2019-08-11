@@ -43,7 +43,9 @@ import threading
 
 from types import SimpleNamespace
 
-timeout = 60
+socket_timeout = 60
+
+socket_buf = 1024
 
 _d = SimpleNamespace(clients=0)
 
@@ -77,19 +79,24 @@ def loop(cpid):
     server.bind(server_address)
     os.chmod(server_address, 0o600)
     server.listen(0)
-    server.settimeout(timeout)
+    server.settimeout(socket_timeout)
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, socket_buf)
+    server.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, socket_buf)
     try:
         connection, client_address = server.accept()
         injections = {}
         with _d_lock:
             _d.clients += 1
-        connection.settimeout(timeout)
+        connection.settimeout(socket_timeout)
         while True:
             try:
                 data = connection.recv(4)
                 if data:
                     l = struct.unpack('I', data)
-                    cmd = connection.recv(l[0])
+                    cmd = b''
+                    for i in range(l[0] // socket_buf):
+                        cmd += client.recv(socket_buf)
+                    cmd += client.recv(l[0] % socket_buf)
                 else:
                     break
             except:

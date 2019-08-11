@@ -54,6 +54,10 @@ resize_event = threading.Event()
 
 editor_active = threading.Event()
 
+socket_timeout = 5
+
+socket_buf = 1024
+
 
 def enter_is_terminate(x):
     if x == 10:
@@ -182,7 +186,10 @@ def command(cmd, data=None):
         if not data:
             raise RuntimeError('Injector error')
         l = struct.unpack('I', data)
-        data = client.recv(l[0])
+        data = b''
+        for i in range(l[0] // socket_buf):
+            data += client.recv(socket_buf)
+        data += client.recv(l[0] % socket_buf)
         if data[0] != 0:
             raise RuntimeError('Injector command error')
         return data[1:]
@@ -334,7 +341,9 @@ def run(stdscr):
 
     _d.process = p
 
-    client.settimeout(5)
+    client.settimeout(socket_timeout)
+    client.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, socket_buf)
+    client.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, socket_buf)
     try:
         client.connect('/tmp/.pptop_777')
     except:
