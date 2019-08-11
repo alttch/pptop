@@ -30,6 +30,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.sorting_rev = True
         self.sorting_enabled = True
         self.cursor_enabled = True
+        self.selectable = False
         self.window = None
         self._visible = False
 
@@ -81,6 +82,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         '''
         height, width = self.window.getmaxyx()
         max_pos = len(self.dtd) - 1
+        if max_pos < 0: max_pos = 0
         if self.key_event:
             if self.sorting_enabled:
                 if self.key_event in ['kLFT3', 'kRIT3']:
@@ -175,7 +177,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         Print empty separator instead of table header
         '''
         height, width = self.stdscr.getmaxyx()
-        self.stdscr.addstr(4, 0, ' ' * (width - 1),
+        self.window.addstr(0, 0, ' ' * (width - 1),
                            curses.color_pair(3) | curses.A_REVERSE)
 
     def load_data(self):
@@ -251,7 +253,7 @@ class GenericPlugin(BackgroundIntervalWorker):
             self._visible = True
             self.init_render_window()
             self.print_section_title()
-            self.output()
+            if self.is_active(): self._display()
 
     def hide(self):
         with self.scr_lock:
@@ -287,7 +289,7 @@ class GenericPlugin(BackgroundIntervalWorker):
             self.print_section_title()
             self.key_event = 'KEY_RESIZE'
             self.handle_pager_event()
-            self.output()
+            self._display()
 
     def handle_key_event(self, event):
         '''
@@ -326,9 +328,9 @@ class GenericPlugin(BackgroundIntervalWorker):
                 return False
         with self.scr_lock:
             if self._visible:
-                return self.output()
+                return self._display()
 
-    def output(self):
+    def _display(self):
         self.stdscr.refresh()
         self.apply_filter()
         self.handle_pager_event()
@@ -336,6 +338,11 @@ class GenericPlugin(BackgroundIntervalWorker):
             return False
         if self.key_event:
             self.key_event = None
+        if not self.data:
+            self.print_empty_sep()
+            self.window.clrtobot()
+            self.window.refresh()
+            return
         self.sort_data()
         self.render()
         self.window.refresh()
@@ -344,16 +351,17 @@ class GenericPlugin(BackgroundIntervalWorker):
 
     def render(self):
         '''
-        Renders plugin output
+        Renders plugin display
         '''
         height, width = self.window.getmaxyx()
         fancy_tabulate(
             self.window,
             self.formatted_data(height),
-            cursor=(self.cursor - self.shift) if self.cursor_enabled else -1,
+            cursor=(self.cursor - self.shift) if self.cursor_enabled else None,
             hshift=self.hshift,
             sorting_col=self.sorting_col,
-            sorting_rev=self.sorting_rev)
+            sorting_rev=self.sorting_rev,
+            print_selector=self.selectable)
 
 
 def format_mod_name(f, path):
@@ -371,7 +379,8 @@ def fancy_tabulate(stdscr,
                    cursor=None,
                    hshift=0,
                    sorting_col=None,
-                   sorting_rev=False):
+                   sorting_rev=False,
+                   print_selector=False):
 
     def format_str(s, width):
         return s[hshift:].ljust(width - 1)[:width - 1]
@@ -382,6 +391,8 @@ def fancy_tabulate(stdscr,
     if table:
         d = tabulate.tabulate(table, headers='keys').split('\n')
         header = d[0]
+        if print_selector:
+            header = ' ' + header
         if sorting_col:
             if sorting_rev:
                 s = '↑'
@@ -394,6 +405,8 @@ def fancy_tabulate(stdscr,
         stdscr.addstr(0, 0, format_str(header, width),
                       curses.color_pair(3) | curses.A_REVERSE)
         for i, t in enumerate(d[2:]):
+            if print_selector:
+                t = ('→' if cursor == i else ' ') + t
             stdscr.addstr(
                 1 + i, 0, format_str(t, width),
                 curses.color_pair(7) | curses.A_REVERSE
@@ -413,6 +426,12 @@ def ansi_to_plain(txt):
 def print_ansi_str(stdscr, txt):
     stdscr.addstr(ansi_to_plain(txt))
     stdscr.clrtoeol()
+
+
+def print_debug(stdscr, msg):
+    stdscr.addstr(4, 0, '"{}"'.format(msg))
+    stdscr.clrtoeol()
+    stdscr.refresh()
 
 
 from pptop.core import start
