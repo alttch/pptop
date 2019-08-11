@@ -12,7 +12,6 @@ class Plugin(GenericPlugin):
     '''
 
     def on_load(self):
-        import os
         self.title = 'Open files'
         self.short_name = 'Files'
         self.sorting_rev = False

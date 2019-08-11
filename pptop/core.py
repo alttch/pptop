@@ -127,9 +127,15 @@ def select_process(stdscr):
                 if resize_event.is_set():
                     raise Exception('resize')
                 k = stdscr.getkey()
+                if len(k) == 1:
+                    if ord(k) == 6:
+                        k = 'KEY_NPAGE'
+                    elif ord(k) == 2:
+                        k = 'KEY_PPAGE'
             except KeyboardInterrupt:
                 return
             except:
+                raise
                 with resize_lock:
                     if resize_event.is_set():
                         resize_event.clear()
@@ -348,6 +354,11 @@ def run(stdscr):
                 if resize_event.is_set():
                     raise Exception('resize')
                 k = stdscr.getkey()
+                if len(k) == 1:
+                    if ord(k) == 6:
+                        k = 'KEY_NPAGE'
+                    elif ord(k) == 2:
+                        k = 'KEY_PPAGE'
             except KeyboardInterrupt:
                 return
             except:
