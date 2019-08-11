@@ -24,7 +24,7 @@ import atasker
 import logging
 import socket
 import struct
-import pickle
+import _pickle as cPickle
 import yaml
 import inspect
 import threading
@@ -56,7 +56,7 @@ editor_active = threading.Event()
 
 socket_timeout = 5
 
-socket_buf = 1024
+socket_buf = 256
 
 
 def enter_is_terminate(x):
@@ -139,7 +139,6 @@ def select_process(stdscr):
             except KeyboardInterrupt:
                 return
             except:
-                raise
                 with resize_lock:
                     if resize_event.is_set():
                         resize_event.clear()
@@ -178,7 +177,7 @@ def command(cmd, data=None):
         try:
             frame = cmd.encode()
             if data is not None:
-                frame += b'\xff' + pickle.dumps(data)
+                frame += b'\xff' + cPickle.dumps(data)
             client.sendall(struct.pack('I', len(frame)) + frame)
             data = client.recv(4)
         except:
@@ -349,7 +348,9 @@ def run(stdscr):
     except:
         raise RuntimeError('Unable to connect to process')
 
-    _d.process_path = pickle.loads(command('path'))
+    _d.process_path.clear()
+    for i in cPickle.loads(command('path')):
+        _d.process_path.append(os.path.abspath(i))
 
     height, width = stdscr.getmaxyx()
     stdscr.clear()

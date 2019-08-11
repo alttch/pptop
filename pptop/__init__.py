@@ -1,8 +1,9 @@
 import re
-import pickle
+import _pickle as cPickle
 import curses
 import tabulate
 import sys
+import os
 import readline
 import threading
 
@@ -112,8 +113,14 @@ class GenericPlugin(BackgroundIntervalWorker):
                 self.hshift -= 1
                 if self.hshift < 0:
                     self.hshift = 0
+            elif self.key_event == 'kLFT5':
+                self.hshift -= 20
+                if self.hshift < 0:
+                    self.hshift = 0
             elif self.key_event == 'KEY_RIGHT':
                 self.hshift += 1
+            elif self.key_event == 'kRIT5':
+                self.hshift += 20
             if self.key_event == 'KEY_DOWN':
                 if self.cursor_enabled:
                     self.cursor += 1
@@ -194,7 +201,8 @@ class GenericPlugin(BackgroundIntervalWorker):
             if False is returned, the plugin is stopped
         '''
         try:
-            d = pickle.loads(self.command(self.name))
+            pkl = self.command(self.name)
+            d = cPickle.loads(pkl)
             result = self.process_data(d)
             if result is False:
                 return False
@@ -211,6 +219,7 @@ class GenericPlugin(BackgroundIntervalWorker):
             self.data.clear()
             import traceback
             print(traceback.format_exc())
+            print(len(pkl))
             import os
             os._exit(0)
             # raise
@@ -436,13 +445,17 @@ class GenericPlugin(BackgroundIntervalWorker):
 
 
 def format_mod_name(f, path):
+    f = os.path.abspath(f)
     for p in path:
         if f.startswith(p):
             f = f[len(p) + 1:]
             break
     if f.endswith('.py'):
         f = f[:-3]
-    return f.replace('/', '.')
+    mod = f.replace('/', '.')
+    for i in range(len(mod)):
+        if mod[i] != '.': break
+    return mod[i:]
 
 
 ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')

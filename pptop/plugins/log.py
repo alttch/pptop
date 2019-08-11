@@ -1,5 +1,7 @@
 from pptop import GenericPlugin
 
+import os
+
 
 class Plugin(GenericPlugin):
     '''
@@ -29,9 +31,9 @@ class Plugin(GenericPlugin):
                 'thread':
                 record.threadName,
                 'file':
-                '{}:{}'.format(record.pathname, record.lineno),
+                '{}:{}'.format(os.path.abspath(record.pathname), record.lineno),
                 'message':
-                record.getMessage()
+                record.getMessage().replace('\n', ' ')
             })
         return result
 

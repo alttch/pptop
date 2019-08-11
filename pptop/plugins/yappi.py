@@ -1,5 +1,7 @@
 from pptop import GenericPlugin, format_mod_name
 
+import os
+
 
 class Plugin(GenericPlugin):
     '''
@@ -17,7 +19,8 @@ class Plugin(GenericPlugin):
         sess = []
         for s in data:
             mod = format_mod_name(s[1], self.get_process_path())
-            if not mod.startswith('!pptop.'):
+            if not mod.startswith('pptop.') and \
+                    mod.find('.pptop.__injection') == -1:
                 sess.append({
                     'function': '{}.{}'.format(mod, s[0]),
                     'ncall': s[3],
@@ -25,7 +28,7 @@ class Plugin(GenericPlugin):
                     'ttot': s[6],
                     'tsub': s[7],
                     'tavg': s[11],
-                    'file': '{}:{}'.format(s[1], s[2]),
+                    'file': '{}:{}'.format(os.path.abspath(s[1]), s[2]),
                     'builtin': 'builtin' if s[5] else ''
                 })
         return sess

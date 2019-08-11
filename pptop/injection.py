@@ -45,7 +45,7 @@ from types import SimpleNamespace
 
 socket_timeout = 60
 
-socket_buf = 1024
+socket_buf = 256
 
 _d = SimpleNamespace(clients=0)
 
@@ -59,8 +59,8 @@ def loop(cpid):
         conn.sendall(struct.pack('I', len(data)) + data)
 
     def send_pickle(conn, data):
-        import pickle
-        send_data(conn, b'\x00' + pickle.dumps(data))
+        import _pickle as cPickle
+        send_data(conn, b'\x00' + cPickle.dumps(data))
 
     def send_ok(conn):
         send_data(conn, b'\x00')
@@ -69,7 +69,7 @@ def loop(cpid):
     import sys
     import os
     import struct
-    import pickle
+    import _pickle as cPickle
     server_address = '/tmp/.pptop_{}'.format(cpid)
     try:
         os.unlink(server_address)
@@ -105,7 +105,7 @@ def loop(cpid):
             if cmd:
                 try:
                     cmd, cmd_data = cmd.split(b'\xff', 1)
-                    cmd_data = pickle.loads(cmd_data)
+                    cmd_data = cPickle.loads(cmd_data)
                 except:
                     cmd_data = None
                 try:
