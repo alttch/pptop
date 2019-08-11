@@ -18,7 +18,7 @@ class Plugin(GenericPlugin):
         result = []
         for record in data:
             result.append({
-                'logr':
+                'logger':
                 record.name,
                 'time':
                 record.created,
@@ -123,9 +123,7 @@ def injection_load(*args, **kwargs):
             return rec
 
     g.log_handler = LogHandler()
-    g.loggers_injected = [
-        logging.getLogger(name) for name in logging.root.manager.loggerDict
-    ]
+    g.loggers_injected = [name for name in logging.root.manager.loggerDict]
     if logging.getLogger().name not in g.loggers_injected:
         g.loggers_injected.append(None)
     for l in g.loggers_injected:
