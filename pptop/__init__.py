@@ -329,7 +329,6 @@ class GenericPlugin(BackgroundIntervalWorker):
             self.init_render_window()
             self.print_section_title()
             self.key_event = 'KEY_RESIZE'
-            self.handle_pager_event()
             self._display()
 
     def handle_key_event(self, event, dtd):
