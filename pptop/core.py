@@ -98,8 +98,8 @@ def select_process(stdscr):
                         'command line': ' '.join(p.cmdline())
                     })
 
-        def render(self):
-            super().render()
+        def render(self, dtd):
+            super().render(dtd)
             self.stdscr.move(self.stdscr.getmaxyx()[0] - 1, 0)
             self.stdscr.clrtoeol()
 
@@ -297,7 +297,10 @@ def run(stdscr):
         if _d.current_plugin:
             if _d.current_plugin is new_plugin:
                 return
-            _d.current_plugin['p'].stop(wait=False)
+            if not _d.current_plugin['p'].background:
+                _d.current_plugin['p'].stop(wait=False)
+            else:
+                _d.current_plugin['p'].hide()
         p = new_plugin['p']
         p.stdscr = stdscr
         p._previous_plugin = _d.current_plugin

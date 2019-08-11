@@ -13,9 +13,9 @@ class Plugin(GenericPlugin):
         self.title = 'Function profiler (yappi)'
         self.sorting_col = 'ttot'
 
-    def process_data(self):
+    def process_data(self, data):
         sess = []
-        for s in self.data:
+        for s in data:
             mod = format_mod_name(s[1], self.get_process_path())
             if not mod.startswith('!pptop.'):
                 sess.append({
@@ -28,12 +28,11 @@ class Plugin(GenericPlugin):
                     'file': '{}:{}'.format(s[1], s[2]),
                     'builtin': 'builtin' if s[5] else ''
                 })
-        self.data = sess
-        return True
+        return sess
 
-    def formatted_data(self, limit):
+    def format_dtd(self, dtd):
         ks = ['ttot', 'tsub', 'tavg']
-        for s in self.dtd[self.shift:self.shift + limit - 1]:
+        for s in dtd:
             z = s.copy()
             for k in ks:
                 z[k] = '{:.3f}'.format(z[k])

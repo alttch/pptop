@@ -20,11 +20,10 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.hshift = 0
         mod = sys.modules[self.__module__]
         self.name = mod.__name__.rsplit('.', 1)[-1]
-        self.title = None
-        self.short_name = None
+        self.title = self.name.capitalize()
+        self.short_name = self.name[:6].capitalize()
         self.stdscr = None  # curses stdscr object
         self.data = []
-        self.dtd = []
         self.filter = ''
         self.sorting_col = None
         self.sorting_rev = True
@@ -32,7 +31,10 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.cursor_enabled = True
         self.selectable = False
         self.window = None
+        self.background = False
         self._visible = False
+        self.append_data = False
+        self.data_records_max = None
 
     def on_load(self):
         '''
@@ -76,34 +78,36 @@ class GenericPlugin(BackgroundIntervalWorker):
         '''
         return None
 
-    def handle_pager_event(self):
+    def handle_sorting_event(self):
+        if self.sorting_enabled:
+            if self.key_event in ['kLFT3', 'kRIT3']:
+                if self.data:
+                    cols = list(self.data[0])
+                    if not self.sorting_col:
+                        self.sorting_col = cols[0]
+                    try:
+                        pos = cols.index(self.sorting_col)
+                        pos += 1 if self.key_event == 'kRIT3' else -1
+                        if pos > len(cols) - 1:
+                            pos = 0
+                        elif pos < 0:
+                            pos = len(cols) - 1
+                        self.sorting_col = cols[pos]
+                    except:
+                        pass
+            elif self.key_event == 'kDN3':
+                self.sorting_rev = False
+            elif self.key_event == 'kUP3':
+                self.sorting_rev = True
+
+    def handle_pager_event(self, dtd):
         '''
         Pager event handler
         '''
         height, width = self.window.getmaxyx()
-        max_pos = len(self.dtd) - 1
+        max_pos = len(dtd) - 1
         if max_pos < 0: max_pos = 0
         if self.key_event:
-            if self.sorting_enabled:
-                if self.key_event in ['kLFT3', 'kRIT3']:
-                    if self.dtd:
-                        cols = list(self.dtd[0])
-                        if not self.sorting_col:
-                            self.sorting_col = cols[0]
-                        try:
-                            pos = cols.index(self.sorting_col)
-                            pos += 1 if self.key_event == 'kRIT3' else -1
-                            if pos > len(cols) - 1:
-                                pos = 0
-                            elif pos < 0:
-                                pos = len(cols) - 1
-                            self.sorting_col = cols[pos]
-                        except:
-                            pass
-                elif self.key_event == 'kDN3':
-                    self.sorting_rev = False
-                elif self.key_event == 'kUP3':
-                    self.sorting_rev = True
             if self.key_event == 'KEY_LEFT':
                 self.hshift -= 1
                 if self.hshift < 0:
@@ -190,48 +194,89 @@ class GenericPlugin(BackgroundIntervalWorker):
             if False is returned, the plugin is stopped
         '''
         try:
-            self.data = pickle.loads(self.command(self.name))
+            d = pickle.loads(self.command(self.name))
+            result = self.process_data(d)
+            if result is False:
+                return False
+            if isinstance(result, list):
+                d = result
+            if self.append_data:
+                self.data += d
+            else:
+                self.data = d
+            if self.data_records_max and len(self.data) > self.data_records_max:
+                self.data = self.data[len(self.data) - self.data_records_max:]
             return True
         except:
+            raise
             return False
 
-    def process_data(self):
+    def process_data(self, data):
         '''
         Format loaded data into table
+
+        Function should either process data list in-place or return new data
+        list
 
         Returns:
             if False is returned, the plugin is stopped
         '''
         return True
 
-    def sort_data(self):
+    def sort_dtd(self, dtd):
         '''
-        Sort data
-        '''
-        if self.sorting_enabled:
-            if self.dtd:
-                if not self.sorting_col:
-                    self.sorting_col = list(self.dtd[0])[0]
-                self.dtd = sorted(
-                    self.dtd,
-                    key=lambda k: k[self.sorting_col],
-                    reverse=self.sorting_rev)
-
-    def formatted_data(self, limit):
-        '''
-        Format part of data for rendering
-
-        The method should use self.shift variable to determine current data
-        offset
-
-        Args:
-            limit: max records limit
+        Sort data to display
 
         Returns:
-            The method should return generator object
+            method should return generator
         '''
-        for d in self.dtd[self.shift:self.shift + limit - 1]:
+        if dtd:
+            if not self.sorting_enabled:
+                for d in dtd:
+                    yield d
+            else:
+                if not self.sorting_col:
+                    self.sorting_col = list(dtd[0])[0]
+                for d in sorted(
+                        dtd,
+                        key=lambda k: k[self.sorting_col],
+                        reverse=self.sorting_rev):
+                    yield d
+
+    def format_dtd(self, dtd):
+        '''
+        Format data to display
+
+        Format data before filter is applied and data is rendered, e.g.
+        convert timestamps to date/time, numbers to strings
+
+        Returns:
+            method should return generator
+        '''
+        for d in dtd:
             yield d
+
+    def filter_dtd(self, dtd):
+        '''
+        Apply filter to data to display
+
+        Returns:
+            method should return generator
+        '''
+        if not self.filter:
+            for d in dtd:
+                yield d
+        else:
+            self.stdscr.addstr(4, 1, 'f="')
+            self.stdscr.addstr(self.filter,
+                               curses.color_pair(5) | curses.A_BOLD)
+            self.stdscr.addstr('"')
+            self.stdscr.refresh()
+            for d in dtd:
+                for k, v in d.items():
+                    if str(v).lower().find(self.filter) > -1:
+                        yield d
+                        break
 
     def init_render_window(self):
         '''
@@ -241,10 +286,6 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.window = curses.newwin(height - 6, width, 5, 0)
 
     def start(self, *args, **kwargs):
-        if self.title is None:
-            self.title = self.name.capitalize()
-        if self.short_name is None:
-            self.short_name = self.name[:6].capitalize()
         super().start(*args, **kwargs)
         self.on_start()
 
@@ -291,40 +332,25 @@ class GenericPlugin(BackgroundIntervalWorker):
             self.handle_pager_event()
             self._display()
 
-    def handle_key_event(self, event):
+    def handle_key_event(self, event, dtd):
         '''
         Handle custom key event
 
         Args:
             event: curses getkey() event
+            dtd: data to be displayed (list)
 
         Returns:
             can return False to stop plugin
         '''
         return True
 
-    def apply_filter(self):
-        if not self.filter:
-            self.dtd = self.data
-        else:
-            self.dtd.clear()
-            self.stdscr.addstr(4, 1, 'f="')
-            self.stdscr.addstr(self.filter,
-                               curses.color_pair(5) | curses.A_BOLD)
-            self.stdscr.addstr('"')
-            self.stdscr.refresh()
-            for d in self.data:
-                for k, v in d.items():
-                    if str(v).lower().find(self.filter) > -1:
-                        self.dtd.append(d)
-                        break
-
     def run(self, **kwargs):
         '''
         Primary plugin executor method
         '''
         if not self.key_event or self.key_event == ' ':
-            if self.load_data() is False or self.process_data() is False:
+            if self.load_data() is False:
                 return False
         with self.scr_lock:
             if self._visible:
@@ -332,36 +358,77 @@ class GenericPlugin(BackgroundIntervalWorker):
 
     def _display(self):
         self.stdscr.refresh()
-        self.apply_filter()
-        self.handle_pager_event()
-        if self.handle_key_event(self.key_event) is False:
+        self.handle_sorting_event()
+        dtd = list(self.filter_dtd(self.format_dtd(self.sort_dtd(self.data))))
+        self.dtd = dtd
+        self.handle_pager_event(dtd)
+        if self.handle_key_event(self.key_event, dtd) is False:
             return False
         if self.key_event:
             self.key_event = None
-        if not self.data:
+        if dtd:
+            self.render(dtd)
+        else:
             self.print_empty_sep()
             self.window.clrtobot()
-            self.window.refresh()
-            return
-        self.sort_data()
-        self.render()
         self.window.refresh()
         self.stdscr.refresh()
         return True
 
-    def render(self):
+    def render(self, dtd):
         '''
         Renders plugin display
         '''
         height, width = self.window.getmaxyx()
-        fancy_tabulate(
-            self.window,
-            self.formatted_data(height),
+        self.fancy_tabulate(
+            dtd[self.shift:self.shift + height - 1],
             cursor=(self.cursor - self.shift) if self.cursor_enabled else None,
             hshift=self.hshift,
             sorting_col=self.sorting_col,
             sorting_rev=self.sorting_rev,
             print_selector=self.selectable)
+
+    def fancy_tabulate(self,
+                       table,
+                       cursor=None,
+                       hshift=0,
+                       sorting_col=None,
+                       sorting_rev=False,
+                       print_selector=False):
+
+        def format_str(s, width):
+            return s[hshift:].ljust(width - 1)[:width - 1]
+
+        self.window.move(0, 0)
+        self.window.clrtobot()
+        height, width = self.window.getmaxyx()
+        if table:
+            d = tabulate.tabulate(table, headers='keys').split('\n')
+            header = d[0]
+            if print_selector:
+                header = ' ' + header
+            if sorting_col:
+                if sorting_rev:
+                    s = '↑'
+                else:
+                    s = '↓'
+                if header.startswith(sorting_col + ' '):
+                    header = header.replace(sorting_col + ' ', s + sorting_col,
+                                            1)
+                else:
+                    header = header.replace(' ' + sorting_col, s + sorting_col)
+            self.window.addstr(0, 0, format_str(header, width),
+                               curses.color_pair(3) | curses.A_REVERSE)
+            for i, t in enumerate(d[2:]):
+                if print_selector:
+                    t = ('→' if cursor == i else ' ') + t
+                self.window.addstr(
+                    1 + i, 0, format_str(t, width),
+                    curses.color_pair(7) | curses.A_REVERSE
+                    if cursor == i else curses.A_NORMAL)
+        else:
+            self.window.addstr(0, 0, ' ' * (width - 1),
+                               curses.color_pair(3) | curses.A_REVERSE)
 
 
 def format_mod_name(f, path):
@@ -372,48 +439,6 @@ def format_mod_name(f, path):
     if f.endswith('.py'):
         f = f[:-3]
     return f.replace('/', '.')
-
-
-def fancy_tabulate(stdscr,
-                   table,
-                   cursor=None,
-                   hshift=0,
-                   sorting_col=None,
-                   sorting_rev=False,
-                   print_selector=False):
-
-    def format_str(s, width):
-        return s[hshift:].ljust(width - 1)[:width - 1]
-
-    stdscr.move(0, 0)
-    stdscr.clrtobot()
-    height, width = stdscr.getmaxyx()
-    if table:
-        d = tabulate.tabulate(table, headers='keys').split('\n')
-        header = d[0]
-        if print_selector:
-            header = ' ' + header
-        if sorting_col:
-            if sorting_rev:
-                s = '↑'
-            else:
-                s = '↓'
-            if header.startswith(sorting_col + ' '):
-                header = header.replace(sorting_col + ' ', s + sorting_col, 1)
-            else:
-                header = header.replace(' ' + sorting_col, s + sorting_col)
-        stdscr.addstr(0, 0, format_str(header, width),
-                      curses.color_pair(3) | curses.A_REVERSE)
-        for i, t in enumerate(d[2:]):
-            if print_selector:
-                t = ('→' if cursor == i else ' ') + t
-            stdscr.addstr(
-                1 + i, 0, format_str(t, width),
-                curses.color_pair(7) | curses.A_REVERSE
-                if cursor == i else curses.A_NORMAL)
-    else:
-        stdscr.addstr(0, 0, ' ' * (width - 1),
-                      curses.color_pair(3) | curses.A_REVERSE)
 
 
 ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')

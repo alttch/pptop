@@ -19,12 +19,12 @@ class Plugin(GenericPlugin):
         self.short_name = 'Thrds'
         self.sorting_col = 'ttot'
 
-    def process_data(self):
-        for d in self.data:
+    def process_data(self, data):
+        for d in data:
             d['daemon'] = 'daemon' if d['daemon'] else ''
 
-    def formatted_data(self, limit):
-        for t in self.dtd[self.shift:self.shift + limit - 1]:
+    def format_dtd(self, dtd):
+        for t in dtd:
             z = t.copy()
             z['ttot'] = '{:.3f}'.format(z['ttot'])
             yield z

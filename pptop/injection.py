@@ -201,17 +201,28 @@ def loop(cpid):
         os.unlink(server_address)
     except:
         pass
+    print('finished')
+    import os
+    os._exit(0)
 
 
 def start(cpid):
     loop(cpid)
 
+import logging
+logging.basicConfig(level=10)
+
 
 def test():
-    import time
+    import time, logging
     while True:
         z()
-        time.sleep(0.2)
+        time.sleep(1)
+        logging.debug('test')
+        logging.info('info test')
+        logging.warning('warn test')
+        logging.error('warn test')
+        logging.critical('critical test')
 
 
 def z():

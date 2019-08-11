@@ -11,3 +11,6 @@ plugins:
   threads:
     shortcut: KEY_F(7)
     interval: 1
+  log:
+    shortcut: KEY_F(8)
+    interval: 1
