@@ -215,14 +215,15 @@ logging.basicConfig(level=10)
 
 def test():
     import time, logging
+    logger = logging.getLogger('pptop-test')
     while True:
         z()
         time.sleep(1)
-        logging.debug('test')
-        logging.info('info test')
-        logging.warning('warn test')
-        logging.error('warn test')
-        logging.critical('critical test')
+        logger.debug('test')
+        logger.info('info test')
+        logger.warning('warn test')
+        logger.error('warn test')
+        logger.critical('critical test')
 
 
 def z():
