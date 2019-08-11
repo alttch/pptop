@@ -6,4 +6,7 @@ import curses
 try:
     start()
 finally:
-    curses.endwin()
+    try:
+        curses.endwin()
+    except:
+        pass
