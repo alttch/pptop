@@ -7,7 +7,7 @@ Global shortcuts:
     q, F10      : Quit program
 
 ppTOP v{version} (c) Altertech
-This product is available under {license} license.
+The product is available under {license} license.
 
 https://github.com/alttch/pptop
 '''
@@ -36,6 +36,8 @@ import signal
 from types import SimpleNamespace
 
 from pptop import GenericPlugin
+# DEBUG
+from pptop import print_debug
 
 logging.getLogger('asyncio').setLevel(logging.CRITICAL)
 
@@ -111,6 +113,7 @@ def select_process(stdscr):
     selector.events = 0
     selector.stdscr = stdscr
     selector.sorting_rev = False
+    selector.selectable = True
     selector.scr_lock = scr_lock
     selector.finish_event = threading.Event()
     selector.key_event = None
@@ -302,7 +305,7 @@ def run(stdscr):
         if not new_plugin['inj']:
             command('inject', new_plugin['i'])
             new_plugin['inj'] = True
-        if not p.is_started(): p.start()
+        if not p.is_active(): p.start()
         p.show()
         _d.current_plugin = new_plugin
 
@@ -372,6 +375,14 @@ def start():
     config.clear()
     with open('pptop.yml') as fh:
         config.update(yaml.load(fh.read()))
+
+    with open('/proc/sys/kernel/yama/ptrace_scope') as fd:
+        yps = int(fd.read().strip())
+
+    if yps:
+        raise Exception(
+            'yama ptrace scope is on. ' +
+            'disable with "sudo sysctl -w kernel.yama.ptrace_scope=0"')
 
     plugins.clear()
     for i, v in config.get('plugins', {}).items():
