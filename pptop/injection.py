@@ -45,7 +45,7 @@ from types import SimpleNamespace
 
 socket_timeout = 60
 
-socket_buf = 256
+socket_buf = 1024
 
 _d = SimpleNamespace(clients=0)
 

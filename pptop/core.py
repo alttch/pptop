@@ -56,7 +56,7 @@ editor_active = threading.Event()
 
 socket_timeout = 5
 
-socket_buf = 256
+socket_buf = 1024
 
 
 def enter_is_terminate(x):

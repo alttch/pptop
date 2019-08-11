@@ -216,14 +216,17 @@ class GenericPlugin(BackgroundIntervalWorker):
                 self.data = self.data[len(self.data) - self.data_records_max:]
             return True
         except:
-            self.data.clear()
-            import traceback
-            print(traceback.format_exc())
-            print(len(pkl))
-            import os
-            os._exit(0)
+            # self.data.clear()
+            # import traceback
+            # print(traceback.format_exc())
+            # print(len(pkl))
+            import time
+            open('/tmp/badpkl.{}'.format(time.time()),'wb').write(pkl)
+            # import os
+            # os._exit(0)
             # raise
-            return False
+            # return False
+            self.data = []
 
     def process_data(self, data):
         '''

@@ -57,7 +57,7 @@ def injection_unload(*args, **kwargs):
 
 def injection(*args, **kwargs):
     import yappi
-    d = yappi.get_func_stats()
+    d = list(yappi.get_func_stats())
     for v in d:
         del v[9]
     return d
