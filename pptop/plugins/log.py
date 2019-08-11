@@ -18,6 +18,8 @@ class Plugin(GenericPlugin):
         result = []
         for record in data:
             result.append({
+                'logr':
+                record.name,
                 'time':
                 record.created,
                 'level':
@@ -84,8 +86,7 @@ class Plugin(GenericPlugin):
                 'DEBUG': curses.color_pair(1) | curses.A_BOLD,
                 'WARNING': curses.color_pair(4) | curses.A_BOLD,
                 'ERROR': curses.color_pair(2) | curses.A_BOLD,
-                'CRITICAL':
-                curses.color_pair(2) | curses.A_BOLD | curses.A_BOLD
+                'CRITICAL': curses.color_pair(2) | curses.A_BOLD | curses.A_BOLD
             }
             for t, v in zip(d[2:], table):
                 color = colors.get(v['level'], curses.A_NORMAL)
@@ -122,12 +123,22 @@ def injection_load(*args, **kwargs):
             return rec
 
     g.log_handler = LogHandler()
-    logging.getLogger().addHandler(g.log_handler)
+    g.loggers_injected = [
+        logging.getLogger(name) for name in logging.root.manager.loggerDict
+    ]
+    if logging.getLogger().name not in g.loggers_injected:
+        g.loggers_injected.append(None)
+    for l in g.loggers_injected:
+        logging.getLogger(l).addHandler(g.log_handler)
 
 
 def injection_unload(*args, **kwargs):
     import logging
-    logging.getLogger().removeHandler(g.log_handler)
+    for l in g.loggers_injected:
+        try:
+            logging.getLogger(l).removeHandler(g.log_handler)
+        except:
+            pass
 
 
 def injection(*args, **kwargs):
