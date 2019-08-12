@@ -24,3 +24,6 @@ class Plugin(GenericPlugin):
 
     async def run(self, *args, **kwargs):
         super().run(*args, **kwargs)
+
+    def pause(self):
+        return
