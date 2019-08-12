@@ -52,6 +52,8 @@ def injection(**kwargs):
     import threading
     result = []
     yi = {}
+    if not yappi.is_running():
+        yappi.start()
     for d in yappi.get_thread_stats():
         yi[d[2]] = (d[3], d[4])
     for t in threading.enumerate():

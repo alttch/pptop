@@ -78,6 +78,8 @@ def injection(cmd=None, **kwargs):
         yappi.clear_stats()
         return True
     else:
+        if not yappi.is_running():
+            yappi.start()
         d = list(yappi.get_func_stats())
         for v in d:
             del v[9]
