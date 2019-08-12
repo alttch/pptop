@@ -33,13 +33,18 @@ import os
 import subprocess
 import importlib
 import signal
-import json
 import uuid
 import time
+
+try:
+    import _pickle as pickle
+except:
+    import pickle
 
 from types import SimpleNamespace
 
 from pptop import GenericPlugin
+from pptop import CriticalException
 # DEBUG
 from pptop import print_debug
 
@@ -181,10 +186,9 @@ client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 def command(cmd, params=None):
     with client_lock:
         try:
-            d = {'jsonrpc': '2.0', 'method': cmd, 'id': str(uuid.uuid4())}
+            frame = cmd.encode()
             if params is not None:
-                d['params'] = params
-            frame = json.dumps(d).encode()
+                frame += b'\xff' + pickle.dumps(params)
             client.sendall(
                 struct.pack('I', len(frame)) +
                 struct.pack('I', _d.client_frame_id) + frame)
@@ -192,22 +196,21 @@ def command(cmd, params=None):
             data = client.recv(4)
             frame_id = struct.unpack('I', client.recv(4))[0]
         except:
-            raise RuntimeError('Injector is gone')
+            raise CriticalException('Injector is gone')
         if not data:
-            raise RuntimeError('Injector error')
+            raise CriticalException('Injector error')
         l = struct.unpack('I', data)[0]
         data = b''
         while len(data) != l:
             data += client.recv(socket_buf)
             if time.time() > time_start + socket_timeout:
-                raise RuntimeError('Socket timeout')
+                raise CriticalException('Socket timeout')
         if frame_id != _d.client_frame_id:
-            raise RuntimeError('Wrong frame')
+            raise CriticalException('Wrong frame')
         _d.client_frame_id += 1
         if data[0] != 0:
             raise RuntimeError('Injector command error')
-        return json.loads(
-            data[1:].decode())['result'] if len(data) > 1 else True
+        return pickle.loads(data[1:]) if len(data) > 1 else True
 
 
 def get_process():

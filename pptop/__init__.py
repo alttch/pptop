@@ -11,6 +11,9 @@ from atasker import BackgroundIntervalWorker
 
 tabulate.PRESERVE_WHITESPACE = True
 
+class CriticalException(Exception):
+    pass
+
 
 class GenericPlugin(BackgroundIntervalWorker):
 
@@ -251,6 +254,7 @@ class GenericPlugin(BackgroundIntervalWorker):
             self._error = False
             return True
         except Exception as e:
+            raise
             self.data = []
             with self.scr_lock:
                 self._error = True

@@ -14,7 +14,7 @@ Client request:
 
     bytes 1-4 : frame length
     bytes 5-8 : client frame id
-    bytes 4-N : JSON RPC 2.0 request (batch requests not supported)
+    bytes 4-N : cmd and cmd params, separated with \xff
 
 Server response:
 
@@ -28,7 +28,7 @@ Server response:
         0x01 - Command not found
         0x02 - Command failed
 
-    Frame bytes 2-N: JSON RPC 2.0 response
+    Frame bytes 2-N: pickled response
 
 Commands:
 
@@ -42,11 +42,15 @@ If client closes connection, connection is timed out (default: 10 sec) or
 server receives "bye" command, it immediately terminates itself.
 '''
 import threading
-import pptop.json as json
 import struct
 import socket
 import sys
 import os
+
+try:
+    import _pickle as pickle
+except:
+    import pickle
 
 from types import SimpleNamespace
 
@@ -66,10 +70,8 @@ def loop(cpid):
             struct.pack('I', len(data)) + struct.pack('I', frame_id) + data)
         print('{}: frame {}, {} bytes sent'.format(cpid, frame_id, len(data)))
 
-    def send_serialized(conn, frame_id, req_id, data):
-        if not req_id: return
-        result = {'jsonrpc': '2.0', 'id': req_id, 'result': data}
-        send_frame(conn, frame_id, b'\x00' + json.dumps(result).encode())
+    def send_serialized(conn, frame_id, data):
+        send_frame(conn, frame_id, b'\x00' + pickle.dumps(data))
 
     def send_ok(conn, frame_id):
         send_frame(conn, frame_id, b'\x00')
@@ -108,17 +110,20 @@ def loop(cpid):
                 raise
                 break
             if frame:
-                d = json.loads(frame.decode())
-                cmd = d['method']
-                params = d.get('params', {})
-                req_id = d.get('id')
+                try:
+                    cmd, params = frame.split(b'\xff', 1)
+                    cmd = cmd.decode()
+                    params = pickle.loads(params)
+                except:
+                    cmd = frame.decode()
+                    params = {}
                 try:
                     if cmd == 'test':
                         send_ok(connection, frame_id)
                     elif cmd == 'bye':
                         break
                     elif cmd == 'path':
-                        send_serialized(connection, frame_id, req_id, sys.path)
+                        send_serialized(connection, frame_id, sys.path)
                     elif cmd == 'inject':
                         print(params)
                         injection_id = params['id']
@@ -148,7 +153,7 @@ def loop(cpid):
                         gl = injections[cmd]['g']
                         gl['kw'] = params
                         exec(injections[cmd]['i'], gl)
-                        send_serialized(connection, frame_id, req_id, gl['_r'])
+                        send_serialized(connection, frame_id, gl['_r'])
                     else:
                         send_frame(connection, frame_id, b'\x01')
                 except:
