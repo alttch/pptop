@@ -1,6 +1,7 @@
 from pptop import GenericPlugin
 
 import os
+import curses
 
 
 class Plugin(GenericPlugin):
@@ -47,59 +48,17 @@ class Plugin(GenericPlugin):
             z['level'] = logging.getLevelName(z['level'])
             yield z
 
-    def fancy_tabulate(self,
-                       table,
-                       cursor=None,
-                       hshift=0,
-                       sorting_col=None,
-                       sorting_rev=False,
-                       print_selector=False):
+    def start(self, *args, **kwargs):
+        self.row_colors = {
+            'DEBUG': curses.color_pair(1) | curses.A_BOLD,
+            'WARNING': curses.color_pair(4) | curses.A_BOLD,
+            'ERROR': curses.color_pair(2) | curses.A_BOLD,
+            'CRITICAL': curses.color_pair(2) | curses.A_BOLD | curses.A_BOLD
+        }
+        super().start(*args, **kwargs)
 
-        import tabulate
-        import curses
-
-        def format_str(s, width):
-            return s[hshift:].ljust(width - 1)[:width - 1]
-
-        table = list(table)
-
-        self.window.move(0, 0)
-        self.window.clrtobot()
-        height, width = self.window.getmaxyx()
-        if table:
-            d = tabulate.tabulate(table, headers='keys').split('\n')
-            header = d[0]
-            if print_selector:
-                header = ' ' + header
-            if sorting_col:
-                if sorting_rev:
-                    s = '↑'
-                else:
-                    s = '↓'
-                if header.startswith(sorting_col + ' '):
-                    header = header.replace(sorting_col + ' ', s + sorting_col,
-                                            1)
-                else:
-                    header = header.replace(' ' + sorting_col, s + sorting_col)
-            self.window.addstr(0, 0, format_str(header, width),
-                               curses.color_pair(3) | curses.A_REVERSE)
-            i = 0
-            colors = {
-                'DEBUG': curses.color_pair(1) | curses.A_BOLD,
-                'WARNING': curses.color_pair(4) | curses.A_BOLD,
-                'ERROR': curses.color_pair(2) | curses.A_BOLD,
-                'CRITICAL': curses.color_pair(2) | curses.A_BOLD | curses.A_BOLD
-            }
-            for t, v in zip(d[2:], table):
-                color = colors.get(v['level'], curses.A_NORMAL)
-                self.window.addstr(
-                    1 + i, 0, format_str(t, width),
-                    curses.color_pair(0) | curses.A_REVERSE
-                    if cursor == i else color)
-                i += 1
-        else:
-            self.window.addstr(0, 0, ' ' * (width - 1),
-                               curses.color_pair(3) | curses.A_REVERSE)
+    def get_table_row_color(self, element=None, raw=None):
+        return self.row_colors.get(element['level'])
 
 
 def injection_load(**kwargs):

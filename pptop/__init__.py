@@ -266,7 +266,7 @@ class GenericPlugin(BackgroundIntervalWorker):
                     self.data = self.data[len(self.data) -
                                           self.data_records_max:]
             self._error = False
-            self._run_ui()
+            self._display_ui()
             return True
         except Exception as e:
             raise
@@ -424,9 +424,9 @@ class GenericPlugin(BackgroundIntervalWorker):
             else:
                 if self.load_data() is False:
                     return False
-        self._run_ui()
+        self._display_ui()
 
-    def _run_ui(self):
+    def _display_ui(self):
         with self.start_stop_lock:
             if self.is_active():
                 with self.scr_lock:
@@ -461,7 +461,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         Renders plugin display
         '''
         height, width = self.window.getmaxyx()
-        self.fancy_tabulate(
+        self.tabulate(
             dtd[self.shift:self.shift + height - 1],
             cursor=(self.cursor - self.shift) if self.cursor_enabled else None,
             hshift=self.hshift,
@@ -469,16 +469,13 @@ class GenericPlugin(BackgroundIntervalWorker):
             sorting_rev=self.sorting_rev,
             print_selector=self.selectable)
 
-    def fancy_tabulate(self,
-                       table,
-                       cursor=None,
-                       hshift=0,
-                       sorting_col=None,
-                       sorting_rev=False,
-                       print_selector=False):
-
-        def format_str(s, width):
-            return s[hshift:].ljust(width - 1)[:width - 1]
+    def tabulate(self,
+                 table,
+                 cursor=None,
+                 hshift=0,
+                 sorting_col=None,
+                 sorting_rev=False,
+                 print_selector=False):
 
         self.window.move(0, 0)
         self.window.clrtobot()
@@ -498,18 +495,29 @@ class GenericPlugin(BackgroundIntervalWorker):
                                             1)
                 else:
                     header = header.replace(' ' + sorting_col, s + sorting_col)
-            self.window.addstr(0, 0, format_str(header, width),
-                               curses.color_pair(3) | curses.A_REVERSE)
-            for i, t in enumerate(d[2:]):
+            self.window.addstr(
+                0, 0,
+                self.format_table_row(
+                    raw=header, max_width=width, hshift=hshift),
+                curses.color_pair(3) | curses.A_REVERSE)
+            for i, (t, r) in enumerate(zip(d[2:], table)):
                 if print_selector:
                     t = ('→' if cursor == i else ' ') + t
                 self.window.addstr(
-                    1 + i, 0, format_str(t, width),
-                    curses.color_pair(7) | curses.A_REVERSE
-                    if cursor == i else curses.A_NORMAL)
+                    1 + i, 0,
+                    self.format_table_row(
+                        element=r, raw=t, max_width=width, hshift=hshift),
+                    curses.color_pair(7) | curses.A_REVERSE if cursor == i else
+                    (self.get_table_row_color(r, t) or curses.A_NORMAL))
         else:
             self.window.addstr(0, 0, ' ' * (width - 1),
                                curses.color_pair(3) | curses.A_REVERSE)
+
+    def format_table_row(self, element=None, raw=None, max_width=0, hshift=0):
+        return raw[hshift:].ljust(max_width - 1)[:max_width - 1]
+
+    def get_table_row_color(self, element=None, raw=None):
+        pass
 
 
 def format_mod_name(f, path):
