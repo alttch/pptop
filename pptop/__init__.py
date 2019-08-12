@@ -478,6 +478,11 @@ class GenericPlugin(BackgroundIntervalWorker):
                  sorting_rev=False,
                  print_selector=False):
 
+        def format_row(element=None, raw=None, max_width=0, hshift=0):
+            return self.format_table_row(
+                element=element,
+                raw=raw)[hshift:].ljust(max_width - 1)[:max_width - 1]
+
         self.window.move(0, 0)
         self.window.clrtobot()
         height, width = self.window.getmaxyx()
@@ -497,16 +502,14 @@ class GenericPlugin(BackgroundIntervalWorker):
                 else:
                     header = header.replace(' ' + sorting_col, s + sorting_col)
             self.window.addstr(
-                0, 0,
-                self.format_table_row(
-                    raw=header, max_width=width, hshift=hshift),
+                0, 0, format_row(raw=header, max_width=width, hshift=hshift),
                 curses.color_pair(3) | curses.A_REVERSE)
             for i, (t, r) in enumerate(zip(d[2:], table)):
                 if print_selector:
                     t = ('→' if cursor == i else ' ') + t
                 self.window.addstr(
                     1 + i, 0,
-                    self.format_table_row(
+                    format_row(
                         element=r, raw=t, max_width=width, hshift=hshift),
                     curses.color_pair(7) | curses.A_REVERSE if cursor == i else
                     (self.get_table_row_color(r, t) or curses.A_NORMAL))
@@ -514,11 +517,11 @@ class GenericPlugin(BackgroundIntervalWorker):
             self.window.addstr(0, 0, ' ' * (width - 1),
                                curses.color_pair(3) | curses.A_REVERSE)
 
-    def format_table_row(self, element=None, raw=None, max_width=0, hshift=0):
-        return raw[hshift:].ljust(max_width - 1)[:max_width - 1]
-
     def get_table_row_color(self, element=None, raw=None):
         pass
+
+    def format_table_row(self, element=None, raw=None):
+        return raw
 
 
 def format_mod_name(f, path):
