@@ -1,7 +1,3 @@
-__author__ = "Altertech Group, https://www.altertech.com/"
-__copyright__ = "Copyright (C) 2019 Altertech Group"
-__license__ = "MIT"
-__version__ = "0.0.1"
 '''
 Client-server communication
 
@@ -41,6 +37,12 @@ Commands:
 If client closes connection, connection is timed out (default: 10 sec) or
 server receives "bye" command, it immediately terminates itself.
 '''
+
+__author__ = "Altertech Group, https://www.altertech.com/"
+__copyright__ = "Copyright (C) 2019 Altertech Group"
+__license__ = "MIT"
+__version__ = "0.0.2"
+
 import threading
 import struct
 import socket
