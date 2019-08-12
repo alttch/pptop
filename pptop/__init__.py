@@ -72,13 +72,13 @@ class GenericPlugin(BackgroundIntervalWorker):
         '''
         return None
 
-    def command(cmd, data=None):
+    def command(cmd, params=None):
         '''
         Execute command on connected process
 
         Args:
             cmd: command to execute
-            data: command data (optional, free format)
+            params: command params (optional, free format dict)
         '''
         return None
 
@@ -212,7 +212,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         Raises:
             RuntimeError: if command failed
         '''
-        return self.command(self.name, data=kwargs)
+        return self.command(self.name, params=kwargs)
 
     def toggle_pause(self):
         self.resume() if self._paused else self.pause()

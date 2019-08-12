@@ -178,24 +178,30 @@ client_lock = threading.Lock()
 client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 
 
-def command(cmd, data=None):
+def command(cmd, params=None):
     with client_lock:
         try:
             d = {'jsonrpc': '2.0', 'method': cmd, 'id': str(uuid.uuid4())}
-            if data is not None:
-                d['params'] = data
+            if params is not None:
+                d['params'] = params
             frame = json.dumps(d).encode()
-            client.sendall(struct.pack('I', len(frame)) + frame)
+            client.sendall(
+                struct.pack('I', len(frame)) +
+                struct.pack('I', _d.client_frame_id) + frame)
+            _d.client_frame_id += 1
             data = client.recv(4)
+            frame_id = struct.unpack('I', client.recv(4))[0]
         except:
             raise RuntimeError('Injector is gone')
         if not data:
             raise RuntimeError('Injector error')
-        l = struct.unpack('I', data)
+        l = struct.unpack('I', data)[0]
         data = b''
-        for i in range(l[0] // socket_buf):
+        for i in range(l // socket_buf):
             data += client.recv(socket_buf)
-        data += client.recv(l[0] % socket_buf)
+        data += client.recv(l % socket_buf)
+        if len(data) != l:
+            raise RuntimeError('Invalid frame {}'.format(frame_id))
         if data[0] != 0:
             raise RuntimeError('Injector command error')
         return json.loads(
@@ -221,7 +227,6 @@ def show_process_info(stdscr, p, **kwargs):
 
     height, width = stdscr.getmaxyx()
     try:
-        result = command('test')
         with scr_lock:
             ct = p.cpu_times()
             stdscr.move(0, 0)
@@ -284,7 +289,8 @@ _d = SimpleNamespace(
     process_path=[],
     default_plugin=None,
     process=None,
-    stdscr=None)
+    stdscr=None,
+    client_frame_id=1)
 
 _cursors = SimpleNamespace(
     files_cursor=0,
@@ -370,7 +376,7 @@ def run(stdscr):
     client.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, socket_buf)
     client.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, socket_buf)
     inject_client(p.pid)
-    sock_path = '/tmp/.pptop_{}'.format(os.getpid())
+    sock_path = '/tmp/.pptop.{}'.format(os.getpid())
     for i in range(injection_timeout * 10):
         if os.path.exists(sock_path):
             break

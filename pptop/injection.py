@@ -13,11 +13,13 @@ server exchange data via simple binary/text protocol:
 Client request:
 
     bytes 1-4 : frame length
+    bytes 5-8 : client frame id
     bytes 4-N : JSON RPC 2.0 request (batch requests not supported)
 
 Server response:
 
     bytes 1-4 : frame length
+    bytes 5-8 : server frame id
     bytes 4-N : frame
 
     First frame byte: command status:
@@ -59,20 +61,25 @@ _d_lock = threading.Lock()
 
 def loop(cpid):
 
+    _server = SimpleNamespace(frame_id=1)
+
     def send_frame(conn, data):
-        conn.sendall(struct.pack('I', len(data)) + data)
+        conn.sendall(
+            struct.pack('I', len(data)) + struct.pack('I', _server.frame_id) +
+            data)
+        print('{}: frame {}, {} bytes sent'.format(cpid, _server.frame_id,
+                                                   len(data)))
+        _server.frame_id += 1
 
     def send_serialized(conn, req_id, data):
         if not req_id: return
         result = {'jsonrpc': '2.0', 'id': req_id, 'result': data}
-        frame = json.dumps(result).encode()
-        send_frame(conn, b'\x00' + frame)
-        print('frame {} bytes sent'.format(len(frame)))
+        send_frame(conn, b'\x00' + json.dumps(result).encode())
 
     def send_ok(conn):
         send_frame(conn, b'\x00')
 
-    server_address = '/tmp/.pptop_{}'.format(cpid)
+    server_address = '/tmp/.pptop.{}'.format(cpid)
     try:
         os.unlink(server_address)
     except:
@@ -93,6 +100,7 @@ def loop(cpid):
         while True:
             try:
                 data = connection.recv(4)
+                frame_id = connection.recv(4)
                 if data:
                     l = struct.unpack('I', data)
                     frame = b''
