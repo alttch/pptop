@@ -421,6 +421,7 @@ class GenericPlugin(BackgroundIntervalWorker):
             self._loader_active = True
             if self.background_loader:
                 background_task(self.load_data)()
+                return
             else:
                 if self.load_data() is False:
                     return False
