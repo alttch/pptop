@@ -46,6 +46,7 @@ import struct
 import socket
 import sys
 import os
+import time
 
 try:
     import _pickle as pickle
@@ -96,14 +97,16 @@ def loop(cpid):
         connection.settimeout(socket_timeout)
         while True:
             try:
+                time_start = time.time()
                 data = connection.recv(4)
                 frame_id = struct.unpack('I', connection.recv(4))[0]
                 if data:
-                    l = struct.unpack('I', data)
+                    l = struct.unpack('I', data)[0]
                     frame = b''
-                    for i in range(l[0] // socket_buf):
+                    while len(frame) != l:
+                        if time.time() > time_start + socket_timeout:
+                            raise TimeoutError
                         frame += connection.recv(socket_buf)
-                    frame += connection.recv(l[0] % socket_buf)
                 else:
                     break
             except:
