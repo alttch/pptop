@@ -57,7 +57,7 @@ resize_event = threading.Event()
 
 editor_active = threading.Event()
 
-socket_timeout = 5
+socket_timeout = 15
 
 injection_timeout = 3
 

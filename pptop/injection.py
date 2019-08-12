@@ -107,7 +107,7 @@ def loop(cpid):
             if frame:
                 d = json.loads(frame.decode())
                 cmd = d['method']
-                params = d.get('params')
+                params = d.get('params', {})
                 req_id = d.get('id')
                 try:
                     if cmd == 'test':
@@ -131,9 +131,8 @@ def loop(cpid):
                                 '__pptop_injection_load_' + injection_id,
                                 'exec')
                             exec(code, injections[injection_id]['g'])
-                            print(injections[injection_id]['g'].get('g'))
                         if 'i' in params:
-                            src = params['i'] + '\n_r = injection()'
+                            src = params['i'] + '\n_r = injection(**kw)'
                         else:
                             src = '_r = None'
                         injections[injection_id]['i'] = compile(
@@ -141,10 +140,10 @@ def loop(cpid):
                         print('injection completed {}'.format(injection_id))
                         send_ok(connection)
                     elif cmd in injections:
+                        print('command {}, data: {}'.format(cmd, params))
                         g = injections[cmd]['g']
+                        g['kw'] = params
                         exec(injections[cmd]['i'], g)
-                        print(g.get('g'))
-                        print(g['_r'])
                         send_serialized(connection, req_id, g['_r'])
                     else:
                         send_frame(connection, b'\x01')

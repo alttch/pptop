@@ -202,6 +202,18 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.window.addstr(0, 0, ' ' * (width - 1),
                            curses.color_pair(3) | curses.A_REVERSE)
 
+    def injection_command(self, **kwargs):
+        '''
+        Execute injected function with specified params
+
+        Returns:
+            injected function response
+        Raises:
+            RuntimeError: if command failed
+        '''
+        return self.command(self.name, data=kwargs)
+
+
     def load_data(self):
         '''
         Load data from connected process
@@ -212,7 +224,7 @@ class GenericPlugin(BackgroundIntervalWorker):
             if False is returned, the plugin is stopped
         '''
         try:
-            result = self.process_data(self.command(self.name))
+            result = self.process_data(self.injection_command())
             if result is False:
                 return False
             if isinstance(result, list):
@@ -384,7 +396,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         dtd = list(self.filter_dtd(self.format_dtd(self.sort_dtd(self.data))))
         self.dtd = dtd
         self.handle_pager_event(dtd)
-        if self.handle_key_event(self.key_event, dtd) is False:
+        if self.key_event and self.handle_key_event(self.key_event, dtd) is False:
             return False
         if self.key_event:
             self.key_event = None

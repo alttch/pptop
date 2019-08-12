@@ -7,6 +7,10 @@ class Plugin(GenericPlugin):
     '''
     yappi plugin: function profiler
 
+    Shortcuts:
+
+        C-x  : reset stats
+
     requires yappi profiler module https://github.com/sumerc/yappi
     '''
 
@@ -14,6 +18,11 @@ class Plugin(GenericPlugin):
         self.short_name = 'Prof'
         self.title = 'Function profiler (yappi)'
         self.sorting_col = 'ttot'
+
+    def handle_key_event(self, event, dtd, **kwargs):
+        if len(event) == 1:
+            if ord(event) == 24:
+                self.injection_command(cmd='reset')
 
     def process_data(self, data):
         sess = []
@@ -50,22 +59,26 @@ class Plugin(GenericPlugin):
             yield z
 
 
-def injection_load(*args, **kwargs):
+def injection_load(**kwargs):
     import yappi
     import threading
     if not yappi.is_running():
         yappi.start()
 
 
-def injection_unload(*args, **kwargs):
+def injection_unload(**kwargs):
     import yappi
     if yappi.is_running():
         yappi.stop()
 
 
-def injection(*args, **kwargs):
+def injection(cmd=None, **kwargs):
     import yappi
-    d = list(yappi.get_func_stats())
-    for v in d:
-        del v[9]
-    return d
+    if cmd == 'reset':
+        yappi.clear_stats()
+        return True
+    else:
+        d = list(yappi.get_func_stats())
+        for v in d:
+            del v[9]
+        return d

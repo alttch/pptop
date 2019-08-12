@@ -103,7 +103,7 @@ class Plugin(GenericPlugin):
                                curses.color_pair(3) | curses.A_REVERSE)
 
 
-def injection_load(*args, **kwargs):
+def injection_load(**kwargs):
     import logging
     import threading
 
@@ -133,7 +133,7 @@ def injection_load(*args, **kwargs):
         logging.getLogger(l).addHandler(g.log_handler)
 
 
-def injection_unload(*args, **kwargs):
+def injection_unload(**kwargs):
     import logging
     for l in g.loggers_injected:
         try:
@@ -142,5 +142,5 @@ def injection_unload(*args, **kwargs):
             pass
 
 
-def injection(*args, **kwargs):
+def injection(**kwargs):
     return g.log_handler.get_collected()
