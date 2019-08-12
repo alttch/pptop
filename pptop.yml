@@ -14,3 +14,4 @@ plugins:
   log:
     shortcut: KEY_F(8)
     interval: 1
+    autostart: true

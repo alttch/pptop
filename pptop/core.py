@@ -55,6 +55,8 @@ work_pid = None
 config = {}
 plugins = {}
 
+plugins_autostart = []
+
 bottom_bar_help = {10: 'Quit'}
 plugin_shortcuts = {}
 
@@ -282,7 +284,8 @@ def show_bottom_bar(stdscr, **kwargs):
     with scr_lock:
         height, width = stdscr.getmaxyx()
         stdscr.move(height - 1, 0)
-        stdscr.addstr(' ' * (width - 1), curses.color_pair(7) | curses.A_REVERSE)
+        stdscr.addstr(' ' * (width - 1),
+                      curses.color_pair(7) | curses.A_REVERSE)
         stdscr.move(height - 1, 0)
         color = curses.color_pair(7) | curses.A_REVERSE
         for h in sorted(bottom_bar_help):
@@ -361,11 +364,23 @@ def run(stdscr):
         p._previous_plugin = _d.current_plugin
         p.key_event = None
         if not new_plugin['inj']:
-            command('inject', new_plugin['i'])
             new_plugin['inj'] = True
+            command('inject', new_plugin['i'])
         if not p.is_active(): p.start()
         p.show()
         _d.current_plugin = new_plugin
+
+    @atasker.background_task
+    def autostart_plugins(stdscr):
+        for plugin in plugins_autostart:
+            if plugin['p'] is not _d.current_plugin.get('p'):
+                if not plugin['inj']:
+                    plugin['inj'] = True
+                    command('inject', plugin['i'])
+                p = plugin['p']
+                p.key_event = None
+                p.stdscr = stdscr
+                p.start()
 
     signal.signal(signal.SIGWINCH, sigwinch_handler)
     _d.stdscr = stdscr
@@ -408,6 +423,7 @@ def run(stdscr):
     switch_plugin(_d.default_plugin, stdscr)
     atasker.background_task(show_process_info.start)(stdscr=stdscr, p=p)
     atasker.background_task(show_bottom_bar.start)(stdscr=stdscr)
+    autostart_plugins(stdscr)
     while True:
         try:
             try:
@@ -511,6 +527,8 @@ def start():
                 except:
                     raise
                     pass
+        if v.get('autostart'):
+            plugins_autostart.append(plugin)
     atasker.task_supervisor.start()
     try:
         curses.wrapper(run)
