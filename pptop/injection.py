@@ -50,10 +50,7 @@ import sys
 import os
 import time
 
-try:
-    import _pickle as pickle
-except:
-    import pickle
+import pickle
 
 from types import SimpleNamespace
 

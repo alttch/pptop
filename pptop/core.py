@@ -35,11 +35,7 @@ import importlib
 import signal
 import uuid
 import time
-
-try:
-    import _pickle as pickle
-except:
-    import pickle
+import pickle
 
 from types import SimpleNamespace
 
