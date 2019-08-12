@@ -24,14 +24,17 @@ import atasker
 import logging
 import socket
 import struct
-import _pickle as cPickle
 import yaml
 import inspect
 import threading
 import psutil
 import os
+import subprocess
 import importlib
 import signal
+import json
+import uuid
+import time
 
 from types import SimpleNamespace
 
@@ -55,6 +58,8 @@ resize_event = threading.Event()
 editor_active = threading.Event()
 
 socket_timeout = 5
+
+injection_timeout = 3
 
 socket_buf = 1024
 
@@ -175,9 +180,10 @@ client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 def command(cmd, data=None):
     with client_lock:
         try:
-            frame = cmd.encode()
+            d = {'jsonrpc': '2.0', 'method': cmd, 'id': str(uuid.uuid4())}
             if data is not None:
-                frame += b'\xff' + cPickle.dumps(data)
+                d['params'] = data
+            frame = json.dumps(d).encode()
             client.sendall(struct.pack('I', len(frame)) + frame)
             data = client.recv(4)
         except:
@@ -191,7 +197,8 @@ def command(cmd, data=None):
         data += client.recv(l[0] % socket_buf)
         if data[0] != 0:
             raise RuntimeError('Injector command error')
-        return data[1:]
+        return json.loads(
+            data[1:].decode())['result'] if len(data) > 1 else True
 
 
 def get_process():
@@ -303,6 +310,24 @@ def resize_handler(stdscr):
         stdscr.refresh()
 
 
+def inject_client(pid):
+    cmds = [
+        '(PyGILState_STATE)PyGILState_Ensure()',
+        ('(int)PyRun_SimpleString("import sys;sys.path.append(\\"{path}\\");' +
+         'import pptop.injection;pptop.injection.start({mypid})")').format(
+             path=os.path.abspath(os.path.dirname(__file__) + '/..'),
+             mypid=os.getpid()), '(void)PyGILState_Release($1)'
+    ]
+    gdb_cmd = 'gdb -p {pid} --batch {cmds}'.format(
+        pid=pid,
+        cmds=' '.join(["--eval-command='call {}'".format(c) for c in cmds]))
+    p = subprocess.Popen(
+        gdb_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    out, err = p.communicate()
+    if p.returncode:
+        raise RuntimeError(err)
+
+
 def run(stdscr):
 
     def switch_plugin(new_plugin, stdscr):
@@ -343,13 +368,19 @@ def run(stdscr):
     client.settimeout(socket_timeout)
     client.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, socket_buf)
     client.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, socket_buf)
+    inject_client(p.pid)
+    sock_path = '/tmp/.pptop_{}'.format(os.getpid())
+    for i in range(injection_timeout * 10):
+        if os.path.exists(sock_path):
+            break
+        time.sleep(0.1)
     try:
-        client.connect('/tmp/.pptop_777')
+        client.connect(sock_path)
     except:
         raise RuntimeError('Unable to connect to process')
 
     _d.process_path.clear()
-    for i in cPickle.loads(command('path')):
+    for i in command('path'):
         _d.process_path.append(os.path.abspath(i))
 
     height, width = stdscr.getmaxyx()

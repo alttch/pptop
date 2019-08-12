@@ -20,8 +20,12 @@ class Plugin(GenericPlugin):
         self.sorting_col = 'ttot'
 
     def process_data(self, data):
+        result = []
         for d in data:
-            d['daemon'] = 'daemon' if d['daemon'] else ''
+            if not d['name'].startswith('__pptop_injection'):
+                d['daemon'] = 'daemon' if d['daemon'] else ''
+                result.append(d)
+        return result
 
     def format_dtd(self, dtd):
         for t in dtd:

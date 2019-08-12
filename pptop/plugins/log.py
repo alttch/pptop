@@ -21,19 +21,20 @@ class Plugin(GenericPlugin):
         for record in data:
             result.append({
                 'logger':
-                record.name,
+                record['name'],
                 'time':
-                record.created,
+                record['created'],
                 'level':
-                record.levelno,
+                record['levelno'],
                 'module':
-                record.module,
+                record['module'],
                 'thread':
-                record.threadName,
+                record['threadName'],
                 'file':
-                '{}:{}'.format(os.path.abspath(record.pathname), record.lineno),
+                '{}:{}'.format(
+                    os.path.abspath(record['pathname']), record['lineno']),
                 'message':
-                record.getMessage().replace('\n', ' ')
+                record['message'].replace('\n', ' ')
             })
         return result
 
@@ -116,7 +117,7 @@ def injection_load(*args, **kwargs):
         def emit(self, record):
             if record:
                 with self.records_lock:
-                    self.records.append(record)
+                    self.records.append(record.__dict__)
 
         def get_collected(self):
             with self.records_lock:

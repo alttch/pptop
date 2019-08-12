@@ -13,7 +13,7 @@ server exchange data via simple binary/text protocol:
 Client request:
 
     bytes 1-4 : frame length
-    bytes 4-N : text command frame in format <CMD>[|DATA]
+    bytes 4-N : JSON RPC 2.0 request (batch requests not supported)
 
 Server response:
 
@@ -26,7 +26,7 @@ Server response:
         0x01 - Command not found
         0x02 - Command failed
 
-    Frame bytes 2-N: pickled data
+    Frame bytes 2-N: JSON RPC 2.0 response
 
 Commands:
 
@@ -40,6 +40,11 @@ If client closes connection, connection is timed out (default: 10 sec) or
 server receives "bye" command, it immediately terminates itself.
 '''
 import threading
+import pptop.json as json
+import struct
+import socket
+import sys
+import os
 
 from types import SimpleNamespace
 
@@ -54,22 +59,19 @@ _d_lock = threading.Lock()
 
 def loop(cpid):
 
-    def send_data(conn, data):
-        import struct
+    def send_frame(conn, data):
         conn.sendall(struct.pack('I', len(data)) + data)
 
-    def send_pickle(conn, data):
-        import _pickle as cPickle
-        send_data(conn, b'\x00' + cPickle.dumps(data))
+    def send_serialized(conn, req_id, data):
+        if not req_id: return
+        result = {'jsonrpc': '2.0', 'id': req_id, 'result': data}
+        frame = json.dumps(result).encode()
+        send_frame(conn, b'\x00' + frame)
+        print('frame {} bytes sent'.format(len(frame)))
 
     def send_ok(conn):
-        send_data(conn, b'\x00')
+        send_frame(conn, b'\x00')
 
-    import socket
-    import sys
-    import os
-    import struct
-    import _pickle as cPickle
     server_address = '/tmp/.pptop_{}'.format(cpid)
     try:
         os.unlink(server_address)
@@ -93,52 +95,49 @@ def loop(cpid):
                 data = connection.recv(4)
                 if data:
                     l = struct.unpack('I', data)
-                    cmd = b''
+                    frame = b''
                     for i in range(l[0] // socket_buf):
-                        cmd += client.recv(socket_buf)
-                    cmd += client.recv(l[0] % socket_buf)
+                        frame += connection.recv(socket_buf)
+                    frame += connection.recv(l[0] % socket_buf)
                 else:
                     break
             except:
                 raise
                 break
-            if cmd:
+            if frame:
+                d = json.loads(frame.decode())
+                cmd = d['method']
+                params = d.get('params')
+                req_id = d.get('id')
                 try:
-                    cmd, cmd_data = cmd.split(b'\xff', 1)
-                    cmd_data = cPickle.loads(cmd_data)
-                except:
-                    cmd_data = None
-                try:
-                    print(cmd)
-                    cmd = cmd.decode()
                     if cmd == 'test':
                         send_ok(connection)
                     elif cmd == 'bye':
                         break
                     elif cmd == 'path':
-                        send_pickle(connection, sys.path)
+                        send_serialized(connection, req_id, sys.path)
                     elif cmd == 'inject':
-                        print(cmd_data)
-                        injection_id = cmd_data['id']
+                        print(params)
+                        injection_id = params['id']
                         injections[injection_id] = {
                             'g': {
                                 'g': SimpleNamespace()
                             },
-                            'u': cmd_data.get('u')
+                            'u': params.get('u')
                         }
-                        if 'l' in cmd_data:
+                        if 'l' in params:
                             code = compile(
-                                cmd_data['l'] + '\ninjection_load()',
-                                'pptop.__injection_load_' + injection_id,
+                                params['l'] + '\ninjection_load()',
+                                '__pptop_injection_load_' + injection_id,
                                 'exec')
                             exec(code, injections[injection_id]['g'])
                             print(injections[injection_id]['g'].get('g'))
-                        if 'i' in cmd_data:
-                            src = cmd_data['i'] + '\n_r = injection()'
+                        if 'i' in params:
+                            src = params['i'] + '\n_r = injection()'
                         else:
                             src = '_r = None'
                         injections[injection_id]['i'] = compile(
-                            src, 'pptop.__injection_' + injection_id, 'exec')
+                            src, '__pptop_injection_' + injection_id, 'exec')
                         print('injection completed {}'.format(injection_id))
                         send_ok(connection)
                     elif cmd in injections:
@@ -146,38 +145,12 @@ def loop(cpid):
                         exec(injections[cmd]['i'], g)
                         print(g.get('g'))
                         print(g['_r'])
-                        send_pickle(connection, g['_r'])
-                    # elif cmd == 'profiler':
-                    # d = yappi.get_func_stats()
-                    # for v in d:
-                    # del v[9]
-                    # send_pickle(connection, d)
-                    # elif cmd == 'threads':
-                    # result = []
-                    # yi = {}
-                    # for d in yappi.get_thread_stats():
-                    # yi[d[2]] = (d[3], d[4])
-                    # for t in threading.enumerate():
-                    # try:
-                    # target = '{}.{}'.format(t._target.__module__,
-                    # t._target.__name__)
-                    # except:
-                    # target = None
-                    # y = yi.get(t.ident)
-                    # result.append({
-                    # 'ident': t.ident,
-                    # 'daemon': t.daemon,
-                    # 'name': t.getName(),
-                    # 'target': target if target else '',
-                    # 'ttot': y[0] if y else 0,
-                    # 'scnt': y[1] if y else 0
-                    # })
-                    # send_pickle(connection, result)
+                        send_serialized(connection, req_id, g['_r'])
                     else:
-                        send_data(connection, b'\x01')
+                        send_frame(connection, b'\x01')
                 except:
                     raise
-                    send_data(connection, b'\x02')
+                    send_frame(connection, b'\x02')
             else:
                 break
     except:
@@ -188,7 +161,7 @@ def loop(cpid):
         if u:
             try:
                 code = compile(u + '\ninjection_unload()',
-                               'pptop.__injection_unload_' + injection_id,
+                               '__pptop_injection_unload_' + injection_id,
                                'exec')
                 exec(code, v['g'])
                 print('injection removed {}'.format(i))
@@ -209,12 +182,15 @@ def loop(cpid):
     except:
         pass
     print('finished')
-    import os
-    os._exit(0)
 
 
 def start(cpid):
-    loop(cpid)
+    print('starting injection server for pid {}'.format(cpid))
+    t = threading.Thread(
+        name='__pptop_injection_{}'.format(cpid), target=loop, args=(cpid,))
+    t.setDaemon(True)
+    t.start()
+
 
 import logging
 logging.basicConfig(level=10)
@@ -237,12 +213,12 @@ def z():
     pass
 
 
-f = open('/tmp/test-test', 'w')
-f2 = open('/tmp/test-test2', 'w')
-t = threading.Thread(target=test)
-t2 = threading.Thread(target=test, name='test thread 2')
-t.setDaemon(True)
-t2.setDaemon(True)
-t.start()
-t2.start()
-start(777)
+# f = open('/tmp/test-test', 'w')
+# f2 = open('/tmp/test-test2', 'w')
+# t = threading.Thread(target=test)
+# t2 = threading.Thread(target=test, name='test thread 2')
+# t.setDaemon(True)
+# t2.setDaemon(True)
+# t.start()
+# t2.start()
+# start(777)

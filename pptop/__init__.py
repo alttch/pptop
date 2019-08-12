@@ -36,6 +36,9 @@ class GenericPlugin(BackgroundIntervalWorker):
         self._visible = False
         self.append_data = False
         self.data_records_max = None
+        self._paused = False
+        self._error = False
+        self._msg = ''
 
     def on_load(self):
         '''
@@ -173,13 +176,21 @@ class GenericPlugin(BackgroundIntervalWorker):
                 if self.cursor > max_pos:
                     self.cursor = max_pos - 1
 
-    def print_section_title(self):
+    def print_title(self, status='', msg=''):
         '''
         Print section title
         '''
+        title = self.title
+        if self._error:
+            color = curses.color_pair(2) | curses.A_BOLD
+            title += ' [ERROR{}]'.format((': ' + self._msg) if self._msg else '')
+        elif self._paused:
+            color = curses.color_pair(1) | curses.A_BOLD
+            title += ' [PAUSED]'
+        else:
+            color = curses.color_pair(4) | curses.A_BOLD
         height, width = self.stdscr.getmaxyx()
-        self.stdscr.addstr(3, 0, ' ' + self.title.ljust(width - 1),
-                           curses.color_pair(4) | curses.A_BOLD)
+        self.stdscr.addstr(3, 0, ' ' + title.ljust(width - 1), color)
         self.stdscr.move(4, 0)
         self.stdscr.clrtoeol()
 
@@ -201,9 +212,7 @@ class GenericPlugin(BackgroundIntervalWorker):
             if False is returned, the plugin is stopped
         '''
         try:
-            pkl = self.command(self.name)
-            d = cPickle.loads(pkl)
-            result = self.process_data(d)
+            result = self.process_data(self.command(self.name))
             if result is False:
                 return False
             if isinstance(result, list):
@@ -214,19 +223,15 @@ class GenericPlugin(BackgroundIntervalWorker):
                 self.data = d
             if self.data_records_max and len(self.data) > self.data_records_max:
                 self.data = self.data[len(self.data) - self.data_records_max:]
+            self._error = False
             return True
         except:
-            # self.data.clear()
-            # import traceback
-            # print(traceback.format_exc())
-            # print(len(pkl))
-            import time
-            open('/tmp/badpkl.{}'.format(time.time()),'wb').write(pkl)
-            # import os
-            # os._exit(0)
-            # raise
-            # return False
             self.data = []
+            with self.scr_lock:
+                self._error = True
+                self._msg = 'frame load error'
+                if self._visible:
+                    self.print_title()
 
     def process_data(self, data):
         '''
@@ -310,7 +315,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         with self.scr_lock:
             self._visible = True
             self.init_render_window()
-            self.print_section_title()
+            self.print_title()
             if self.is_active(): self._display()
 
     def hide(self):
@@ -344,7 +349,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         '''
         with self.scr_lock:
             self.init_render_window()
-            self.print_section_title()
+            self.print_title()
             self.key_event = 'KEY_RESIZE'
             self._display()
 
@@ -373,6 +378,7 @@ class GenericPlugin(BackgroundIntervalWorker):
                 return self._display()
 
     def _display(self):
+        self.print_title()
         self.stdscr.refresh()
         self.handle_sorting_event()
         dtd = list(self.filter_dtd(self.format_dtd(self.sort_dtd(self.data))))
