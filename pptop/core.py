@@ -179,6 +179,7 @@ def select_process(stdscr):
     return
 
 
+ifoctets_lock = threading.Lock()
 scr_lock = threading.Lock()
 client_lock = threading.Lock()
 
@@ -211,6 +212,10 @@ def command(cmd, params=None):
         if frame_id != _d.client_frame_id:
             raise CriticalException('Wrong frame')
         _d.last_frame_id += 1
+        with ifoctets_lock:
+            _d.ifoctets += len(data) + 8
+            if _d.ifoctets > 1000000000:
+                _d.ifoctets = d.ifoctets - 1000000000
         if data[0] != 0:
             raise RuntimeError('Injector command error')
         return pickle.loads(data[1:]) if len(data) > 1 else True
@@ -292,9 +297,36 @@ def show_bottom_bar(stdscr, **kwargs):
             stdscr.addstr('F{}'.format(h))
             stdscr.addstr(bottom_bar_help[h].ljust(6), color)
         stats = '⇄ {}/{} '.format(_d.client_frame_id, _d.last_frame_id)
-        stdscr.addstr(height - 1, width - len(stats) - 1, stats, color)
+        with ifoctets_lock:
+            bw = _d.ifbw
+        if bw < 1000:
+            bws = '{} Bs'.format(bw)
+        elif bw < 1000000:
+            bws = '{:.0f} kBs'.format(bw / 1000)
+        else:
+            bws = '{:.0f} MBs'.format(bw / 1000000)
+        bws = bws.rjust(7)
+        if bw > 2000000:
+            bwc = curses.color_pair(2) | curses.A_REVERSE
+        elif bw > 500000:
+            bwc = curses.color_pair(4) | curses.A_REVERSE
+        else:
+            bwc = curses.color_pair(3) | curses.A_REVERSE
+        stdscr.addstr(height - 1, width - len(stats) - len(bws) - 1, stats,
+                      color)
+        stdscr.addstr(bws, bwc)
         stdscr.refresh()
     return
+
+
+@atasker.background_worker(interval=1, daemon=True)
+def calc_bw(**kwargs):
+    with ifoctets_lock:
+        if _d.ifoctets >= _d.ifoctets_prev:
+            _d.ifbw = _d.ifoctets - _d.ifoctets_prev
+        else:
+            _d.ifbw = 1000000000 - d_.ifoctets_prev + _d.ifoctets
+        _d.ifoctets_prev = _d.ifoctets
 
 
 _d = SimpleNamespace(
@@ -304,7 +336,10 @@ _d = SimpleNamespace(
     process=None,
     stdscr=None,
     client_frame_id=0,
-    last_frame_id=0)
+    last_frame_id=0,
+    ifoctets=0,
+    ifoctets_prev=0,
+    ifbw=0)
 
 _cursors = SimpleNamespace(
     files_cursor=0,
@@ -411,6 +446,8 @@ def run(stdscr):
         client.connect(sock_path)
     except:
         raise RuntimeError('Unable to connect to process')
+
+    calc_bw.start()
 
     _d.process_path.clear()
     for i in command('path'):
