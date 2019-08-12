@@ -250,11 +250,11 @@ class GenericPlugin(BackgroundIntervalWorker):
                 self.data = self.data[len(self.data) - self.data_records_max:]
             self._error = False
             return True
-        except:
+        except Exception as e:
             self.data = []
             with self.scr_lock:
                 self._error = True
-                self._msg = 'frame load error'
+                self._msg = 'frame error: {}'.format(e)
                 if self._visible:
                     self.print_title()
 
