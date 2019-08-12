@@ -188,13 +188,15 @@ def command(cmd, params=None):
             client.sendall(
                 struct.pack('I', len(frame)) +
                 struct.pack('I', _d.client_frame_id) + frame)
-            _d.client_frame_id += 1
             data = client.recv(4)
             frame_id = struct.unpack('I', client.recv(4))[0]
         except:
             raise RuntimeError('Injector is gone')
         if not data:
             raise RuntimeError('Injector error')
+        elif frame_id != _d.client_frame_id:
+            raise RuntimeError('Wrong frame')
+        _d.client_frame_id += 1
         l = struct.unpack('I', data)[0]
         data = b''
         for i in range(l // socket_buf):

@@ -54,30 +54,25 @@ socket_timeout = 60
 
 socket_buf = 1024
 
-_d = SimpleNamespace(clients=0)
+g = SimpleNamespace(clients=0)
 
-_d_lock = threading.Lock()
+_g_lock = threading.Lock()
 
 
 def loop(cpid):
 
-    _server = SimpleNamespace(frame_id=1)
-
-    def send_frame(conn, data):
+    def send_frame(conn, frame_id, data):
         conn.sendall(
-            struct.pack('I', len(data)) + struct.pack('I', _server.frame_id) +
-            data)
-        print('{}: frame {}, {} bytes sent'.format(cpid, _server.frame_id,
-                                                   len(data)))
-        _server.frame_id += 1
+            struct.pack('I', len(data)) + struct.pack('I', frame_id) + data)
+        print('{}: frame {}, {} bytes sent'.format(cpid, frame_id, len(data)))
 
-    def send_serialized(conn, req_id, data):
+    def send_serialized(conn, frame_id, req_id, data):
         if not req_id: return
         result = {'jsonrpc': '2.0', 'id': req_id, 'result': data}
-        send_frame(conn, b'\x00' + json.dumps(result).encode())
+        send_frame(conn, frame_id, b'\x00' + json.dumps(result).encode())
 
-    def send_ok(conn):
-        send_frame(conn, b'\x00')
+    def send_ok(conn, frame_id):
+        send_frame(conn, frame_id, b'\x00')
 
     server_address = '/tmp/.pptop.{}'.format(cpid)
     try:
@@ -94,13 +89,13 @@ def loop(cpid):
     try:
         connection, client_address = server.accept()
         injections = {}
-        with _d_lock:
-            _d.clients += 1
+        with _g_lock:
+            g.clients += 1
         connection.settimeout(socket_timeout)
         while True:
             try:
                 data = connection.recv(4)
-                frame_id = connection.recv(4)
+                frame_id = struct.unpack('I', connection.recv(4))[0]
                 if data:
                     l = struct.unpack('I', data)
                     frame = b''
@@ -119,17 +114,18 @@ def loop(cpid):
                 req_id = d.get('id')
                 try:
                     if cmd == 'test':
-                        send_ok(connection)
+                        send_ok(connection, frame_id)
                     elif cmd == 'bye':
                         break
                     elif cmd == 'path':
-                        send_serialized(connection, req_id, sys.path)
+                        send_serialized(connection, frame_id, req_id, sys.path)
                     elif cmd == 'inject':
                         print(params)
                         injection_id = params['id']
                         injections[injection_id] = {
                             'g': {
-                                'g': SimpleNamespace()
+                                'g': SimpleNamespace(),
+                                'mg': g
                             },
                             'u': params.get('u')
                         }
@@ -146,18 +142,18 @@ def loop(cpid):
                         injections[injection_id]['i'] = compile(
                             src, '__pptop_injection_' + injection_id, 'exec')
                         print('injection completed {}'.format(injection_id))
-                        send_ok(connection)
+                        send_ok(connection, frame_id)
                     elif cmd in injections:
                         print('command {}, data: {}'.format(cmd, params))
-                        g = injections[cmd]['g']
-                        g['kw'] = params
-                        exec(injections[cmd]['i'], g)
-                        send_serialized(connection, req_id, g['_r'])
+                        gl = injections[cmd]['g']
+                        gl['kw'] = params
+                        exec(injections[cmd]['i'], gl)
+                        send_serialized(connection, frame_id, req_id, gl['_r'])
                     else:
-                        send_frame(connection, b'\x01')
+                        send_frame(connection, frame_id, b'\x01')
                 except:
                     raise
-                    send_frame(connection, b'\x02')
+                    send_frame(connection, frame_id, b'\x02')
             else:
                 break
     except:
@@ -180,8 +176,8 @@ def loop(cpid):
     except:
         pass
     try:
-        with _d_lock:
-            _d.clients -= 1
+        with _g_lock:
+            g.clients -= 1
     except:
         pass
     try:
