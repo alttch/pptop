@@ -188,22 +188,22 @@ def command(cmd, params=None):
             client.sendall(
                 struct.pack('I', len(frame)) +
                 struct.pack('I', _d.client_frame_id) + frame)
+            time_start = time.time()
             data = client.recv(4)
             frame_id = struct.unpack('I', client.recv(4))[0]
         except:
             raise RuntimeError('Injector is gone')
         if not data:
             raise RuntimeError('Injector error')
-        elif frame_id != _d.client_frame_id:
-            raise RuntimeError('Wrong frame')
-        _d.client_frame_id += 1
         l = struct.unpack('I', data)[0]
         data = b''
-        for i in range(l // socket_buf):
+        while len(data) != l:
             data += client.recv(socket_buf)
-        data += client.recv(l % socket_buf)
-        if len(data) != l:
-            raise RuntimeError('Invalid frame {}'.format(frame_id))
+            if time.time() > time_start + socket_timeout:
+                raise RuntimeError('Socket timeout')
+        if frame_id != _d.client_frame_id:
+            raise RuntimeError('Wrong frame')
+        _d.client_frame_id += 1
         if data[0] != 0:
             raise RuntimeError('Injector command error')
         return json.loads(
