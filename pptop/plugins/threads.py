@@ -18,6 +18,7 @@ class Plugin(GenericPlugin):
     def on_load(self):
         self.short_name = 'Thrds'
         self.sorting_col = 'ttot'
+        self.background_loader = True
 
     def process_data(self, data):
         result = []

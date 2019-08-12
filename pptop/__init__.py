@@ -13,8 +13,10 @@ import readline
 import threading
 
 from atasker import BackgroundIntervalWorker
+from atasker import background_task
 
 tabulate.PRESERVE_WHITESPACE = True
+
 
 class CriticalException(Exception):
     pass
@@ -41,12 +43,15 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.selectable = False
         self.window = None
         self.background = False
+        self.background_loader = False
         self._visible = False
         self.append_data = False
         self.data_records_max = None
         self._paused = False
         self._error = False
         self._msg = ''
+        self._loader_active = False
+        self.data_lock = threading.Lock()
 
     def on_load(self):
         '''
@@ -242,7 +247,8 @@ class GenericPlugin(BackgroundIntervalWorker):
         Default method sends command cmd=<plugin_name>
 
         Returns:
-            if False is returned, the plugin is stopped
+            if False is returned, the plugin is stopped (doesn't works if
+            self.background_loader=True)
         '''
         try:
             result = self.process_data(self.injection_command())
@@ -250,13 +256,17 @@ class GenericPlugin(BackgroundIntervalWorker):
                 return False
             if isinstance(result, list):
                 d = result
-            if self.append_data:
-                self.data += d
-            else:
-                self.data = d
-            if self.data_records_max and len(self.data) > self.data_records_max:
-                self.data = self.data[len(self.data) - self.data_records_max:]
+            with self.data_lock:
+                if self.append_data:
+                    self.data += d
+                else:
+                    self.data = d
+                if self.data_records_max and len(
+                        self.data) > self.data_records_max:
+                    self.data = self.data[len(self.data) -
+                                          self.data_records_max:]
             self._error = False
+            self._run_ui()
             return True
         except Exception as e:
             raise
@@ -266,6 +276,8 @@ class GenericPlugin(BackgroundIntervalWorker):
                 self._msg = 'frame error: {}'.format(e)
                 if self._visible:
                     self.print_title()
+        finally:
+            self._loader_active = False
 
     def process_data(self, data):
         '''
@@ -404,18 +416,30 @@ class GenericPlugin(BackgroundIntervalWorker):
         '''
         Primary plugin executor method
         '''
-        if (not self.key_event or self.key_event == ' ') and not self._paused:
-            if self.load_data() is False:
-                return False
-        with self.scr_lock:
-            if self._visible:
-                return self._display()
+        if (not self.key_event or self.key_event == ' '
+           ) and not self._paused and not self._loader_active:
+            self._loader_active = True
+            if self.background_loader:
+                background_task(self.load_data)()
+            else:
+                if self.load_data() is False:
+                    return False
+        self._run_ui()
+
+    def _run_ui(self):
+        with self.start_stop_lock:
+            if self.is_active():
+                with self.scr_lock:
+                    if self._visible:
+                        return self._display()
 
     def _display(self):
         self.print_title()
         self.stdscr.refresh()
         self.handle_sorting_event()
-        dtd = list(self.filter_dtd(self.format_dtd(self.sort_dtd(self.data))))
+        with self.data_lock:
+            dtd = list(
+                self.filter_dtd(self.format_dtd(self.sort_dtd(self.data))))
         self.dtd = dtd
         self.handle_pager_event(dtd)
         if self.key_event and self.handle_key_event(self.key_event,

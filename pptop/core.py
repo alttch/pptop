@@ -185,6 +185,7 @@ client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 
 def command(cmd, params=None):
     with client_lock:
+        _d.client_frame_id += 1
         try:
             frame = cmd.encode()
             if params is not None:
@@ -207,7 +208,7 @@ def command(cmd, params=None):
                 raise CriticalException('Socket timeout')
         if frame_id != _d.client_frame_id:
             raise CriticalException('Wrong frame')
-        _d.client_frame_id += 1
+        _d.last_frame_id += 1
         if data[0] != 0:
             raise RuntimeError('Injector command error')
         return pickle.loads(data[1:]) if len(data) > 1 else True
@@ -222,7 +223,7 @@ def get_process_path():
 
 
 @atasker.background_worker(delay=1)
-def show_process_info(stdscr, p, **kwargs):
+async def show_process_info(stdscr, p, **kwargs):
 
     def error(txt):
         stdscr.clear()
@@ -257,7 +258,6 @@ def show_process_info(stdscr, p, **kwargs):
                 str(len(p.open_files())),
                 curses.color_pair(3) | curses.A_BOLD)
             stdscr.clrtoeol()
-            print_bottom_bar(stdscr)
             stdscr.refresh()
     except psutil.AccessDenied:
         return error('Access denied')
@@ -277,15 +277,20 @@ def show_process_info(stdscr, p, **kwargs):
         return error(e)
 
 
-def print_bottom_bar(stdscr):
-    height, width = stdscr.getmaxyx()
-    stdscr.move(height - 1, 0)
-    stdscr.addstr(' ' * (width - 1), curses.color_pair(7) | curses.A_REVERSE)
-    stdscr.move(height - 1, 0)
-    for h in sorted(bottom_bar_help):
-        stdscr.addstr('F{}'.format(h))
-        stdscr.addstr(bottom_bar_help[h].ljust(6),
-                      curses.color_pair(7) | curses.A_REVERSE)
+@atasker.background_worker(delay=0.1)
+def show_bottom_bar(stdscr, **kwargs):
+    with scr_lock:
+        height, width = stdscr.getmaxyx()
+        stdscr.move(height - 1, 0)
+        stdscr.addstr(' ' * (width - 1), curses.color_pair(7) | curses.A_REVERSE)
+        stdscr.move(height - 1, 0)
+        color = curses.color_pair(7) | curses.A_REVERSE
+        for h in sorted(bottom_bar_help):
+            stdscr.addstr('F{}'.format(h))
+            stdscr.addstr(bottom_bar_help[h].ljust(6), color)
+        stats = '⇄ {}/{} '.format(_d.client_frame_id, _d.last_frame_id)
+        stdscr.addstr(height - 1, width - len(stats) - 1, stats, color)
+        stdscr.refresh()
     return
 
 
@@ -295,7 +300,8 @@ _d = SimpleNamespace(
     default_plugin=None,
     process=None,
     stdscr=None,
-    client_frame_id=1)
+    client_frame_id=0,
+    last_frame_id=0)
 
 _cursors = SimpleNamespace(
     files_cursor=0,
@@ -401,6 +407,7 @@ def run(stdscr):
     curses.curs_set(0)
     switch_plugin(_d.default_plugin, stdscr)
     atasker.background_task(show_process_info.start)(stdscr=stdscr, p=p)
+    atasker.background_task(show_bottom_bar.start)(stdscr=stdscr)
     while True:
         try:
             try:
@@ -427,6 +434,9 @@ def run(stdscr):
             elif k in plugin_shortcuts:
                 switch_plugin(plugin_shortcuts[k], stdscr)
             elif k in ['q', 'KEY_F(10)']:
+                _d.current_plugin['p'].stop(wait=False)
+                show_process_info.stop(wait=False)
+                show_bottom_bar.stop(wait=False)
                 return
             elif k in ('f', '/'):
                 apply_filter(stdscr, _d.current_plugin['p'])

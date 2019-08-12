@@ -18,15 +18,16 @@ class Plugin(GenericPlugin):
 
     def load_data(self):
         try:
-            self.data.clear()
-            for f in self.get_process().open_files():
-                self.data.append({
-                    'path': f.path,
-                    'fd': f.fd,
-                    'pos.': f.position,
-                    'mode': f.mode
-                })
-            return True
+            with self.data_lock:
+                self.data.clear()
+                for f in self.get_process().open_files():
+                    self.data.append({
+                        'path': f.path,
+                        'fd': f.fd,
+                        'pos.': f.position,
+                        'mode': f.mode
+                    })
+                return True
         except:
             return False
 

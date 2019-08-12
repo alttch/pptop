@@ -18,6 +18,7 @@ class Plugin(GenericPlugin):
         self.short_name = 'Prof'
         self.title = 'Function profiler (yappi)'
         self.sorting_col = 'ttot'
+        self.background_loader = True
 
     def handle_key_event(self, event, dtd, **kwargs):
         if len(event) == 1:
