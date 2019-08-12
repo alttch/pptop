@@ -65,7 +65,6 @@ class Plugin(GenericPlugin):
 
 def injection_load(**kwargs):
     import yappi
-    import threading
     if not yappi.is_running():
         yappi.start()
 
