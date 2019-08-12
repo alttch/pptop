@@ -183,7 +183,8 @@ class GenericPlugin(BackgroundIntervalWorker):
         title = self.title
         if self._error:
             color = curses.color_pair(2) | curses.A_BOLD
-            title += ' [ERROR{}]'.format((': ' + self._msg) if self._msg else '')
+            title += ' [ERROR{}]'.format((
+                ': ' + self._msg) if self._msg else '')
         elif self._paused:
             color = curses.color_pair(1) | curses.A_BOLD
             title += ' [PAUSED]'
@@ -213,6 +214,18 @@ class GenericPlugin(BackgroundIntervalWorker):
         '''
         return self.command(self.name, data=kwargs)
 
+    def toggle_pause(self):
+        self.resume() if self._paused else self.pause()
+
+    def pause(self):
+        with self.scr_lock:
+            self._paused = True
+            self.print_title()
+
+    def resume(self):
+        with self.scr_lock:
+            self._paused = False
+            self.print_title()
 
     def load_data(self):
         '''
@@ -382,7 +395,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         '''
         Primary plugin executor method
         '''
-        if not self.key_event or self.key_event == ' ':
+        if (not self.key_event or self.key_event == ' ') and not self._paused:
             if self.load_data() is False:
                 return False
         with self.scr_lock:
@@ -396,7 +409,8 @@ class GenericPlugin(BackgroundIntervalWorker):
         dtd = list(self.filter_dtd(self.format_dtd(self.sort_dtd(self.data))))
         self.dtd = dtd
         self.handle_pager_event(dtd)
-        if self.key_event and self.handle_key_event(self.key_event, dtd) is False:
+        if self.key_event and self.handle_key_event(self.key_event,
+                                                    dtd) is False:
             return False
         if self.key_event:
             self.key_event = None

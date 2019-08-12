@@ -3,6 +3,7 @@ Global shortcuts:
 
     Arrow keys  : Navigation
     f, /        : Filter data
+    p           : Pause/resume current plugin
     Alt+arrows  : Sorting
     q, F10      : Quit program
 
@@ -418,6 +419,8 @@ def run(stdscr):
                 return
             elif k in ('f', '/'):
                 apply_filter(stdscr, _d.current_plugin['p'])
+            elif k == 'p':
+                _d.current_plugin['p'].toggle_pause()
             else:
                 with scr_lock:
                     _d.current_plugin['p'].key_event = k
