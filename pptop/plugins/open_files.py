@@ -29,3 +29,6 @@ class Plugin(GenericPlugin):
             return True
         except:
             return False
+
+    async def run(self, *args, **kwargs):
+        super().run(*args, **kwargs)

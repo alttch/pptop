@@ -21,3 +21,6 @@ class Plugin(GenericPlugin):
             self.data.append({'help': '-' * self.stdscr.getmaxyx()[1]})
         for x in textwrap.dedent(core.__doc__).split('\n'):
             self.data.append({'help': x})
+
+    async def run(self, *args, **kwargs):
+        super().run(*args, **kwargs)

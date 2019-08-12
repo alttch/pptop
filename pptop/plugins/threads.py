@@ -33,6 +33,9 @@ class Plugin(GenericPlugin):
             z['ttot'] = '{:.3f}'.format(z['ttot'])
             yield z
 
+    async def run(self, *args, **kwargs):
+        super().run(*args, **kwargs)
+
 
 def injection_load(**kwargs):
     import yappi

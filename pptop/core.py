@@ -118,7 +118,7 @@ def select_process(stdscr):
             self.stdscr.move(self.stdscr.getmaxyx()[0] - 1, 0)
             self.stdscr.clrtoeol()
 
-        def run(self, *args, **kwargs):
+        async def run(self, *args, **kwargs):
             super().run(*args, **kwargs)
 
     with scr_lock:
