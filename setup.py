@@ -1,4 +1,4 @@
-__version__ = "0.0.3"
+__version__ = "0.0.4"
 
 import setuptools
 
@@ -16,6 +16,7 @@ setuptools.setup(
     url='https://github.com/alttch/pptop',
     packages=setuptools.find_packages(),
     license='MIT',
+    scripts = 'bin/pptop',
     install_requires=['psutil', 'tabulate', 'atasker', 'pyyaml', 'yappi'],
     classifiers=('Programming Language :: Python :: 3',
                  'License :: OSI Approved :: MIT License',
