@@ -54,7 +54,7 @@ import pickle
 
 from types import SimpleNamespace
 
-socket_timeout = 60
+socket_timeout = 10
 
 socket_buf = 1024
 

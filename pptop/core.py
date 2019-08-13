@@ -40,6 +40,7 @@ import time
 import pickle
 import shutil
 import argparse
+import collections
 
 try:
     yaml.warnings({'YAMLLoadWarning': False})
@@ -94,6 +95,35 @@ def apply_filter(stdscr, plugin):
         plugin.filter = prompt(
             stdscr, prompt='f: ', value=plugin.filter).lower()
         plugin.trigger()
+
+
+def val_to_boolean(s):
+    if isinstance(s, bool): return s
+    if s is None: return None
+    val = str(s)
+    if val.lower() in ['1', 'true', 'yes', 'on', 'y']: return True
+    if val.lower() in ['0', 'false', 'no', 'off', 'n']: return False
+    return None
+
+
+def dict_merge(dct, merge_dct, add_keys=True):
+    dct = dct.copy()
+    if not add_keys:
+        merge_dct = {
+            k: merge_dct[k] for k in set(dct).intersection(set(merge_dct))
+        }
+
+    for k, v in merge_dct.items():
+        if isinstance(dct.get(k), dict) and isinstance(v, collections.Mapping):
+            dct[k] = dict_merge(dct[k], v, add_keys=add_keys)
+        else:
+            if v is None:
+                if not k in dct:
+                    dct[k] = None
+            else:
+                dct[k] = v
+
+    return dct
 
 
 class ProcesSelector(GenericPlugin):
@@ -247,6 +277,7 @@ async def show_process_info(stdscr, p, **kwargs):
 
     height, width = stdscr.getmaxyx()
     try:
+        result = command('test')
         with scr_lock:
             with p.oneshot():
                 ct = p.cpu_times()
@@ -294,7 +325,7 @@ async def show_process_info(stdscr, p, **kwargs):
         return error('Access denied')
     except psutil.NoSuchProcess:
         return error('Process is gone')
-    except RuntimeError:
+    except CriticalException:
         return error('Process server is gone')
     except curses.error:
         try:
@@ -653,14 +684,15 @@ def start():
         except:
             pass
         if not os.path.isdir(_d.pptop_dir + '/scripts'):
-            os.mkdir(_d.pptop_dir + '/scripts')
             shutil.copytree(dir_me + '/config/scripts',
                             _d.pptop_dir + '/scripts')
         shutil.copy(dir_me + '/config/pptop.yml', _d.pptop_dir + '/pptop.yml')
+
     with open(config_file) as fh:
         config.update(yaml.load(fh.read()))
 
-    config.update({'plugins': plugin_options})
+    if plugin_options:
+        config.update(dict_merge(config, {'plugins': plugin_options}))
 
     plugins.clear()
     for i, v in config.get('plugins', {}).items():
@@ -703,7 +735,8 @@ def start():
             plugin['i'] = injection
         else:
             plugin['inj'] = True
-        if not _d.default_plugin or v.get('default') or i == a.plugin:
+        if not _d.default_plugin or val_to_boolean(
+                v.get('default')) or i == a.plugin:
             _d.default_plugin = plugin
         p.on_load()
         if 'shortcut' in v:

@@ -1,2 +1,1 @@
-include pptop/config/*
-include pptop/config/scripts/*
+recursive-include config
