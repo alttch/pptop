@@ -1,4 +1,4 @@
-__version__ = "0.0.9"
+__version__ = "0.0.10"
 
 import setuptools
 
@@ -15,11 +15,6 @@ setuptools.setup(
     long_description_content_type='text/markdown',
     url='https://github.com/alttch/pptop',
     packages=setuptools.find_packages(),
-    data_files=[
-        ('pptop/config', ['pptop/config/pptop.yml']),
-        ('pptop/config/scripts', ['pptop/config/scripts/hello.py']),
-        ('pptop/config/scripts', ['pptop/config/scripts/test1.py']),
-    ],
     license='MIT',
     scripts=['bin/pptop'],
     install_requires=['psutil', 'tabulate', 'atasker', 'pyyaml', 'yappi'],

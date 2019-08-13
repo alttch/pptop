@@ -17,9 +17,37 @@ https://github.com/alttch/pptop
 __author__ = "Altertech, https://www.altertech.com/"
 __copyright__ = "Copyright (C) 2019 Altertech"
 __license__ = "MIT"
-__version__ = "0.0.9"
+__version__ = "0.0.10"
 
 __doc__ = __doc__.format(version=__version__, license=__license__)
+
+default_config = '''plugins:
+  plugin_selector:
+    default: true
+    shortcut: KEY_F(2)
+  script_runner:
+    shortcut: KEY_F(4)
+    interval: 5
+  yappi:
+    shortcut: KEY_F(5)
+    interval: 1
+    #filter: lib/python
+  help:
+    shortcut: KEY_F(1)
+  open_files:
+    shortcut: KEY_F(6)
+    interval: 1
+  threads:
+    shortcut: KEY_F(7)
+    interval: 1
+  log:
+    shortcut: KEY_F(8)
+    interval: 1
+    autostart: true
+  env:
+    shortcut: KEY_F(9)
+    interval: 2
+'''
 
 import curses
 import atasker
@@ -671,23 +699,32 @@ def start():
 
     if a.config:
         config_file = a.config
-        default_config = False
+        use_default_config = False
     else:
         config_file = _d.pptop_dir + '/pptop.yml'
-        default_config = True
+        use_default_config = True
 
     sys.path.append(_d.pptop_dir + '/lib')
     config.clear()
-    if default_config and not os.path.isfile(config_file):
+    if use_default_config and not os.path.isfile(config_file):
         try:
             os.mkdir(_d.pptop_dir)
         except:
             pass
-        if not os.path.isdir(_d.pptop_dir + '/scripts'):
-            shutil.copytree(dir_me + '/config/scripts',
-                            _d.pptop_dir + '/scripts')
-        shutil.copy(dir_me + '/config/pptop.yml', _d.pptop_dir + '/pptop.yml')
-
+        with open(config_file, 'w') as fd:
+            fd.write(default_config)
+        script_dir = _d.pptop_dir + '/scripts'
+        if not os.path.isdir(script_dir):
+            os.mkdir(script_dir)
+            scripts = [
+                ('hello.py', 'print(\'hello world!\')\nout = \'all is fine\''),
+                ('test1.py',
+                 'print(\'testing error\')\nraise Exception(\'some test error\')'
+                ),
+            ]
+            for s in scripts:
+                with open(script_dir + '/' + s[0], 'w') as fh:
+                    fh.write(s[1])
     with open(config_file) as fh:
         config.update(yaml.load(fh.read()))
 
