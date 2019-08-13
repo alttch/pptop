@@ -20,3 +20,6 @@ plugins:
     shortcut: KEY_F(8)
     interval: 1
     autostart: true
+  env:
+    shortcut: KEY_F(9)
+    interval: 2
