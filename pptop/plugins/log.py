@@ -1,4 +1,4 @@
-from pptop import GenericPlugin
+from pptop import GenericPlugin, palette
 
 import os
 import curses
@@ -11,6 +11,7 @@ class Plugin(GenericPlugin):
     pass
 
     def on_load(self):
+        self.description = 'Log viewer (injects into all loggers)'
         self.data_records_max = 1000
         self.append_data = True
         self.sorting_col = 'time'
@@ -50,10 +51,10 @@ class Plugin(GenericPlugin):
 
     def start(self, *args, **kwargs):
         self.row_colors = {
-            'DEBUG': curses.color_pair(1) | curses.A_BOLD,
-            'WARNING': curses.color_pair(4) | curses.A_BOLD,
-            'ERROR': curses.color_pair(2) | curses.A_BOLD,
-            'CRITICAL': curses.color_pair(2) | curses.A_BOLD | curses.A_BOLD
+            'DEBUG': palette.GREY,
+            'WARNING': palette.WARNING,
+            'ERROR': palette.ERROR,
+            'CRITICAL': palette.ERROR
         }
         super().start(*args, **kwargs)
 

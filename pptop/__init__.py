@@ -12,10 +12,28 @@ import os
 import readline
 import threading
 
+from types import SimpleNamespace
+
 from atasker import BackgroundIntervalWorker
 from atasker import background_task
 
 tabulate.PRESERVE_WHITESPACE = True
+
+palette = SimpleNamespace(
+    GREY=curses.A_NORMAL,
+    DEFAULT=curses.A_NORMAL,
+    WARNING=curses.A_BOLD,
+    ERROR=curses.A_BOLD,
+    CAPTION=curses.A_BOLD,
+    HEADER=curses.A_REVERSE,
+    GREEN=curses.A_NORMAL,
+    BLUE=curses.A_NORMAL,
+    YELLOW=curses.A_NORMAL,
+    CURSOR=curses.A_REVERSE,
+    BAR=curses.A_REVERSE,
+    BAR_OK=curses.A_REVERSE,
+    BAR_WARNING=curses.A_REVERSE | curses.A_BOLD,
+    BAR_ERROR=curses.A_REVERSE | curses.A_BOLD)
 
 
 class CriticalException(Exception):
@@ -36,6 +54,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.stdscr = None  # curses stdscr object
         self.data = []
         self.filter = ''
+        self.description = ''
         self.sorting_col = None
         self.sorting_rev = True
         self.sorting_enabled = True
@@ -195,26 +214,24 @@ class GenericPlugin(BackgroundIntervalWorker):
         '''
         title = self.title
         if self._error:
-            color = curses.color_pair(2) | curses.A_BOLD
+            color = palette.ERROR
             title += ' [ERROR{}]'.format((
                 ': ' + self._msg) if self._msg else '')
         elif self._paused:
-            color = curses.color_pair(1) | curses.A_BOLD
+            color = palette.GREY
             title += ' [PAUSED]'
         else:
-            color = curses.color_pair(4) | curses.A_BOLD
+            color = palette.CAPTION
         height, width = self.stdscr.getmaxyx()
-        self.stdscr.addstr(3, 0, ' ' + title.ljust(width - 1), color)
-        self.stdscr.move(4, 0)
+        self.stdscr.addstr(3, 0, title, color)
         self.stdscr.clrtoeol()
 
     def print_empty_sep(self):
         '''
         Print empty separator instead of table header
         '''
-        height, width = self.stdscr.getmaxyx()
-        self.window.addstr(0, 0, ' ' * (width - 1),
-                           curses.color_pair(3) | curses.A_REVERSE)
+        height, width = self.window.getmaxyx()
+        self.window.addstr(0, 0, ' ' * (width - 1), palette.HEADER)
 
     def injection_command(self, **kwargs):
         '''
@@ -336,8 +353,7 @@ class GenericPlugin(BackgroundIntervalWorker):
                 yield d
         else:
             self.stdscr.addstr(4, 1, 'f="')
-            self.stdscr.addstr(self.filter,
-                               curses.color_pair(5) | curses.A_BOLD)
+            self.stdscr.addstr(self.filter, palette.BLUE)
             self.stdscr.addstr('"')
             self.stdscr.refresh()
             for d in dtd:
@@ -362,6 +378,7 @@ class GenericPlugin(BackgroundIntervalWorker):
             self._visible = True
             self.init_render_window()
             self.print_title()
+            self.print_message()
             if self.is_active(): self._display()
 
     def hide(self):
@@ -425,7 +442,10 @@ class GenericPlugin(BackgroundIntervalWorker):
             else:
                 if self.load_data() is False:
                     return False
-        self._display_ui()
+        return self._display_ui()
+
+    def get_selected_row(self):
+        return self.dtd[self.cursor]
 
     def _display_ui(self):
         with self.start_stop_lock:
@@ -440,16 +460,18 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.handle_sorting_event()
         with self.data_lock:
             dtd = list(
-                self.filter_dtd(self.format_dtd(self.sort_dtd(self.data))))
+                self.filter_dtd(
+                    dtd=self.format_dtd(dtd=self.sort_dtd(dtd=self.data))))
         self.dtd = dtd
-        self.handle_pager_event(dtd)
-        if self.key_event and self.handle_key_event(self.key_event,
-                                                    dtd) is False:
-            return False
+        self.handle_pager_event(dtd=dtd)
+        if self.key_event:
+            self.print_message()
+            if self.handle_key_event(event=self.key_event, dtd=dtd) is False:
+                return False
         if self.key_event:
             self.key_event = None
         if dtd:
-            self.render(dtd)
+            self.render(dtd=dtd)
         else:
             self.print_empty_sep()
             self.window.clrtobot()
@@ -469,6 +491,14 @@ class GenericPlugin(BackgroundIntervalWorker):
             sorting_col=self.sorting_col,
             sorting_rev=self.sorting_rev,
             print_selector=self.selectable)
+
+    def print_message(self, msg='', color=None):
+        height, width = self.stdscr.getmaxyx()
+        self.stdscr.addstr(4, 0,
+                           str(msg)[:width - 1], color
+                           if color else palette.DEFAULT)
+        self.stdscr.clrtoeol()
+        self.stdscr.refresh()
 
     def tabulate(self,
                  table,
@@ -503,19 +533,18 @@ class GenericPlugin(BackgroundIntervalWorker):
                     header = header.replace(' ' + sorting_col, s + sorting_col)
             self.window.addstr(
                 0, 0, format_row(raw=header, max_width=width, hshift=hshift),
-                curses.color_pair(3) | curses.A_REVERSE)
+                palette.HEADER)
             for i, (t, r) in enumerate(zip(d[2:], table)):
                 if print_selector:
                     t = ('→' if cursor == i else ' ') + t
                 self.window.addstr(
                     1 + i, 0,
                     format_row(
-                        element=r, raw=t, max_width=width, hshift=hshift),
-                    curses.color_pair(7) | curses.A_REVERSE if cursor == i else
-                    (self.get_table_row_color(r, t) or curses.A_NORMAL))
+                        element=r, raw=t, max_width=width,
+                        hshift=hshift), palette.CURSOR if cursor == i else
+                    (self.get_table_row_color(r, t) or palette.DEFAULT))
         else:
-            self.window.addstr(0, 0, ' ' * (width - 1),
-                               curses.color_pair(3) | curses.A_REVERSE)
+            self.print_empty_sep()
 
     def get_table_row_color(self, element=None, raw=None):
         pass

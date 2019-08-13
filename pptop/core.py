@@ -30,6 +30,7 @@ import inspect
 import threading
 import psutil
 import os
+import sys
 import subprocess
 import importlib
 import signal
@@ -41,6 +42,7 @@ from types import SimpleNamespace
 
 from pptop import GenericPlugin
 from pptop import CriticalException
+from pptop import palette
 # DEBUG
 from pptop import print_debug
 
@@ -74,6 +76,16 @@ def enter_is_terminate(x):
     return x
 
 
+def get_plugins():
+    return plugins
+
+def get_config_dir():
+    return _d.pptop_dir
+
+def get_plugin(plugin_name):
+    return plugins.get(plugin_name)
+
+
 def apply_filter(stdscr, plugin):
     height, width = stdscr.getmaxyx()
     with scr_lock:
@@ -97,27 +109,28 @@ def apply_filter(stdscr, plugin):
             editor_active.clear()
 
 
+class ProcesSelector(GenericPlugin):
+
+    def load_data(self):
+        self.data.clear()
+        for p in psutil.process_iter():
+            name = p.name()
+            if name in ['python', 'python3'] and p.pid != os.getpid():
+                self.data.append({
+                    'pid': p.pid,
+                    'command line': ' '.join(p.cmdline())
+                })
+
+    def render(self, dtd):
+        super().render(dtd)
+        self.stdscr.move(self.stdscr.getmaxyx()[0] - 1, 0)
+        self.stdscr.clrtoeol()
+
+    async def run(self, *args, **kwargs):
+        super().run(*args, **kwargs)
+
+
 def select_process(stdscr):
-
-    class ProcesSelector(GenericPlugin):
-
-        def load_data(self):
-            self.data.clear()
-            for p in psutil.process_iter():
-                name = p.name()
-                if name in ['python', 'python3'] and p.pid != os.getpid():
-                    self.data.append({
-                        'pid': p.pid,
-                        'command line': ' '.join(p.cmdline())
-                    })
-
-        def render(self, dtd):
-            super().render(dtd)
-            self.stdscr.move(self.stdscr.getmaxyx()[0] - 1, 0)
-            self.stdscr.clrtoeol()
-
-        async def run(self, *args, **kwargs):
-            super().run(*args, **kwargs)
 
     with scr_lock:
         stdscr.clear()
@@ -230,7 +243,7 @@ async def show_process_info(stdscr, p, **kwargs):
 
     def error(txt):
         stdscr.clear()
-        stdscr.addstr(0, 0, str(txt), curses.color_pair(2) | curses.A_BOLD)
+        stdscr.addstr(0, 0, str(txt), palette.ERROR)
         stdscr.refresh()
         return False
 
@@ -241,25 +254,20 @@ async def show_process_info(stdscr, p, **kwargs):
             stdscr.move(0, 0)
             stdscr.addstr('Process: ')
             cmdline = ' '.join(p.cmdline())[:width - 20]
-            stdscr.addstr(cmdline, curses.color_pair(4))
+            stdscr.addstr(cmdline, palette.YELLOW)
             stdscr.addstr(' [')
-            stdscr.addstr(str(p.pid), curses.color_pair(3) | curses.A_BOLD)
+            stdscr.addstr(str(p.pid), palette.GREEN)
             stdscr.addstr(']')
             stdscr.addstr('\nCPU: ')
-            stdscr.addstr('{}%'.format(p.cpu_percent()),
-                          curses.color_pair(5) | curses.A_BOLD)
+            stdscr.addstr('{}%'.format(p.cpu_percent()), palette.BLUE)
             stdscr.addstr(', user: ')
-            stdscr.addstr(str(ct.user), curses.color_pair(5) | curses.A_BOLD)
+            stdscr.addstr(str(ct.user), palette.BLUE)
             stdscr.addstr(', system: ')
-            stdscr.addstr(str(ct.system), curses.color_pair(5) | curses.A_BOLD)
+            stdscr.addstr(str(ct.system), palette.BLUE)
             stdscr.addstr(', threads: ')
-            stdscr.addstr(
-                str(p.num_threads()),
-                curses.color_pair(3) | curses.A_BOLD)
+            stdscr.addstr(str(p.num_threads()), palette.GREEN)
             stdscr.addstr(', files: ')
-            stdscr.addstr(
-                str(len(p.open_files())),
-                curses.color_pair(3) | curses.A_BOLD)
+            stdscr.addstr(str(len(p.open_files())), palette.GREEN)
             stdscr.clrtoeol()
             stdscr.refresh()
     except psutil.AccessDenied:
@@ -285,10 +293,9 @@ def show_bottom_bar(stdscr, **kwargs):
     with scr_lock:
         height, width = stdscr.getmaxyx()
         stdscr.move(height - 1, 0)
-        stdscr.addstr(' ' * (width - 1),
-                      curses.color_pair(7) | curses.A_REVERSE)
+        stdscr.addstr(' ' * (width - 1), palette.BAR)
         stdscr.move(height - 1, 0)
-        color = curses.color_pair(7) | curses.A_REVERSE
+        color = palette.BAR
         for h in sorted(bottom_bar_help):
             stdscr.addstr('F{}'.format(h))
             stdscr.addstr(bottom_bar_help[h].ljust(6), color)
@@ -303,11 +310,11 @@ def show_bottom_bar(stdscr, **kwargs):
             bws = '{:.0f} MBs'.format(bw / 1000000)
         bws = bws.rjust(7)
         if bw > 2000000:
-            bwc = curses.color_pair(2) | curses.A_REVERSE
+            bwc = palette.BAR_ERROR
         elif bw > 500000:
-            bwc = curses.color_pair(4) | curses.A_REVERSE
+            bwc = palette.BAR_WARNING
         else:
-            bwc = curses.color_pair(3) | curses.A_REVERSE
+            bwc = palette.BAR_OK
         stdscr.addstr(height - 1, width - len(stats) - len(bws) - 1, stats,
                       color)
         stdscr.addstr(bws, bwc)
@@ -335,7 +342,8 @@ _d = SimpleNamespace(
     last_frame_id=0,
     ifoctets=0,
     ifoctets_prev=0,
-    ifbw=0)
+    ifbw=0,
+    pptop_dir=None)
 
 _cursors = SimpleNamespace(
     files_cursor=0,
@@ -380,26 +388,43 @@ def inject_client(pid):
         raise RuntimeError(err)
 
 
-def run(stdscr):
+def init_color_palette():
+    palette.GREY = curses.color_pair(1) | curses.A_BOLD
+    palette.WARNING = curses.color_pair(4) | curses.A_BOLD
+    palette.ERROR = curses.color_pair(2) | curses.A_BOLD
+    palette.CAPTION = curses.color_pair(4) | curses.A_BOLD
+    palette.HEADER = curses.color_pair(3) | curses.A_REVERSE
+    palette.GREEN = curses.color_pair(3) | curses.A_BOLD
+    palette.BLUE = curses.color_pair(5) | curses.A_BOLD
+    palette.YELLOW = curses.color_pair(4)
+    palette.CURSOR = curses.color_pair(7) | curses.A_REVERSE
+    palette.BAR = curses.color_pair(7) | curses.A_REVERSE
+    palette.BAR_OK = curses.color_pair(3) | curses.A_REVERSE
+    palette.BAR_WARNING = curses.color_pair(4) | curses.A_REVERSE
+    palette.BAR_ERROR = curses.color_pair(2) | curses.A_REVERSE
 
-    def switch_plugin(new_plugin, stdscr):
-        if _d.current_plugin:
-            if _d.current_plugin is new_plugin:
-                return
-            if not _d.current_plugin['p'].background:
-                _d.current_plugin['p'].stop(wait=False)
-            else:
-                _d.current_plugin['p'].hide()
-        p = new_plugin['p']
-        p.stdscr = stdscr
-        p._previous_plugin = _d.current_plugin
-        p.key_event = None
-        if not new_plugin['inj']:
-            new_plugin['inj'] = True
-            command('inject', new_plugin['i'])
-        if not p.is_active(): p.start()
-        p.show()
-        _d.current_plugin = new_plugin
+
+def switch_plugin(stdscr, new_plugin):
+    if _d.current_plugin:
+        if _d.current_plugin is new_plugin:
+            return
+        if not _d.current_plugin['p'].background:
+            _d.current_plugin['p'].stop(wait=False)
+        else:
+            _d.current_plugin['p'].hide()
+    p = new_plugin['p']
+    p.stdscr = stdscr
+    p._previous_plugin = _d.current_plugin
+    p.key_event = None
+    if not new_plugin['inj']:
+        new_plugin['inj'] = True
+        command('inject', new_plugin['i'])
+    if not p.is_active(): p.start()
+    p.show()
+    _d.current_plugin = new_plugin
+
+
+def run(stdscr):
 
     @atasker.background_task
     def autostart_plugins(stdscr):
@@ -421,6 +446,7 @@ def run(stdscr):
         curses.use_default_colors()
         for i in range(0, curses.COLORS):
             curses.init_pair(i + 1, i, -1)
+        init_color_palette()
     if not work_pid:
         p = select_process(stdscr)
     else:
@@ -453,7 +479,7 @@ def run(stdscr):
     stdscr.clear()
     stdscr.refresh()
     curses.curs_set(0)
-    switch_plugin(_d.default_plugin, stdscr)
+    switch_plugin(stdscr, _d.default_plugin)
     atasker.background_task(show_process_info.start)(stdscr=stdscr, p=p)
     atasker.background_task(show_bottom_bar.start)(stdscr=stdscr)
     autostart_plugins(stdscr)
@@ -481,7 +507,7 @@ def run(stdscr):
             if not show_process_info.is_active():
                 return
             elif k in plugin_shortcuts:
-                switch_plugin(plugin_shortcuts[k], stdscr)
+                switch_plugin(stdscr, plugin_shortcuts[k])
             elif k in ['q', 'KEY_F(10)']:
                 _d.current_plugin['p'].stop(wait=False)
                 show_process_info.stop(wait=False)
@@ -500,6 +526,8 @@ def run(stdscr):
 
 
 def start():
+    _d.pptop_dir = os.path.expanduser('~/.pptop')
+    sys.path.append(_d.pptop_dir + '/lib')
     config.clear()
     with open('pptop.yml') as fh:
         config.update(yaml.load(fh.read()))
@@ -522,6 +550,10 @@ def start():
         plugins[i] = plugin
         p = mod.Plugin(interval=v.get('interval', 1))
         p.command = command
+        p.get_plugins = get_plugins
+        p.get_plugin = get_plugin
+        p.get_config_dir = get_config_dir
+        p.switch_plugin = switch_plugin
         p.scr_lock = scr_lock
         p.get_process = get_process
         p.get_process_path = get_process_path
@@ -553,13 +585,15 @@ def start():
         p.on_load()
         if 'shortcut' in v:
             sh = v['shortcut']
+            plugin['shortcut'] = sh
             plugin_shortcuts[sh] = plugin
             if sh.startswith('KEY_F('):
                 try:
                     bottom_bar_help[int(sh[6:-1])] = p.short_name
                 except:
-                    raise
                     pass
+        else:
+            plugin['shortcut'] = ''
         if v.get('autostart'):
             plugins_autostart.append(plugin)
     atasker.task_supervisor.start()

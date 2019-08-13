@@ -10,10 +10,17 @@ class Plugin(GenericPlugin):
         self.sorting_enabled = False
         self.cursor_enabled = False
 
+    def show(self):
+        self.load_data()
+        super().show()
+
     def load_data(self):
         self.data.clear()
         self.data.append({'help': ''})
-        pdoc = textwrap.dedent(self._previous_plugin['p'].__doc__)
+        try:
+            pdoc = textwrap.dedent(self._previous_plugin['p'].__doc__)
+        except:
+            pdoc = None
         if pdoc:
             for x in pdoc.strip().split('\n'):
                 self.data.append({'help': x})

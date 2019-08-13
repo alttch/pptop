@@ -12,6 +12,7 @@ class Plugin(GenericPlugin):
     '''
 
     def on_load(self):
+        self.description = 'Process open files'
         self.title = 'Open files'
         self.short_name = 'Files'
         self.sorting_rev = False

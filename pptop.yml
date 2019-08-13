@@ -1,6 +1,10 @@
 plugins:
-  yappi:
+  plugin_selector:
     default: true
+    shortcut: KEY_F(2)
+  script_runner:
+    shortcut: KEY_F(4)
+  yappi:
     shortcut: KEY_F(5)
     interval: 1
   help:
@@ -14,4 +18,4 @@ plugins:
   log:
     shortcut: KEY_F(8)
     interval: 1
-    autostart: true
+    #autostart: true
