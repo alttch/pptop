@@ -659,8 +659,11 @@ def start():
         print(_me)
         exit()
 
-    with open('/proc/sys/kernel/yama/ptrace_scope') as fd:
-        yps = int(fd.read().strip())
+    try:
+        with open('/proc/sys/kernel/yama/ptrace_scope') as fd:
+            yps = int(fd.read().strip())
+    except:
+        yps = None
 
     if yps:
         raise Exception(
@@ -718,9 +721,8 @@ def start():
             os.mkdir(script_dir)
             scripts = [
                 ('hello.py', 'print(\'hello world!\')\nout = \'all is fine\''),
-                ('test1.py',
-                 'print(\'testing error\')\nraise Exception(\'some test error\')'
-                ),
+                ('test1.py', 'print(\'testing error\')\n' +
+                 'raise Exception(\'some test error\')'),
             ]
             for s in scripts:
                 with open(script_dir + '/' + s[0], 'w') as fh:
