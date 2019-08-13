@@ -22,6 +22,8 @@ tabulate.PRESERVE_WHITESPACE = True
 
 palette = SimpleNamespace(
     DEFAULT=curses.A_NORMAL,
+    BOLD=curses.A_BOLD,
+    REVERSE=curses.A_REVERSE,
     DEBUG=curses.A_NORMAL,
     WARNING=curses.A_BOLD,
     ERROR=curses.A_BOLD,

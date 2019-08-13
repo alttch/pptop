@@ -253,9 +253,9 @@ async def show_process_info(stdscr, p, **kwargs):
                 stdscr.addstr('\nCPU: ')
                 stdscr.addstr('{}%'.format(p.cpu_percent()), palette.BLUE_BOLD)
                 stdscr.addstr(' user ')
-                stdscr.addstr(str(ct.user), palette.CYAN)
+                stdscr.addstr(str(ct.user), palette.BOLD)
                 stdscr.addstr(' system ')
-                stdscr.addstr(str(ct.system), palette.CYAN)
+                stdscr.addstr(str(ct.system), palette.BOLD)
                 stdscr.addstr(', threads: ')
                 stdscr.addstr(str(p.num_threads()), palette.MAGENTA_BOLD)
                 stdscr.addstr('\nMemory')
@@ -277,9 +277,9 @@ async def show_process_info(stdscr, p, **kwargs):
                 stdscr.addstr(' (')
                 stdscr.addstr(bytes_to_iso(ioc.read_chars), palette.GREEN)
                 stdscr.addstr(')')
-                stdscr.addstr(' ⇊ {}'.format(ioc.write_count), palette.CYAN)
+                stdscr.addstr(' ⇊ {}'.format(ioc.write_count), palette.BLUE)
                 stdscr.addstr(' (')
-                stdscr.addstr(bytes_to_iso(ioc.write_chars), palette.CYAN)
+                stdscr.addstr(bytes_to_iso(ioc.write_chars), palette.BLUE)
                 stdscr.addstr(')')
             stdscr.clrtoeol()
             stdscr.refresh()
@@ -419,8 +419,8 @@ def init_color_palette():
     palette.GREEN_BOLD = curses.color_pair(3) | curses.A_BOLD
     palette.BLUE = curses.color_pair(5)
     palette.BLUE_BOLD = curses.color_pair(5) | curses.A_BOLD
-    palette.CYAN = curses.color_pair(13)
-    palette.CYAN_BOLD = curses.color_pair(13) | curses.A_BOLD
+    palette.CYAN = curses.color_pair(7)
+    palette.CYAN_BOLD = curses.color_pair(7) | curses.A_BOLD
     palette.MAGENTA = curses.color_pair(6)
     palette.MAGENTA_BOLD = curses.color_pair(6) | curses.A_BOLD
     palette.YELLOW = curses.color_pair(4)
