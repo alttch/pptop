@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+# PYTHON_ARGCOMPLETE_OK
 
 from pptop import start
 import curses
@@ -6,7 +7,10 @@ import curses
 try:
     start()
 finally:
+    # always end curses
     try:
         curses.endwin()
     except:
         pass
+# force exit, even if some plugin freezed
+os._exit(0)

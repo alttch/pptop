@@ -38,6 +38,13 @@ import signal
 import uuid
 import time
 import pickle
+import shutil
+import argparse
+
+try:
+    yaml.warnings({'YAMLLoadWarning': False})
+except:
+    pass
 
 from types import SimpleNamespace
 
@@ -50,7 +57,7 @@ from pptop import print_debug
 
 logging.getLogger('asyncio').setLevel(logging.CRITICAL)
 
-work_pid = None
+dir_me = os.path.dirname(os.path.realpath(__file__))
 
 config = {}
 plugins = {}
@@ -358,7 +365,8 @@ _d = SimpleNamespace(
     ifoctets=0,
     ifoctets_prev=0,
     ifbw=0,
-    pptop_dir=None)
+    pptop_dir=None,
+    work_pid=None)
 
 _cursors = SimpleNamespace(
     files_cursor=0,
@@ -376,7 +384,6 @@ def sigwinch_handler(signum=None, frame=None):
 
 def resize_handler(stdscr):
     # shutil works in 100% cases
-    import shutil
     width, height = shutil.get_terminal_size()
     with scr_lock:
         curses.resizeterm(height, width)
@@ -471,10 +478,10 @@ def run(stdscr):
         for i in range(0, curses.COLORS):
             curses.init_pair(i + 1, i, -1)
         init_color_palette()
-    if not work_pid:
+    if not _d.work_pid:
         p = select_process(stdscr)
     else:
-        p = psutil.Process(work_pid)
+        p = psutil.Process(_d.work_pid)
     if not p: return
 
     _d.process = p
@@ -550,11 +557,48 @@ def run(stdscr):
 
 
 def start():
-    _d.pptop_dir = os.path.expanduser('~/.pptop')
-    sys.path.append(_d.pptop_dir + '/lib')
-    config.clear()
-    with open('pptop.yml') as fh:
-        config.update(yaml.load(fh.read()))
+    _me = 'ppTOP version %s' % __version__
+
+    ap = argparse.ArgumentParser(description=_me)
+    ap.add_argument(
+        '-V',
+        '--version',
+        help='Print version and exit',
+        action='store_true',
+        dest='_ver')
+    ap.add_argument(
+        'file', nargs='?', help='file, pid file or pid', metavar='FILE/PID')
+    ap.add_argument(
+        '-f',
+        '--config-file',
+        help='Alternative config file (default: ~/.pptop/pptop.yml)',
+        metavar='CONFIG',
+        dest='config')
+    ap.add_argument(
+        '-d',
+        '--default',
+        help='Default plugin to launch',
+        metavar='PLUGIN',
+        dest='plugin')
+    ap.add_argument(
+        '-o',
+        '--plugin-option',
+        help='Override plugin config option, e.g. threads.filter=mythread',
+        metavar='NAME=VALUE',
+        action='append',
+        dest='plugin_options')
+
+    try:
+        import argcomplete
+        argcomplete.autocomplete(ap)
+    except:
+        pass
+
+    a = ap.parse_args()
+
+    if a._ver:
+        print(_me)
+        exit()
 
     with open('/proc/sys/kernel/yama/ptrace_scope') as fd:
         yps = int(fd.read().strip())
@@ -563,6 +607,60 @@ def start():
         raise Exception(
             'yama ptrace scope is on. ' +
             'disable with "sudo sysctl -w kernel.yama.ptrace_scope=0"')
+
+    plugin_options = {}
+
+    for x in a.plugin_options:
+        try:
+            o, v = x.split('=', 1)
+        except:
+            o = x
+            v = None
+        d = plugin_options
+        pl = o.split('.')
+        for z in pl[:-1]:
+            plugin_options[z] = {}
+            d = plugin_options[z]
+        d[pl[-1]] = v
+
+    if a.file:
+        try:
+            # pid?
+            _d.work_pid = int(a.file)
+        except:
+            # probably pid file
+            try:
+                with open(a.file) as fh:
+                    _d.work_pid = int(fh.read(128))
+            except:
+                # okay, program to launch
+                pass
+
+    _d.pptop_dir = os.path.expanduser('~/.pptop')
+
+    if a.config:
+        config_file = a.config
+        default_config = False
+    else:
+        config_file = _d.pptop_dir + '/pptop.yml'
+        default_config = True
+
+    sys.path.append(_d.pptop_dir + '/lib')
+    config.clear()
+    if default_config and not os.path.isfile(config_file):
+        try:
+            os.mkdir(_d.pptop_dir)
+        except:
+            pass
+        if not os.path.isdir(_d.pptop_dir + '/scripts'):
+            os.mkdir(_d.pptop_dir + '/scripts')
+            shutil.copytree(dir_me + '/config/scripts',
+                            _d.pptop_dir + '/scripts')
+        shutil.copy(dir_me + '/config/pptop.yml', _d.pptop_dir + '/pptop.yml')
+    with open(config_file) as fh:
+        config.update(yaml.load(fh.read()))
+
+    config.update({'plugins': plugin_options})
 
     plugins.clear()
     for i, v in config.get('plugins', {}).items():
@@ -573,7 +671,7 @@ def start():
             mod = importlib.import_module('pptopcontrib.' + i)
         plugin = {'m': mod}
         plugins[i] = plugin
-        p = mod.Plugin(interval=v.get('interval', 1))
+        p = mod.Plugin(interval=int(v.get('interval', 1)))
         p.command = command
         p.get_plugins = get_plugins
         p.get_plugin = get_plugin
@@ -605,7 +703,7 @@ def start():
             plugin['i'] = injection
         else:
             plugin['inj'] = True
-        if not _d.default_plugin or v.get('default'):
+        if not _d.default_plugin or v.get('default') or i == a.plugin:
             _d.default_plugin = plugin
         p.on_load()
         if 'shortcut' in v:
