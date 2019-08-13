@@ -38,6 +38,7 @@ palette = SimpleNamespace(
     GREY_BOLD=curses.A_BOLD,
     GREEN=curses.A_NORMAL,
     GREEN_BOLD=curses.A_BOLD,
+    OK=curses.A_BOLD,
     BLUE=curses.A_NORMAL,
     BLUE_BOLD=curses.A_BOLD,
     CYAN=curses.A_NORMAL,
@@ -449,6 +450,9 @@ class GenericPlugin(BackgroundIntervalWorker):
         '''
         return True
 
+    def print_message(self, msg='', color=None):
+        return print_message(self.stdscr, msg=msg, color=color)
+
     def run(self, **kwargs):
         '''
         Primary plugin executor method
@@ -511,14 +515,6 @@ class GenericPlugin(BackgroundIntervalWorker):
             sorting_col=self.sorting_col,
             sorting_rev=self.sorting_rev,
             print_selector=self.selectable)
-
-    def print_message(self, msg='', color=None):
-        height, width = self.stdscr.getmaxyx()
-        self.stdscr.addstr(top_lines + 1, 0,
-                           str(msg)[:width - 1], color
-                           if color else palette.DEFAULT)
-        self.stdscr.clrtoeol()
-        self.stdscr.refresh()
 
     def tabulate(self,
                  table,
@@ -628,6 +624,15 @@ def enter_is_terminate(x):
     if x == 10:
         x = 7
     return x
+
+
+def print_message(stdscr, msg='', color=None):
+    if stdscr:
+        height, width = stdscr.getmaxyx()
+        stdscr.addstr(top_lines + 1, 0,
+                      str(msg)[:width - 1], color if color else palette.DEFAULT)
+        stdscr.clrtoeol()
+        stdscr.refresh()
 
 
 from pptop.core import start

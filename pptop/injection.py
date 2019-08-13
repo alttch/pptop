@@ -62,6 +62,8 @@ g = SimpleNamespace(clients=0)
 
 _g_lock = threading.Lock()
 
+injection_ready = threading.Event()
+
 
 def loop(cpid):
 
@@ -126,6 +128,9 @@ def loop(cpid):
                         break
                     elif cmd == 'path':
                         send_serialized(connection, frame_id, sys.path)
+                    elif cmd == 'ready':
+                        injection_ready.set()
+                        send_ok(connection, frame_id)
                     elif cmd == 'inject':
                         print(params)
                         injection_id = params['id']
@@ -200,6 +205,16 @@ def start(cpid):
         name='__pptop_injection_{}'.format(cpid), target=loop, args=(cpid,))
     t.setDaemon(True)
     t.start()
+
+
+def launch(wait=True):
+    if wait is True:
+        print('waiting for ready')
+        injection_ready.wait()
+        print('completed. executing main code')
+    else:
+        print('waiting {} seconds'.format(wait))
+        time.sleep(wait)
 
 
 import logging

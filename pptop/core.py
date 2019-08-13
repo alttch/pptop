@@ -6,6 +6,7 @@ Global shortcuts:
     p           : Pause/resume current plugin
     Alt+arrows  : Sorting
     Space       : Instant data reload
+    C-L         : Send ready event
     q, F10      : Quit program
 
 ppTOP v{version} (c) Altertech
@@ -81,6 +82,7 @@ from pptop import GenericPlugin
 from pptop import CriticalException
 from pptop import palette
 from pptop import prompt
+from pptop import print_message
 # DEBUG
 from pptop import print_debug
 
@@ -483,6 +485,7 @@ def init_color_palette():
     palette.GREY_BOLD = curses.color_pair(1) | curses.A_BOLD
     palette.GREEN = curses.color_pair(3)
     palette.GREEN_BOLD = curses.color_pair(3) | curses.A_BOLD
+    palette.OK = curses.color_pair(3) | curses.A_BOLD
     palette.BLUE = curses.color_pair(5)
     palette.BLUE_BOLD = curses.color_pair(5) | curses.A_BOLD
     palette.CYAN = curses.color_pair(7)
@@ -584,6 +587,8 @@ def run(stdscr):
                         k = 'KEY_NPAGE'
                     elif ord(k) == 2:
                         k = 'KEY_PPAGE'
+                    elif ord(k) == 12:
+                        k = 'CTRL_L'
             except KeyboardInterrupt:
                 return
             except:
@@ -598,6 +603,18 @@ def run(stdscr):
                 return
             elif k in plugin_shortcuts:
                 switch_plugin(stdscr, plugin_shortcuts[k])
+            elif k == 'CTRL_L':
+                try:
+                    result = command('ready')
+                except:
+                    result = None
+                with scr_lock:
+                    if result:
+                        print_message(
+                            stdscr, 'Ready event sent', color=palette.OK)
+                    else:
+                        print_message(
+                            stdscr, 'Command failed', color=palette.ERROR)
             elif k in ['q', 'KEY_F(10)']:
                 _d.current_plugin['p'].stop(wait=False)
                 show_process_info.stop(wait=False)
