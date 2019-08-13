@@ -17,7 +17,7 @@ https://github.com/alttch/pptop
 __author__ = "Altertech, https://www.altertech.com/"
 __copyright__ = "Copyright (C) 2019 Altertech"
 __license__ = "MIT"
-__version__ = "0.0.7"
+__version__ = "0.0.8"
 
 __doc__ = __doc__.format(version=__version__, license=__license__)
 
@@ -610,7 +610,7 @@ def start():
 
     plugin_options = {}
 
-    for x in a.plugin_options:
+    for x in a.plugin_options or []:
         try:
             o, v = x.split('=', 1)
         except:
