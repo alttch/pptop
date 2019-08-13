@@ -85,7 +85,7 @@ def get_plugin(plugin_name):
 def apply_filter(stdscr, plugin):
     with scr_lock:
         plugin.filter = prompt(
-            stdscr, prompt='f: ', value=plugin.filter, lock=False).lower()
+            stdscr, prompt='f: ', value=plugin.filter).lower()
         plugin.trigger()
 
 

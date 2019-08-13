@@ -585,27 +585,23 @@ def format_mod_name(f, path):
     return mod[i:]
 
 
-def prompt(stdscr, prompt='> ', value='', lock=True):
+def prompt(stdscr, prompt='> ', value=''):
     height, width = stdscr.getmaxyx()
-    if lock: scr_lock.acquire()
-    try:
-        stdscr.addstr(top_lines + 1, 0, ' ' + prompt)
-        editwin = curses.newwin(1, width - len(prompt) - 1, top_lines + 1,
-                                len(prompt) + 1)
-        from curses.textpad import Textbox
-        curses.curs_set(2)
-        editwin.addstr(0, 0, value)
-        box = Textbox(editwin)
-        stdscr.refresh()
-        box.edit(enter_is_terminate)
-        result = box.gather().rstrip()
-        curses.curs_set(0)
-        stdscr.move(top_lines + 1, 0)
-        stdscr.clrtoeol()
-        stdscr.refresh()
-        return result
-    finally:
-        if lock: lock.release()
+    stdscr.addstr(top_lines + 1, 0, ' ' + prompt)
+    editwin = curses.newwin(1, width - len(prompt) - 1, top_lines + 1,
+                            len(prompt) + 1)
+    from curses.textpad import Textbox
+    curses.curs_set(2)
+    editwin.addstr(0, 0, value)
+    box = Textbox(editwin)
+    stdscr.refresh()
+    box.edit(enter_is_terminate)
+    result = box.gather().rstrip()
+    curses.curs_set(0)
+    stdscr.move(top_lines + 1, 0)
+    stdscr.clrtoeol()
+    stdscr.refresh()
+    return result
 
 
 ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
