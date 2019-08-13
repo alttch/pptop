@@ -3,7 +3,7 @@ from pptop import GenericPlugin
 
 class Plugin(GenericPlugin):
     '''
-    env plugin: view process OS environment (inside)
+    env plugin: view process OS environment
     '''
     pass
 
