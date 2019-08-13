@@ -8,7 +8,6 @@ class Plugin(GenericPlugin):
     '''
     log plugin: view process logs
     '''
-    pass
 
     def on_load(self):
         self.description = 'Log viewer (injects into all loggers)'

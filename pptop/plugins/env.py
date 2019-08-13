@@ -5,8 +5,6 @@ class Plugin(GenericPlugin):
     '''
     env plugin: view process OS environment
     '''
-    pass
-
     def on_load(self):
         self.description = 'Process OS environment'
         self.title = 'OS Environment'
