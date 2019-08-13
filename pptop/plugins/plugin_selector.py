@@ -17,7 +17,19 @@ class Plugin(GenericPlugin):
             if p.name not in ['plugin_selector', 'help']:
                 sh = plugin['shortcut']
                 if sh.startswith('KEY_F('):
-                    sh = 'F' + sh[6:-1]
+                    try:
+                        fnkey = int(sh[6:-1])
+                        if fnkey > 48:
+                            sh = 'M-F{}'.format(fnkey - 48)
+                        elif fnkey > 24:
+                            sh = 'C-F{}'.format(fnkey - 24)
+                        elif fnkey > 12:
+                            sh = 'Sh-F{}'.format(fnkey - 12)
+                        else:
+                            sh = 'F{}'.format(fnkey)
+                    except:
+                        raise
+                        pass
                 self.data.append({
                     'id': p.name,
                     'name': p.title,
