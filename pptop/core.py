@@ -239,7 +239,7 @@ def get_process_path():
     return _d.process_path
 
 
-@atasker.background_worker(delay=1)
+@atasker.background_worker(delay=1, daemon=True)
 async def show_process_info(stdscr, p, **kwargs):
 
     def error(txt):
@@ -289,7 +289,7 @@ async def show_process_info(stdscr, p, **kwargs):
         return error(e)
 
 
-@atasker.background_worker(delay=0.1)
+@atasker.background_worker(delay=0.1, daemon=True)
 def show_bottom_bar(stdscr, **kwargs):
     with scr_lock:
         height, width = stdscr.getmaxyx()
