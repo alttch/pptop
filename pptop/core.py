@@ -5,6 +5,7 @@ Global shortcuts:
     f, /        : Filter data
     p           : Pause/resume current plugin
     Alt+arrows  : Sorting
+    Space       : Instant data reload
     q, F10      : Quit program
 
 ppTOP v{version} (c) Altertech

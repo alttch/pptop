@@ -257,6 +257,12 @@ class GenericPlugin(BackgroundIntervalWorker):
             self._paused = False
             self.print_title()
 
+    def _load_data(self):
+        try:
+            return self.load_data()
+        finally:
+            self._loader_active = False
+
     def load_data(self):
         '''
         Load data from connected process
@@ -293,8 +299,6 @@ class GenericPlugin(BackgroundIntervalWorker):
                 self._msg = 'frame error: {}'.format(e)
                 if self._visible:
                     self.print_title()
-        finally:
-            self._loader_active = False
 
     def process_data(self, data):
         '''
@@ -437,10 +441,10 @@ class GenericPlugin(BackgroundIntervalWorker):
            ) and not self._paused and not self._loader_active:
             self._loader_active = True
             if self.background_loader:
-                background_task(self.load_data)()
+                background_task(self._load_data)()
                 return
             else:
-                if self.load_data() is False:
+                if self._load_data() is False:
                     return False
         return self._display_ui()
 

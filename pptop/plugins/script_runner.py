@@ -9,6 +9,11 @@ class Plugin(GenericPlugin):
     script_runner plugin: run a custom script
 
     Executes selected script from ~/.pptop/scripts
+
+    To get result from the script, put it to variable "out", e.g.
+
+        print('hello world!')
+        out = 'printed'
     '''
 
     def on_load(self):
@@ -34,7 +39,9 @@ class Plugin(GenericPlugin):
                 with open(fname) as fd:
                     src = fd.read()
             except:
-                self.print_message('Unable to load {}'.format(fname))
+                self.print_message(
+                    'Unable to load {}'.format(fname), color=palette.ERROR)
+                return
             try:
                 result = self.injection_command(src=src)
             except Exception as e:

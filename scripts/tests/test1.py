@@ -1,2 +1,2 @@
 print('test 1')
-raise Exception('some error')
+raise Exception('some test error')
