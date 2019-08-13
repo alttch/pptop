@@ -1,4 +1,4 @@
-__version__ = "0.0.11"
+__version__ = "0.0.14"
 
 import setuptools
 
@@ -17,6 +17,7 @@ setuptools.setup(
     packages=setuptools.find_packages(),
     license='MIT',
     scripts=['bin/pptop'],
+    include_package_data=True,
     install_requires=['psutil', 'tabulate', 'atasker', 'pyyaml', 'yappi'],
     classifiers=('Programming Language :: Python :: 3',
                  'License :: OSI Approved :: MIT License',
