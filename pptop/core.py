@@ -290,7 +290,7 @@ async def show_process_info(stdscr, p, **kwargs):
 
 
 @atasker.background_worker(delay=0.1, daemon=True)
-def show_bottom_bar(stdscr, **kwargs):
+async def show_bottom_bar(stdscr, **kwargs):
     with scr_lock:
         height, width = stdscr.getmaxyx()
         stdscr.move(height - 1, 0)
@@ -324,7 +324,7 @@ def show_bottom_bar(stdscr, **kwargs):
 
 
 @atasker.background_worker(interval=1, daemon=True)
-def calc_bw(**kwargs):
+async def calc_bw(**kwargs):
     with ifoctets_lock:
         if _d.ifoctets >= _d.ifoctets_prev:
             _d.ifbw = _d.ifoctets - _d.ifoctets_prev
