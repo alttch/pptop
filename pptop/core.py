@@ -44,6 +44,7 @@ from types import SimpleNamespace
 from pptop import GenericPlugin
 from pptop import CriticalException
 from pptop import palette
+from pptop import prompt
 # DEBUG
 from pptop import print_debug
 
@@ -62,8 +63,6 @@ plugin_shortcuts = {}
 resize_lock = threading.Lock()
 resize_event = threading.Event()
 
-editor_active = threading.Event()
-
 socket_timeout = 15
 
 injection_timeout = 3
@@ -71,43 +70,23 @@ injection_timeout = 3
 socket_buf = 1024
 
 
-def enter_is_terminate(x):
-    if x == 10:
-        x = 7
-    return x
-
-
 def get_plugins():
     return plugins
 
+
 def get_config_dir():
     return _d.pptop_dir
+
 
 def get_plugin(plugin_name):
     return plugins.get(plugin_name)
 
 
 def apply_filter(stdscr, plugin):
-    height, width = stdscr.getmaxyx()
     with scr_lock:
-        try:
-            editor_active.set()
-            stdscr.addstr(4, 1, 'f: ')
-            editwin = curses.newwin(1, width - 3, 4, 4)
-            from curses.textpad import Textbox
-            curses.curs_set(2)
-            editwin.addstr(0, 0, plugin.filter)
-            box = Textbox(editwin)
-            stdscr.refresh()
-            box.edit(enter_is_terminate)
-            plugin.filter = box.gather().strip().lower()
-            curses.curs_set(0)
-            stdscr.move(4, 0)
-            stdscr.clrtoeol()
-            stdscr.refresh()
-            plugin.trigger()
-        finally:
-            editor_active.clear()
+        plugin.filter = prompt(
+            stdscr, prompt='f: ', value=plugin.filter, lock=False).lower()
+        plugin.trigger()
 
 
 class ProcesSelector(GenericPlugin):
@@ -239,6 +218,17 @@ def get_process_path():
     return _d.process_path
 
 
+def bytes_to_iso(i):
+    numbers = [(1000, 'k'), (1000000, 'M'), (1000000000, 'G'), (1000000000000,
+                                                                'T')]
+    if i < 1000:
+        return '{} B'.format(i)
+    for n in numbers:
+        if i < n[0] * 1000:
+            return '{:.1f} {}B'.format(i / n[0], n[1])
+    return '{:.1f} PB'.format(i)
+
+
 @atasker.background_worker(delay=1, daemon=True)
 async def show_process_info(stdscr, p, **kwargs):
 
@@ -251,24 +241,46 @@ async def show_process_info(stdscr, p, **kwargs):
     height, width = stdscr.getmaxyx()
     try:
         with scr_lock:
-            ct = p.cpu_times()
-            stdscr.move(0, 0)
-            stdscr.addstr('Process: ')
-            cmdline = ' '.join(p.cmdline())[:width - 20]
-            stdscr.addstr(cmdline, palette.YELLOW)
-            stdscr.addstr(' [')
-            stdscr.addstr(str(p.pid), palette.GREEN)
-            stdscr.addstr(']')
-            stdscr.addstr('\nCPU: ')
-            stdscr.addstr('{}%'.format(p.cpu_percent()), palette.BLUE)
-            stdscr.addstr(', user: ')
-            stdscr.addstr(str(ct.user), palette.BLUE)
-            stdscr.addstr(', system: ')
-            stdscr.addstr(str(ct.system), palette.BLUE)
-            stdscr.addstr(', threads: ')
-            stdscr.addstr(str(p.num_threads()), palette.GREEN)
-            stdscr.addstr(', files: ')
-            stdscr.addstr(str(len(p.open_files())), palette.GREEN)
+            with p.oneshot():
+                ct = p.cpu_times()
+                stdscr.move(0, 0)
+                stdscr.addstr('Process: ')
+                cmdline = ' '.join(p.cmdline())[:width - 20]
+                stdscr.addstr(cmdline, palette.YELLOW)
+                stdscr.addstr(' [')
+                stdscr.addstr(str(p.pid), palette.GREEN)
+                stdscr.addstr(']')
+                stdscr.addstr('\nCPU: ')
+                stdscr.addstr('{}%'.format(p.cpu_percent()), palette.BLUE_BOLD)
+                stdscr.addstr(' user ')
+                stdscr.addstr(str(ct.user), palette.CYAN)
+                stdscr.addstr(' system ')
+                stdscr.addstr(str(ct.system), palette.CYAN)
+                stdscr.addstr(', threads: ')
+                stdscr.addstr(str(p.num_threads()), palette.MAGENTA_BOLD)
+                stdscr.addstr('\nMemory')
+                memf = p.memory_full_info()
+                for k in ['uss', 'pss', 'swp']:
+                    stdscr.addstr(' {}: '.format(k))
+                    stdscr.addstr(
+                        bytes_to_iso(
+                            getattr(memf, 'swap'
+                                    if k == 'swp' else k)), palette.BLUE_BOLD)
+                mem = p.memory_info()
+                for k in ['shared', 'text', 'data']:
+                    stdscr.addstr(' {}: '.format(k[0]))
+                    stdscr.addstr(bytes_to_iso(getattr(mem, k)), palette.CYAN)
+                stdscr.addstr('\nFiles: ')
+                stdscr.addstr(str(len(p.open_files())), palette.BLUE_BOLD)
+                ioc = p.io_counters()
+                stdscr.addstr(' ⇈ {}'.format(ioc.read_count), palette.GREEN)
+                stdscr.addstr(' (')
+                stdscr.addstr(bytes_to_iso(ioc.read_chars), palette.GREEN)
+                stdscr.addstr(')')
+                stdscr.addstr(' ⇊ {}'.format(ioc.write_count), palette.CYAN)
+                stdscr.addstr(' (')
+                stdscr.addstr(bytes_to_iso(ioc.write_chars), palette.CYAN)
+                stdscr.addstr(')')
             stdscr.clrtoeol()
             stdscr.refresh()
     except psutil.AccessDenied:
@@ -291,36 +303,38 @@ async def show_process_info(stdscr, p, **kwargs):
 
 @atasker.background_worker(delay=0.1, daemon=True)
 async def show_bottom_bar(stdscr, **kwargs):
-    with scr_lock:
-        height, width = stdscr.getmaxyx()
-        stdscr.move(height - 1, 0)
-        stdscr.addstr(' ' * (width - 1), palette.BAR)
-        stdscr.move(height - 1, 0)
-        color = palette.BAR
-        for h in sorted(bottom_bar_help):
-            stdscr.addstr('F{}'.format(h))
-            stdscr.addstr(bottom_bar_help[h].ljust(6), color)
-        stats = '⇄ {}/{} '.format(_d.client_frame_id, _d.last_frame_id)
-        with ifoctets_lock:
-            bw = _d.ifbw
-        if bw < 1000:
-            bws = '{} Bs'.format(bw)
-        elif bw < 1000000:
-            bws = '{:.0f} kBs'.format(bw / 1000)
-        else:
-            bws = '{:.0f} MBs'.format(bw / 1000000)
-        bws = bws.rjust(7)
-        if bw > 2000000:
-            bwc = palette.BAR_ERROR
-        elif bw > 500000:
-            bwc = palette.BAR_WARNING
-        else:
-            bwc = palette.BAR_OK
-        stdscr.addstr(height - 1, width - len(stats) - len(bws) - 1, stats,
-                      color)
-        stdscr.addstr(bws, bwc)
-        stdscr.refresh()
-    return
+    try:
+        with scr_lock:
+            height, width = stdscr.getmaxyx()
+            stdscr.move(height - 1, 0)
+            stdscr.addstr(' ' * (width - 1), palette.BAR)
+            stdscr.move(height - 1, 0)
+            color = palette.BAR
+            for h in sorted(bottom_bar_help):
+                stdscr.addstr('F{}'.format(h))
+                stdscr.addstr(bottom_bar_help[h].ljust(6), color)
+            stats = '⇄ {}/{} '.format(_d.client_frame_id, _d.last_frame_id)
+            with ifoctets_lock:
+                bw = _d.ifbw
+            if bw < 1000:
+                bws = '{} Bs'.format(bw)
+            elif bw < 1000000:
+                bws = '{:.0f} kBs'.format(bw / 1000)
+            else:
+                bws = '{:.0f} MBs'.format(bw / 1000000)
+            bws = bws.rjust(7)
+            if bw > 2000000:
+                bwc = palette.BAR_ERROR
+            elif bw > 500000:
+                bwc = palette.BAR_WARNING
+            else:
+                bwc = palette.BAR_OK
+            stdscr.addstr(height - 1, width - len(stats) - len(bws) - 1, stats,
+                          color)
+            stdscr.addstr(bws, bwc)
+            stdscr.refresh()
+    except:
+        pass
 
 
 @atasker.background_worker(interval=1, daemon=True)
@@ -390,19 +404,28 @@ def inject_client(pid):
 
 
 def init_color_palette():
-    palette.GREY = curses.color_pair(1) | curses.A_BOLD
+    palette.DEBUG = curses.color_pair(1) | curses.A_BOLD
     palette.WARNING = curses.color_pair(4) | curses.A_BOLD
     palette.ERROR = curses.color_pair(2) | curses.A_BOLD
-    palette.CAPTION = curses.color_pair(4) | curses.A_BOLD
     palette.HEADER = curses.color_pair(3) | curses.A_REVERSE
-    palette.GREEN = curses.color_pair(3) | curses.A_BOLD
-    palette.BLUE = curses.color_pair(5) | curses.A_BOLD
-    palette.YELLOW = curses.color_pair(4)
     palette.CURSOR = curses.color_pair(7) | curses.A_REVERSE
     palette.BAR = curses.color_pair(7) | curses.A_REVERSE
     palette.BAR_OK = curses.color_pair(3) | curses.A_REVERSE
     palette.BAR_WARNING = curses.color_pair(4) | curses.A_REVERSE
     palette.BAR_ERROR = curses.color_pair(2) | curses.A_REVERSE
+    palette.GREY = curses.color_pair(1)
+    palette.GREY_BOLD = curses.color_pair(1) | curses.A_BOLD
+    palette.GREEN = curses.color_pair(3)
+    palette.GREEN_BOLD = curses.color_pair(3) | curses.A_BOLD
+    palette.BLUE = curses.color_pair(5)
+    palette.BLUE_BOLD = curses.color_pair(5) | curses.A_BOLD
+    palette.CYAN = curses.color_pair(13)
+    palette.CYAN_BOLD = curses.color_pair(13) | curses.A_BOLD
+    palette.MAGENTA = curses.color_pair(6)
+    palette.MAGENTA_BOLD = curses.color_pair(6) | curses.A_BOLD
+    palette.YELLOW = curses.color_pair(4)
+    palette.YELLOW_BOLD = curses.color_pair(4) | curses.A_BOLD
+    palette.WHITE_BOLD = curses.color_pair(8) | curses.A_BOLD
 
 
 def switch_plugin(stdscr, new_plugin):
@@ -590,7 +613,9 @@ def start():
             plugin_shortcuts[sh] = plugin
             if sh.startswith('KEY_F('):
                 try:
-                    bottom_bar_help[int(sh[6:-1])] = p.short_name
+                    f = int(sh[6:-1])
+                    if f <= 12:
+                        bottom_bar_help[f] = p.short_name
                 except:
                     pass
         else:

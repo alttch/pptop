@@ -12,8 +12,11 @@ class Plugin(GenericPlugin):
         self.sorting_rev = False
 
     def load_data(self):
+        max_length = 350
         self.data.clear()
         for i, v in self.get_process().environ().items():
+            if len(v) > max_length:
+                v = v[:max_length - 3] + '...'
             self.data.append({'var': i, 'value': v})
 
     async def run(self, *args, **kwargs):

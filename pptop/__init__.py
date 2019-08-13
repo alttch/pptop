@@ -4,7 +4,6 @@ __license__ = "MIT"
 __version__ = "0.0.5"
 
 import re
-import _pickle as cPickle
 import curses
 import tabulate
 import sys
@@ -17,23 +16,36 @@ from types import SimpleNamespace
 from atasker import BackgroundIntervalWorker
 from atasker import background_task
 
+top_lines = 5
+
 tabulate.PRESERVE_WHITESPACE = True
 
 palette = SimpleNamespace(
-    GREY=curses.A_NORMAL,
     DEFAULT=curses.A_NORMAL,
+    DEBUG=curses.A_NORMAL,
     WARNING=curses.A_BOLD,
     ERROR=curses.A_BOLD,
     CAPTION=curses.A_BOLD,
     HEADER=curses.A_REVERSE,
-    GREEN=curses.A_NORMAL,
-    BLUE=curses.A_NORMAL,
-    YELLOW=curses.A_NORMAL,
     CURSOR=curses.A_REVERSE,
     BAR=curses.A_REVERSE,
     BAR_OK=curses.A_REVERSE,
     BAR_WARNING=curses.A_REVERSE | curses.A_BOLD,
-    BAR_ERROR=curses.A_REVERSE | curses.A_BOLD)
+    BAR_ERROR=curses.A_REVERSE | curses.A_BOLD,
+    GREY=curses.A_NORMAL,
+    GREY_BOLD=curses.A_BOLD,
+    GREEN=curses.A_NORMAL,
+    GREEN_BOLD=curses.A_BOLD,
+    BLUE=curses.A_NORMAL,
+    BLUE_BOLD=curses.A_BOLD,
+    CYAN=curses.A_NORMAL,
+    CYAN_BOLD=curses.A_BOLD,
+    MAGENTA=curses.A_NORMAL,
+    MAGENTA_BOLD=curses.A_BOLD,
+    YELLOW=curses.A_NORMAL,
+    YELLOW_BOLD=curses.A_BOLD,
+    WHITE=curses.A_NORMAL,
+    WHITE_BOLD=curses.A_BOLD)
 
 
 class CriticalException(Exception):
@@ -223,7 +235,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         else:
             color = palette.CAPTION
         height, width = self.stdscr.getmaxyx()
-        self.stdscr.addstr(3, 0, title, color)
+        self.stdscr.addstr(top_lines, 0, title, color)
         self.stdscr.clrtoeol()
 
     def print_empty_sep(self):
@@ -356,9 +368,10 @@ class GenericPlugin(BackgroundIntervalWorker):
             for d in dtd:
                 yield d
         else:
-            self.stdscr.addstr(4, 1, 'f="')
-            self.stdscr.addstr(self.filter, palette.BLUE)
+            self.stdscr.addstr(top_lines + 1, 0, ' f="')
+            self.stdscr.addstr(self.filter, palette.BLUE_BOLD)
             self.stdscr.addstr('"')
+            self.stdscr.clrtoeol()
             self.stdscr.refresh()
             for d in dtd:
                 for k, v in d.items():
@@ -371,7 +384,8 @@ class GenericPlugin(BackgroundIntervalWorker):
         Init plugin working window
         '''
         height, width = self.stdscr.getmaxyx()
-        self.window = curses.newwin(height - 6, width, 5, 0)
+        self.window = curses.newwin(height - top_lines - 3, width,
+                                    top_lines + 2, 0)
 
     def start(self, *args, **kwargs):
         super().start(*args, **kwargs)
@@ -469,7 +483,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.dtd = dtd
         self.handle_pager_event(dtd=dtd)
         if self.key_event:
-            self.print_message()
+            if not self.filter: self.print_message()
             if self.handle_key_event(event=self.key_event, dtd=dtd) is False:
                 return False
         if self.key_event:
@@ -498,7 +512,7 @@ class GenericPlugin(BackgroundIntervalWorker):
 
     def print_message(self, msg='', color=None):
         height, width = self.stdscr.getmaxyx()
-        self.stdscr.addstr(4, 0,
+        self.stdscr.addstr(top_lines + 1, 0,
                            str(msg)[:width - 1], color
                            if color else palette.DEFAULT)
         self.stdscr.clrtoeol()
@@ -571,6 +585,29 @@ def format_mod_name(f, path):
     return mod[i:]
 
 
+def prompt(stdscr, prompt='> ', value='', lock=True):
+    height, width = stdscr.getmaxyx()
+    if lock: scr_lock.acquire()
+    try:
+        stdscr.addstr(top_lines + 1, 0, ' ' + prompt)
+        editwin = curses.newwin(1, width - len(prompt) - 1, top_lines + 1,
+                                len(prompt) + 1)
+        from curses.textpad import Textbox
+        curses.curs_set(2)
+        editwin.addstr(0, 0, value)
+        box = Textbox(editwin)
+        stdscr.refresh()
+        box.edit(enter_is_terminate)
+        result = box.gather().rstrip()
+        curses.curs_set(0)
+        stdscr.move(top_lines + 1, 0)
+        stdscr.clrtoeol()
+        stdscr.refresh()
+        return result
+    finally:
+        if lock: lock.release()
+
+
 ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
 
 
@@ -584,9 +621,15 @@ def print_ansi_str(stdscr, txt):
 
 
 def print_debug(stdscr, msg):
-    stdscr.addstr(4, 0, '"{}"'.format(msg))
+    stdscr.addstr(top_lines + 1, 0, '"{}"'.format(msg))
     stdscr.clrtoeol()
     stdscr.refresh()
+
+
+def enter_is_terminate(x):
+    if x == 10:
+        x = 7
+    return x
 
 
 from pptop.core import start

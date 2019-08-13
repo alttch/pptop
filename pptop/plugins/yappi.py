@@ -1,4 +1,4 @@
-from pptop import GenericPlugin, format_mod_name
+from pptop import GenericPlugin, format_mod_name, palette
 
 import os
 
@@ -24,6 +24,8 @@ class Plugin(GenericPlugin):
         if len(event) == 1:
             if ord(event) == 24:
                 self.injection_command(cmd='reset')
+                self.print_message(
+                    'Profiler stats were reset', color=palette.WARNING)
 
     def process_data(self, data):
         sess = []

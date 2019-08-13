@@ -51,7 +51,7 @@ class Plugin(GenericPlugin):
                     msg = '{} executed'.format(script)
                 else:
                     msg = '{}: {}'.format(script, result)
-                self.print_message(msg, color=palette.GREEN)
+                self.print_message(msg, color=palette.GREEN_BOLD)
             else:
                 self.print_message(
                     '{}: {}'.format(script, result), color=palette.ERROR)

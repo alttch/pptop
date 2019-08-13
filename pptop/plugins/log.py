@@ -50,7 +50,7 @@ class Plugin(GenericPlugin):
 
     def start(self, *args, **kwargs):
         self.row_colors = {
-            'DEBUG': palette.GREY,
+            'DEBUG': palette.DEBUG,
             'WARNING': palette.WARNING,
             'ERROR': palette.ERROR,
             'CRITICAL': palette.ERROR
