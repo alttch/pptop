@@ -621,6 +621,8 @@ def start():
                     pass
         else:
             plugin['shortcut'] = ''
+        if 'filter' in v:
+            p.filter = str(v['filter'])
         if v.get('autostart'):
             plugins_autostart.append(plugin)
     atasker.task_supervisor.start()

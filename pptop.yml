@@ -8,6 +8,7 @@ plugins:
   yappi:
     shortcut: KEY_F(5)
     interval: 1
+    #filter: lib/python
   help:
     shortcut: KEY_F(1)
   open_files:
