@@ -566,6 +566,7 @@ def start():
 
     plugins.clear()
     for i, v in config.get('plugins', {}).items():
+        if v is None: v = {}
         try:
             mod = importlib.import_module('pptop.plugins.' + i)
         except ModuleNotFoundError:
