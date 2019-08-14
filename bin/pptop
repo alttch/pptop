@@ -6,8 +6,11 @@ import os
 
 from pptop import start
 
+exit_code = 1
 try:
-    start()
+    exit_code = start()
+except Exception as e:
+    print(e)
 finally:
     # always end curses
     try:
@@ -15,4 +18,4 @@ finally:
     except:
         pass
 # force exit, even if some plugin freezed
-os._exit(0)
+os._exit(exit_code)

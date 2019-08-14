@@ -16,6 +16,8 @@ from types import SimpleNamespace
 from atasker import BackgroundIntervalWorker
 from atasker import background_task
 
+from pptop.logger import log, log_traceback
+
 top_lines = 5
 
 tabulate.PRESERVE_WHITESPACE = True
@@ -233,12 +235,12 @@ class GenericPlugin(BackgroundIntervalWorker):
                 self.shift = max_pos - height + 2
                 if self.shift < 0:
                     self.shift = 0
-            if max_pos < height:
+            if max_pos < height - 1:
                 self.shift = 0
                 if self.cursor > max_pos:
                     self.cursor = max_pos - 1
 
-    def print_title(self, status='', msg=''):
+    def print_title(self):
         '''
         Print section title
         '''
@@ -332,7 +334,7 @@ class GenericPlugin(BackgroundIntervalWorker):
             self._display_ui()
             return True
         except Exception as e:
-            raise
+            log_traceback()
             self.data = []
             with self.scr_lock:
                 self._error = True
@@ -497,16 +499,25 @@ class GenericPlugin(BackgroundIntervalWorker):
         '''
         Primary plugin executor method
         '''
-        if (not self.key_event or self.key_event == ' '
-           ) and not self._paused and not self._loader_active:
-            self._loader_active = True
-            if self.background_loader:
-                background_task(self._load_data)()
-                return
-            else:
-                if self._load_data() is False:
-                    return False
-        return self._display_ui()
+        try:
+            if (not self.key_event or self.key_event == ' '
+               ) and not self._paused and not self._loader_active:
+                self._loader_active = True
+                if self.background_loader:
+                    background_task(self._load_data)()
+                    return
+                else:
+                    if self._load_data() is False:
+                        return False
+            return self._display_ui()
+        except Exception as e:
+            log_traceback()
+            if self._visible:
+                with self.scr_lock:
+                    self._error = True
+                    self.msg = str(e)
+                    self.print_title()
+            return False
 
     def get_selected_row(self):
         try:

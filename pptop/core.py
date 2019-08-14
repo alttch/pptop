@@ -60,6 +60,8 @@ from pptop import print_message
 # DEBUG
 from pptop import print_debug
 
+from pptop.logger import config as log_config, log, log_traceback
+
 logging.getLogger('asyncio').setLevel(logging.CRITICAL)
 
 dir_me = os.path.dirname(os.path.realpath(__file__))
@@ -74,6 +76,11 @@ plugin_shortcuts = {}
 
 resize_lock = threading.Lock()
 resize_event = threading.Event()
+
+
+class ResizeException(Exception):
+    pass
+
 
 socket_timeout = 15
 
@@ -175,7 +182,7 @@ def select_process(stdscr):
         try:
             try:
                 if resize_event.is_set():
-                    raise Exception('resize')
+                    raise ResizeException
                 k = stdscr.getkey()
                 if len(k) == 1:
                     if ord(k) == 6:
@@ -184,13 +191,17 @@ def select_process(stdscr):
                         k = 'KEY_PPAGE'
             except KeyboardInterrupt:
                 return
-            except:
+            except ResizeException:
+                log('resize event')
                 with resize_lock:
                     if resize_event.is_set():
                         resize_event.clear()
                         resize_handler(stdscr)
                         selector.resize()
                 continue
+            except Exception as e:
+                log_traceback()
+                raise
             if k in ['q', 'KEY_F(10)']:
                 selector.stop(wait=False)
                 return
@@ -206,9 +217,8 @@ def select_process(stdscr):
                     selector.key_event = k
                     selector.trigger()
         except:
+            log_traceback()
             raise
-            return
-
     return
 
 
@@ -233,8 +243,10 @@ def command(cmd, params=None):
             data = client.recv(4)
             frame_id = struct.unpack('I', client.recv(4))[0]
         except:
+            log_traceback()
             raise CriticalException('Injector is gone')
         if not data:
+            log('critical: no data from injector')
             raise CriticalException('Injector error')
         l = struct.unpack('I', data)[0]
         data = b''
@@ -243,6 +255,7 @@ def command(cmd, params=None):
             if time.time() > time_start + socket_timeout:
                 raise CriticalException('Socket timeout')
         if frame_id != _d.client_frame_id:
+            log('critical: got wrong frame, channel is broken')
             raise CriticalException('Wrong frame')
         _d.last_frame_id += 1
         with ifoctets_lock:
@@ -250,6 +263,7 @@ def command(cmd, params=None):
             if _d.ifoctets > 1000000000:
                 _d.ifoctets = d.ifoctets - 1000000000
         if data[0] != 0:
+            log('injector command error, code: {}'.format(data[0]))
             raise RuntimeError('Injector command error')
         return pickle.loads(data[1:]) if len(data) > 1 else True
 
@@ -284,8 +298,8 @@ async def show_process_info(stdscr, p, **kwargs):
 
     height, width = stdscr.getmaxyx()
     try:
-        status = command('.status')
         with scr_lock:
+            status = _d.status
             with p.oneshot():
                 ct = p.cpu_times()
                 stdscr.move(0, 0)
@@ -349,12 +363,16 @@ async def show_process_info(stdscr, p, **kwargs):
             stdscr.clrtoeol()
             stdscr.refresh()
     except psutil.AccessDenied:
+        log_traceback()
         return error('Access denied')
     except psutil.NoSuchProcess:
+        log_traceback()
         return error('Process is gone')
     except CriticalException:
+        log_traceback()
         return error('Process server is gone')
     except curses.error:
+        log_traceback()
         try:
             for i in range(2):
                 stdscr.move(i, 0)
@@ -402,6 +420,17 @@ async def show_bottom_bar(stdscr, **kwargs):
         pass
 
 
+# don't make this async, it should always work in own thread
+@atasker.background_worker(daemon=True)
+def update_status(**kwargs):
+    try:
+        _d.status = command('.status')
+        time.sleep(1)
+    except:
+        log_traceback()
+        status = -2
+
+
 @atasker.background_worker(interval=1, daemon=True)
 async def calc_bw(**kwargs):
     with ifoctets_lock:
@@ -429,7 +458,8 @@ _d = SimpleNamespace(
     need_inject_server=True,
     child=None,
     child_cmd=None,
-    child_args='')
+    child_args='',
+    status=None)
 
 _cursors = SimpleNamespace(
     files_cursor=0,
@@ -459,9 +489,11 @@ def inject_server(pid):
     cmds = [
         '(PyGILState_STATE)PyGILState_Ensure()',
         ('(int)PyRun_SimpleString("import sys;sys.path.append(\\"{path}\\");' +
-         'import pptop.injection;pptop.injection.start({mypid})")').format(
+         'import pptop.injection;pptop.injection.start({mypid}{lg})")').format(
              path=os.path.abspath(os.path.dirname(__file__) + '/..'),
-             mypid=os.getpid()), '(void)PyGILState_Release($1)'
+             mypid=os.getpid(),
+             lg='' if not log_config.fname else ',lg=\\"{}\\"'.format(
+                 log_config.fname)), '(void)PyGILState_Release($1)'
     ]
     gdb_cmd = '{gdb} -p {pid} --batch {cmds}'.format(
         gdb=_d.gdb,
@@ -535,6 +567,7 @@ def run(stdscr):
     def autostart_plugins(stdscr):
         for plugin in plugins_autostart:
             if plugin['p'] is not _d.current_plugin.get('p'):
+                log('autostarting {}'.format(plugin['m']))
                 if not plugin['inj']:
                     plugin['inj'] = True
                     command('.inject', plugin['i'])
@@ -560,6 +593,7 @@ def run(stdscr):
         p = select_process(stdscr)
     else:
         p = psutil.Process(_d.work_pid)
+
     if not p: return
 
     _d.process = p
@@ -567,7 +601,9 @@ def run(stdscr):
     client.settimeout(socket_timeout)
     client.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, socket_buf)
     client.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, socket_buf)
-    if _d.need_inject_server: inject_server(p.pid)
+    if _d.need_inject_server:
+        inject_server(p.pid)
+        log('server injected')
     sock_path = '/tmp/.pptop.{}'.format(os.getpid())
     for i in range(injection_timeout * 10):
         if os.path.exists(sock_path):
@@ -576,10 +612,14 @@ def run(stdscr):
     try:
         client.connect(sock_path)
     except:
+        log_traceback()
         raise RuntimeError('Unable to connect to process {}'.format(
             _d.work_pid))
 
+    log('connected')
+
     calc_bw.start()
+    update_status.start()
 
     _d.process_path.clear()
     for i in command('.path'):
@@ -593,11 +633,12 @@ def run(stdscr):
     atasker.background_task(show_process_info.start)(stdscr=stdscr, p=p)
     atasker.background_task(show_bottom_bar.start)(stdscr=stdscr)
     autostart_plugins(stdscr)
+    log('main loop started')
     while True:
         try:
             try:
                 if resize_event.is_set():
-                    raise Exception('resize')
+                    raise ResizeException
                 k = stdscr.getkey()
                 if len(k) == 1:
                     z = ord(k)
@@ -609,9 +650,13 @@ def run(stdscr):
                         k = 'ENTER'
                     elif z < 27:
                         k = 'CTRL_' + chr(z + 64)
+                log('key pressed: {}'.format(
+                    k if len(k) > 1 else (('ord=' + str(ord(k))) if ord(k) < 32
+                                          else '"{}"'.format(k))))
             except KeyboardInterrupt:
                 return
-            except:
+            except (ResizeException, curses.error):
+                log('resize event')
                 with resize_lock:
                     if resize_event.is_set():
                         resize_event.clear()
@@ -619,6 +664,9 @@ def run(stdscr):
                         _d.current_plugin['p'].resize()
                         show_process_info.trigger()
                 continue
+            except Exception as e:
+                log_traceback()
+                raise
             if not show_process_info.is_active():
                 return
             elif k in plugin_shortcuts:
@@ -679,6 +727,7 @@ def run(stdscr):
                     _d.current_plugin['p'].key_event = k
                     _d.current_plugin['p'].trigger()
         except:
+            log_traceback()
             return
 
 
@@ -714,7 +763,7 @@ def start():
         '-w',
         '--wait',
         metavar='SEC',
-        type=int,
+        type=float,
         help='If file is specified, wait seconds to start main code')
     ap.add_argument(
         '-f',
@@ -735,6 +784,8 @@ def start():
         metavar='NAME=VALUE',
         action='append',
         dest='plugin_options')
+    ap.add_argument(
+        '--debug-file', metavar='FILE', help='Send debug log to file')
 
     try:
         import argcomplete
@@ -743,6 +794,10 @@ def start():
         pass
 
     a = ap.parse_args()
+
+    if a.debug_file:
+        log_config.fname = a.debug_file
+        log_config.name = 'client:{}'.format(os.getpid())
 
     if a.version:
         print(_me)
@@ -761,6 +816,8 @@ def start():
         raise Exception(
             'yama ptrace scope is on. ' +
             'disable with "sudo sysctl -w kernel.yama.ptrace_scope=0"')
+
+    log('initializing')
 
     plugin_options = {}
 
@@ -820,8 +877,11 @@ def start():
     if plugin_options:
         config.update(dict_merge(config, {'plugins': plugin_options}))
 
+    log('loading plugins')
+
     plugins.clear()
     for i, v in config.get('plugins', {}).items():
+        log('+ plugin ' + i)
         if v is None: v = {}
         try:
             mod = importlib.import_module('pptop.plugins.' + i)
@@ -904,6 +964,9 @@ def start():
                 args += ('-w', str(a.wait))
             if a.args:
                 args += ('-a', a.args)
+            if log_config.fname:
+                args += ('--debug-file', log_config.fname)
+            log('starting child process')
             _d.child = subprocess.Popen(
                 args,
                 shell=False,
@@ -914,11 +977,12 @@ def start():
         for p, v in plugins.items():
             v['p'].on_unload()
     except Exception as e:
+        log_traceback()
         raise
-        print(e)
     finally:
         try:
             client.close()
         except:
             pass
     atasker.task_supervisor.stop(wait=False)
+    return 0

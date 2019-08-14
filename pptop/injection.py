@@ -55,15 +55,13 @@ import os
 import time
 
 import pickle
+import traceback
 
 from types import SimpleNamespace
 
 import pptop.logger
 
-log = pptop.logger.log
-
-pptop.logger.log_file = '/tmp/pptop.log'
-pptop.logger.process = 'injection:{}'.format(os.getpid())
+from pptop.logger import config as log_config, log, log_traceback
 
 socket_timeout = 10
 
@@ -81,12 +79,17 @@ g = SimpleNamespace(
 _g_lock = threading.Lock()
 
 
+def init_logging(fname):
+    log_config.fname = fname
+    log_config.name = 'injection:{}'.format(os.getpid())
+
+
 def loop(cpid, runner_mode=False):
 
     def send_frame(conn, frame_id, data):
         conn.sendall(
             struct.pack('I', len(data)) + struct.pack('I', frame_id) + data)
-        log('{}: frame {}, {} bytes sent'.format(cpid, frame_id, len(data)))
+        # log('{}: frame {}, {} bytes sent'.format(cpid, frame_id, len(data)))
 
     def send_serialized(conn, frame_id, data):
         send_frame(conn, frame_id, b'\x00' + pickle.dumps(data))
@@ -112,6 +115,7 @@ def loop(cpid, runner_mode=False):
     server.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, socket_buf)
     try:
         connection, client_address = server.accept()
+        log('connected')
         injections = {}
         with _g_lock:
             g.clients += 1
@@ -131,6 +135,7 @@ def loop(cpid, runner_mode=False):
                 else:
                     break
             except:
+                log_traceback('invalid data received or client is gone')
                 break
             if frame:
                 try:
@@ -167,7 +172,7 @@ def loop(cpid, runner_mode=False):
                                     code = format_injection_unload_code(
                                         injection_id, u)
                                     exec(code, injections[injection_id]['g'])
-                                    log('injection removed {}'.format(
+                                    log('injection removed: {}'.format(
                                         injection_id))
                                 except:
                                     pass
@@ -192,7 +197,7 @@ def loop(cpid, runner_mode=False):
                             src = '_r = None'
                         injections[injection_id]['i'] = compile(
                             src, '__pptop_injection_' + injection_id, 'exec')
-                        log('injection completed {}'.format(injection_id))
+                        log('injection completed: {}'.format(injection_id))
                         send_ok(connection, frame_id)
                     elif cmd in injections:
                         log('command {}, data: {}'.format(cmd, params))
@@ -203,8 +208,7 @@ def loop(cpid, runner_mode=False):
                     else:
                         send_frame(connection, frame_id, b'\x01')
                 except:
-                    import traceback
-                    log(traceback.format_exc())
+                    log_traceback()
                     send_frame(connection, frame_id, b'\x02')
             else:
                 break
@@ -216,7 +220,7 @@ def loop(cpid, runner_mode=False):
             try:
                 code = format_injection_unload_code(i, u)
                 exec(code, v['g'])
-                log('injection removed {}'.format(i))
+                log('injection removed: {}'.format(i))
             except:
                 pass
     try:
@@ -238,7 +242,9 @@ def loop(cpid, runner_mode=False):
         os._exit(0)
 
 
-def start(cpid, runner_mode=False):
+def start(cpid, lg=None, runner_mode=False):
+    if lg:
+        init_logging(lg)
     log('starting injection server for pid {}'.format(cpid))
     threading.Thread(
         name='__pptop_injection_{}'.format(cpid),
@@ -270,29 +276,42 @@ def main():
     ap.add_argument('file', metavar='FILE', help='File to launch')
     ap.add_argument('cpid', metavar='PID', type=int, help='Client PID')
     ap.add_argument(
-        '-w', '--wait', metavar='SEC', type=int, help='Wait seconds till start')
+        '-w',
+        '--wait',
+        metavar='SEC',
+        type=float,
+        help='Wait seconds till start')
     ap.add_argument('-a', '--args', metavar='ARGS', help='Child args (quoted)')
+    ap.add_argument(
+        '--debug-file', metavar='FILE', help='Send debug log to file')
     a = ap.parse_args()
+    if a.debug_file:
+        init_logging(a.debug_file)
+
     with open(a.file) as fh:
         src = fh.read()
     sys.argv = [a.file]
     if a.args:
         sys.argv += shlex.split(a.args)
+    log('pptop injection runner started')
     launch(a.cpid, wait=True if a.wait is None else a.wait)
     g._runner_status = 1
+    log('starting main code')
     try:
         code = compile(src, a.file, 'exec')
         exec(code)
         g._runner_status = 0
+        log('main code finished')
     except:
         g._runner_status = -2
-        import traceback
+        log_traceback('exception in main code')
         e = sys.exc_info()
         with _g_lock:
             g._last_exception = (e[0].__name__, e[1], ['']
                                 )  # TODO: correct tb traceback.format_tb(e[2]))
     while not g._server_finished:
         time.sleep(0.2)
+    # usually not executed as server kills process
     log('pptop injection runner stopped')
 
 
