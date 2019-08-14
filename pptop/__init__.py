@@ -52,12 +52,13 @@ palette = SimpleNamespace(
     PROMPT=curses.A_BOLD)
 
 glyph = SimpleNamespace(
-        upload='<',
-        download= '>',
-        arrow_up= '|',
-        arrow_down = '|',
-        selector = '>',
-        )
+    upload='<',
+    download='>',
+    arrow_up='|',
+    arrow_down='|',
+    selector='>',
+)
+
 
 class CriticalException(Exception):
     pass
@@ -78,6 +79,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.short_name = self.name[:6].capitalize()
         self.stdscr = None  # curses stdscr object
         self.data = []
+        self.config = {}
         self.filter = ''
         self.description = ''
         self.sorting_col = None
@@ -273,6 +275,9 @@ class GenericPlugin(BackgroundIntervalWorker):
             RuntimeError: if command failed
         '''
         return self.command(self.name, params=kwargs)
+
+    def get_injection_load_params(self):
+        return {}
 
     def toggle_pause(self):
         self.resume() if self._paused else self.pause()
@@ -633,8 +638,7 @@ def prompt(stdscr, ps=None, value=''):
         ps = ': '
     height, width = stdscr.getmaxyx()
     stdscr.addstr(top_lines + 1, 0, ' ' + ps, palette.PROMPT)
-    editwin = curses.newwin(1, width - len(ps) - 1, top_lines + 1,
-                            len(ps) + 1)
+    editwin = curses.newwin(1, width - len(ps) - 1, top_lines + 1, len(ps) + 1)
     from curses.textpad import Textbox
     curses.curs_set(2)
     editwin.addstr(0, 0, value)

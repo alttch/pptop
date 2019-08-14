@@ -151,7 +151,7 @@ class ProcesSelector(GenericPlugin):
         self.stdscr.clrtoeol()
 
     # async def run(self, *args, **kwargs):
-        # super().run(*args, **kwargs)
+    # super().run(*args, **kwargs)
 
 
 def select_process(stdscr):
@@ -500,10 +500,11 @@ def init_color_palette():
     palette.WHITE_BOLD = curses.color_pair(8) | curses.A_BOLD
     palette.PROMPT = curses.color_pair(3) | curses.A_BOLD
 
+
 def init_glyphs():
-    glyph.upload='⇈'
-    glyph.download= '⇊'
-    glyph.arrow_up= '↑'
+    glyph.upload = '⇈'
+    glyph.download = '⇊'
+    glyph.arrow_up = '↑'
     glyph.arrow_down = '↓'
     glyph.selector = '→'
 
@@ -682,6 +683,15 @@ def run(stdscr):
 
 
 def start():
+
+    def format_plugin_option(dct, o, v):
+        if o.find('.') != -1:
+            x, y = o.split('.', 1)
+            dct[x] = {}
+            format_plugin_option(dct[x], y, v)
+        else:
+            dct[o] = v
+
     _me = 'ppTOP version %s' % __version__
 
     ap = argparse.ArgumentParser(description=_me)
@@ -693,9 +703,7 @@ def start():
         help='Raw mode (disable colors and unicode glyphs)',
         action='store_true')
     ap.add_argument(
-        '--disable-glyphs',
-        help='disable unicode glyphs',
-        action='store_true')
+        '--disable-glyphs', help='disable unicode glyphs', action='store_true')
     ap.add_argument(
         'file', nargs='?', help='File, PID file or PID', metavar='FILE/PID')
     ap.add_argument('-a', '--args', metavar='ARGS', help='Child args (quoted)')
@@ -762,12 +770,7 @@ def start():
         except:
             o = x
             v = None
-        d = plugin_options
-        pl = o.split('.')
-        for z in pl[:-1]:
-            plugin_options[z] = {}
-            d = plugin_options[z]
-        d[pl[-1]] = v
+        format_plugin_option(plugin_options, o, v)
 
     if a.file:
         try:
@@ -861,7 +864,11 @@ def start():
         if not _d.default_plugin or val_to_boolean(
                 v.get('default')) or i == a.plugin:
             _d.default_plugin = plugin
+        p_cfg = v.get('config')
+        p.config = {} if p_cfg is None else p_cfg
         p.on_load()
+        if 'l' in injection:
+            injection['lkw'] = p.get_injection_load_params()
         if 'shortcut' in v:
             sh = v['shortcut']
             plugin['shortcut'] = sh

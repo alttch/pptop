@@ -58,6 +58,13 @@ import pickle
 
 from types import SimpleNamespace
 
+import pptop.logger
+
+log = pptop.logger.log
+
+pptop.logger.log_file = '/tmp/pptop.log'
+pptop.logger.process = 'injection:{}'.format(os.getpid())
+
 socket_timeout = 10
 
 socket_buf = 8192
@@ -79,7 +86,7 @@ def loop(cpid, runner_mode=False):
     def send_frame(conn, frame_id, data):
         conn.sendall(
             struct.pack('I', len(data)) + struct.pack('I', frame_id) + data)
-        print('{}: frame {}, {} bytes sent'.format(cpid, frame_id, len(data)))
+        log('{}: frame {}, {} bytes sent'.format(cpid, frame_id, len(data)))
 
     def send_serialized(conn, frame_id, data):
         send_frame(conn, frame_id, b'\x00' + pickle.dumps(data))
@@ -151,7 +158,7 @@ def loop(cpid, runner_mode=False):
                         g._runner_ready = True
                         send_ok(connection, frame_id)
                     elif cmd == '.inject':
-                        print(params)
+                        log(params)
                         injection_id = params['id']
                         if injection_id in injections:
                             u = injections[injection_id].get('u')
@@ -160,7 +167,7 @@ def loop(cpid, runner_mode=False):
                                     code = format_injection_unload_code(
                                         injection_id, u)
                                     exec(code, injections[injection_id]['g'])
-                                    print('injection removed {}'.format(
+                                    log('injection removed {}'.format(
                                         injection_id))
                                 except:
                                     pass
@@ -173,9 +180,11 @@ def loop(cpid, runner_mode=False):
                         }
                         if 'l' in params:
                             code = compile(
-                                params['l'] + '\ninjection_load()',
+                                params['l'] + '\ninjection_load(**load_kw)',
                                 '__pptop_injection_load_' + injection_id,
                                 'exec')
+                            injections[injection_id]['g'][
+                                'load_kw'] = params.get('lkw', {})
                             exec(code, injections[injection_id]['g'])
                         if 'i' in params:
                             src = params['i'] + '\n_r = injection(**kw)'
@@ -183,10 +192,10 @@ def loop(cpid, runner_mode=False):
                             src = '_r = None'
                         injections[injection_id]['i'] = compile(
                             src, '__pptop_injection_' + injection_id, 'exec')
-                        print('injection completed {}'.format(injection_id))
+                        log('injection completed {}'.format(injection_id))
                         send_ok(connection, frame_id)
                     elif cmd in injections:
-                        print('command {}, data: {}'.format(cmd, params))
+                        log('command {}, data: {}'.format(cmd, params))
                         gl = injections[cmd]['g']
                         gl['kw'] = params
                         exec(injections[cmd]['i'], gl)
@@ -195,7 +204,7 @@ def loop(cpid, runner_mode=False):
                         send_frame(connection, frame_id, b'\x01')
                 except:
                     import traceback
-                    print(traceback.format_exc())
+                    log(traceback.format_exc())
                     send_frame(connection, frame_id, b'\x02')
             else:
                 break
@@ -207,7 +216,7 @@ def loop(cpid, runner_mode=False):
             try:
                 code = format_injection_unload_code(i, u)
                 exec(code, v['g'])
-                print('injection removed {}'.format(i))
+                log('injection removed {}'.format(i))
             except:
                 pass
     try:
@@ -223,14 +232,14 @@ def loop(cpid, runner_mode=False):
         os.unlink(server_address)
     except:
         pass
-    print('finished')
+    log('finished')
     if runner_mode:
         g._server_finished = True
         os._exit(0)
 
 
 def start(cpid, runner_mode=False):
-    print('starting injection server for pid {}'.format(cpid))
+    log('starting injection server for pid {}'.format(cpid))
     threading.Thread(
         name='__pptop_injection_{}'.format(cpid),
         target=loop,
@@ -241,12 +250,12 @@ def start(cpid, runner_mode=False):
 def launch(cpid, wait=True):
     start(cpid, runner_mode=True)
     if wait is True:
-        print('waiting for ready')
+        log('waiting for ready')
         while not g._runner_ready:
             time.sleep(0.2)
-        print('completed. executing main code')
+        log('completed. executing main code')
     elif wait > 0:
-        print('waiting {} seconds'.format(wait))
+        log('waiting {} seconds'.format(wait))
         t_end = time.time() + wait
         while time.time() < t_end:
             if g._runner_ready:
@@ -284,7 +293,7 @@ def main():
                                 )  # TODO: correct tb traceback.format_tb(e[2]))
     while not g._server_finished:
         time.sleep(0.2)
-    print('pptop injection runner stopped')
+    log('pptop injection runner stopped')
 
 
 if __name__ == '__main__':

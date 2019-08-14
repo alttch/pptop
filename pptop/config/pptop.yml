@@ -11,6 +11,8 @@ plugins:
   vars:
     shortcut: KEY_F(4)
     interval: 0.5
+    config:
+      list: ~/.pptop/vars.list
   yappi:
     shortcut: KEY_F(5)
     interval: 1
