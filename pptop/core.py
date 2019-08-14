@@ -422,6 +422,7 @@ _d = SimpleNamespace(
     ifoctets_prev=0,
     ifbw=0,
     pptop_dir=None,
+    gdb='gdb',
     work_pid=None,
     need_inject_server=True,
     child=None,
@@ -460,7 +461,8 @@ def inject_server(pid):
              path=os.path.abspath(os.path.dirname(__file__) + '/..'),
              mypid=os.getpid()), '(void)PyGILState_Release($1)'
     ]
-    gdb_cmd = 'gdb -p {pid} --batch {cmds}'.format(
+    gdb_cmd = '{gdb} -p {pid} --batch {cmds}'.format(
+        gdb=_d.gdb,
         pid=pid,
         cmds=' '.join(["--eval-command='call {}'".format(c) for c in cmds]))
     p = subprocess.Popen(
@@ -662,10 +664,8 @@ def start():
         'file', nargs='?', help='File, PID file or PID', metavar='FILE/PID')
     ap.add_argument('-a', '--args', metavar='ARGS', help='Child args (quoted)')
     ap.add_argument(
-        '-p',
-        '--python',
-        metavar='FILE',
-        help='Python interpreter to launch file')
+        '--python', metavar='FILE', help='Python interpreter to launch file')
+    ap.add_argument('--gdb', metavar='FILE', help='Path to gdb')
     ap.add_argument(
         '-w',
         '--wait',
@@ -703,6 +703,9 @@ def start():
     if a._ver:
         print(_me)
         exit()
+
+    if a.gdb:
+        _d.gdb = a.gdb
 
     try:
         with open('/proc/sys/kernel/yama/ptrace_scope') as fd:

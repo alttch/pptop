@@ -32,7 +32,8 @@ class Plugin(GenericPlugin):
         for s in data:
             mod = format_mod_name(s[1], self.get_process_path())
             if not mod.startswith('pptop.') and \
-                    mod.find('__pptop_injection') == -1:
+                    not mod.startswith('pptopcontrib-') and \
+                        mod.find('__pptop_injection') == -1:
                 sess.append({
                     'function':
                     '{}.{}'.format(mod, s[0]),
