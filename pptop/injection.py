@@ -59,13 +59,11 @@ socket_timeout = 10
 
 socket_buf = 1024
 
-g = SimpleNamespace(clients=0)
+g = SimpleNamespace(clients=0, _runner_status=-1)
 
 _g_lock = threading.Lock()
 
 runner_ready = threading.Event()
-runner_started = threading.Event()
-runner_finished = threading.Event()
 
 server_finished = threading.Event()
 
@@ -82,6 +80,10 @@ def loop(cpid, runner_mode=False):
 
     def send_ok(conn, frame_id):
         send_frame(conn, frame_id, b'\x00')
+
+    def format_injection_unload_code(injection_id, src):
+        return compile(u + '\ninjection_unload()',
+                       '__pptop_injection_unload_' + injection_id, 'exec')
 
     server_address = '/tmp/.pptop.{}'.format(cpid)
     try:
@@ -132,14 +134,8 @@ def loop(cpid, runner_mode=False):
                     elif cmd == 'bye':
                         break
                     elif cmd == 'status':
-                        if runner_mode:
-                            if runner_started.is_set():
-                                status = 0 if runner_finished.is_set() else 1
-                            else:
-                                status = -1
-                        else:
-                            status = 1
-                        send_serialized(connection, frame_id, status)
+                        send_serialized(connection, frame_id, g._runner_status
+                                        if runner_mode else 1)
                     elif cmd == 'path':
                         send_serialized(connection, frame_id, sys.path)
                     elif cmd == 'ready':
@@ -148,6 +144,18 @@ def loop(cpid, runner_mode=False):
                     elif cmd == 'inject':
                         print(params)
                         injection_id = params['id']
+                        if injection_id in injections:
+                            u = injections[injection_id].get('u')
+                            if u:
+                                try:
+                                    code = format_injection_unload_code(
+                                        injection_id, u)
+                                    exec(code, injections[injection_id]['g'])
+                                    print('injection removed {}'.format(
+                                        injection_id))
+                                except:
+                                    raise
+                                    pass
                         injections[injection_id] = {
                             'g': {
                                 'g': SimpleNamespace(),
@@ -189,9 +197,7 @@ def loop(cpid, runner_mode=False):
         u = v.get('u')
         if u:
             try:
-                code = compile(u + '\ninjection_unload()',
-                               '__pptop_injection_unload_' + injection_id,
-                               'exec')
+                code = format_injection_unload_code(i, u)
                 exec(code, v['g'])
                 print('injection removed {}'.format(i))
             except:
@@ -231,7 +237,7 @@ def launch(cpid, wait=True):
         print('waiting for ready')
         runner_ready.wait()
         print('completed. executing main code')
-    else:
+    elif wait > 0:
         print('waiting {} seconds'.format(wait))
         t_end = time.time() + wait
         while time.time() < t_end:
@@ -256,10 +262,13 @@ def main():
     sys.argv = [a.file]
     if a.args:
         sys.argv += shlex.split(a.args)
-    launch(a.cpid, wait=True if not a.wait else a.wait)
-    runner_started.set()
-    exec(code)
-    runner_finished.set()
+    launch(a.cpid, wait=True if a.wait is None else a.wait)
+    g._runner_status = 1
+    try:
+        exec(code)
+        g._runner_status = 0
+    except:
+        g._runner_status = -2
     server_finished.wait()
     print('pptop injection runner stopped')
 

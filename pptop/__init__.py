@@ -581,6 +581,7 @@ def format_mod_name(f, path):
     if f.endswith('.py'):
         f = f[:-3]
     mod = f.replace('/', '.')
+    i = 0
     for i in range(len(mod)):
         if mod[i] != '.': break
     return mod[i:]

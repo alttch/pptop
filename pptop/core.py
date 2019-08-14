@@ -2,11 +2,12 @@
 Global shortcuts:
 
     Arrow keys  : Navigation
-    f, /        : Filter data
-    p           : Pause/resume current plugin
     Alt+arrows  : Sorting
-    Space       : Instant data reload
-    C-L         : Send ready event
+    f, /        : Filter data
+    Space       : Force data reload
+    p           : Pause/resume current plugin
+    Ctrl-i      : Re-inject current plugin
+    Ctrl-l      : Send ready event
     q, F10      : Quit program
 
 ppTOP v{version} (c) Altertech
@@ -305,6 +306,9 @@ async def show_process_info(stdscr, p, **kwargs):
                 elif status == 0:
                     xst = 'DONE'
                     xstc = palette.GREY_BOLD
+                elif status == -2:
+                    xst = 'ERROR'
+                    xstc = palette.ERROR
                 else:
                     xst = None
                 if xst:
@@ -504,7 +508,7 @@ def switch_plugin(stdscr, new_plugin):
     p.stdscr = stdscr
     p._previous_plugin = _d.current_plugin
     p.key_event = None
-    if not new_plugin['inj']:
+    if new_plugin['inj'] is False:
         new_plugin['inj'] = True
         command('inject', new_plugin['i'])
     if not p.is_active(): p.start()
@@ -583,6 +587,8 @@ def run(stdscr):
                         k = 'KEY_NPAGE'
                     elif ord(k) == 2:
                         k = 'KEY_PPAGE'
+                    elif ord(k) == 9:
+                        k = 'CTRL_I'
                     elif ord(k) == 12:
                         k = 'CTRL_L'
             except KeyboardInterrupt:
@@ -611,6 +617,20 @@ def run(stdscr):
                     else:
                         print_message(
                             stdscr, 'Command failed', color=palette.ERROR)
+            elif k == 'CTRL_I' and _d.current_plugin['inj'] is not None:
+                try:
+                    result = command('inject', _d.current_plugin['i'])
+                except:
+                    result = None
+                with scr_lock:
+                    if result:
+                        print_message(
+                            stdscr, 'Plugin re-injected', color=palette.OK)
+                    else:
+                        print_message(
+                            stdscr,
+                            'Plugin re-injection failed',
+                            color=palette.ERROR)
             elif k in ['q', 'KEY_F(10)']:
                 _d.current_plugin['p'].stop(wait=False)
                 show_process_info.stop(wait=False)
@@ -640,8 +660,12 @@ def start():
         dest='_ver')
     ap.add_argument(
         'file', nargs='?', help='File, PID file or PID', metavar='FILE/PID')
+    ap.add_argument('-a', '--args', metavar='ARGS', help='Child args (quoted)')
     ap.add_argument(
-        '-a', '--args', metavar='ARGS', help='Child args (double quoted)')
+        '-p',
+        '--python',
+        metavar='FILE',
+        help='Python interpreter to launch file')
     ap.add_argument(
         '-w',
         '--wait',
@@ -785,7 +809,7 @@ def start():
             plugin['inj'] = False
             plugin['i'] = injection
         else:
-            plugin['inj'] = True
+            plugin['inj'] = None
         if not _d.default_plugin or val_to_boolean(
                 v.get('default')) or i == a.plugin:
             _d.default_plugin = plugin
@@ -812,13 +836,20 @@ def start():
         if a.file and not _d.work_pid:
             # launch file
             _d.need_inject_server = False
+            if a.python:
+                python_path = a.python
+            else:
+                with os.popen('which python3') as pd:
+                    python_path = pd.read().strip()
+            args = (python_path, '-m', 'pptop.injection', a.file,
+                    str(os.getpid()))
+            if a.wait is not None:
+                args += ('-w', str(a.wait))
+            if a.args:
+                args += ('-a', a.args)
             _d.child = subprocess.Popen(
-                'python3 -m pptop.injection {file} {cpid} {wait} {args}'.format(
-                    file=a.file,
-                    cpid=os.getpid(),
-                    wait='-w {}'.format(a.wait) if a.wait is not None else '',
-                    args='-a "{}"'.format(a.args) if a.args else ''),
-                shell=True,
+                args,
+                shell=False,
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE)
             _d.work_pid = _d.child.pid
@@ -829,10 +860,6 @@ def start():
         raise
         print(e)
     finally:
-        try:
-            command('bye')
-        except:
-            pass
         try:
             client.close()
         except:
