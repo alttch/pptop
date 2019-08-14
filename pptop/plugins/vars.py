@@ -27,15 +27,23 @@ class Plugin(GenericPlugin):
     def on_load(self):
         self.title = 'Variable/function watcher'
         self.sorting_rev = False
-        # self.background = True
-        self.vars = {}
-        default_config_file = '~/.pptop/vars.list'
+        self.config_vars = []
+        try:
+            default_config_file = self.config['list']
+            with open(os.path.expanduser(default_config_file)) as fh:
+                self.config_vars = list(
+                    filter(None, [x.strip() for x in fh.readlines()]))
+        except:
+            default_config_file = '~/.pptop/vars.list'
         self.inputs = {
             'i': None,
             'e': None,
             'l': default_config_file,
             's': default_config_file
         }
+
+    def get_injection_load_params(self):
+        return { 'v': self.config_vars }
 
     def add_variable(self, var):
         try:
@@ -55,7 +63,18 @@ class Plugin(GenericPlugin):
                     if var == 'e' and value != prev_value:
                         self.key_event = 'KEY_DC'
                     self.inputs[var] = None
-        if var == 's':
+        elif var == 'l':
+            try:
+                with open(os.path.expanduser(value)) as fh:
+                    var_list = list(
+                        filter(None, [x.strip() for x in fh.readlines()]))
+                    try:
+                        self.injection_command(cmd='replace', var=var_list)
+                    except:
+                        self.print_error('Unable to replace var list')
+            except Exception as e:
+                self.print_error(e)
+        elif var == 's':
             try:
                 var_list = []
                 for v in self.data:
@@ -78,11 +97,11 @@ class Plugin(GenericPlugin):
 
     def get_input_prompt(self, var):
         ps = {
-                'i': 'add: ',
-                'e': 'e: ',
-                'l': 'load: ',
-                's': 'save: ',
-                }
+            'i': 'add: ',
+            'e': 'e: ',
+            'l': 'load: ',
+            's': 'save: ',
+        }
         return ps.get(var)
 
     def handle_key_event(self, event, dtd):
@@ -112,21 +131,32 @@ class Plugin(GenericPlugin):
         super().run(*args, **kwargs)
 
 
-def injection_load(**kwargs):
+def injection_load(v=None, **kwargs):
     g.vars = []
+    if v:
+        for var in v:
+            var = var.replace('::', ':').strip()
+            mod, var = var.split(':')
+            g.vars.append((mod, var))
 
 
 def injection(cmd=None, var=None):
+
+    def parse_var(var):
+        var = var.replace('::', ':').strip()
+        mod, var = var.split(':')
+        return mod, var
+
     if cmd == 'add':
-        var = var.replace('::', ':').strip()
-        mod, var = var.split(':')
-        g.vars.append((mod, var))
+        g.vars.append(parse_var(var))
     elif cmd == 'del':
-        var = var.replace('::', ':').strip()
-        mod, var = var.split(':')
-        g.vars.remove((mod, var))
+        g.vars.remove(parse_var(var))
     elif cmd == 'clear':
         g.vars.clear()
+    elif cmd == 'replace':
+        g.vars.clear()
+        for v in var:
+            g.vars.append(parse_var(v))
     else:
         import importlib
         result = []
@@ -139,13 +169,10 @@ def injection(cmd=None, var=None):
                 src = 'import {}; out={}.{}'.format(mod, mod, var)
                 exec(src, ge)
                 val = ge['out']
-                # for v in var.split('.'):
-                # val = getattr(val, v)
-                r['value'] = val if isinstance(val, int) or \
-                        isinstance(val, float) or \
-                        isinstance(val, bool) else str(val)
-            except Exception as e:
-                r['value'] = '!ERROR: {}'.format(e)
+                r['value'] = str(ge['out'])
+            except Exception:
+                import sys
+                e = sys.exc_info()
+                r['value'] = '!ERROR {}: {}'.format(e[0].__name__, e[1])
             result.append(r)
-        print(result)
         return result
