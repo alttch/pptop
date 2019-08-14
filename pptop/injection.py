@@ -29,13 +29,15 @@ Server response:
 Commands:
 
     test            Test server
+    status          Get process status
     path            Get sys.path
-    threads         Get threads data
-    profile         Get profiler data
+    inject          Inject a plugin
+    <plugin_id>     Command for plugin
     bye             End communcation
 
 If client closes connection, connection is timed out (default: 10 sec) or
-server receives "bye" command, it immediately terminates itself.
+server receives "bye" command, it immediately terminate itself and loaded
+plugins.
 '''
 
 __author__ = "Altertech Group, https://www.altertech.com/"
@@ -59,13 +61,12 @@ socket_timeout = 10
 
 socket_buf = 1024
 
-g = SimpleNamespace(clients=0, _runner_status=-1)
+# don't use threading.Event to hide presence
+
+g = SimpleNamespace(
+    clients=0, _runner_status=-1, _runner_ready=False, _server_finished=False)
 
 _g_lock = threading.Lock()
-
-runner_ready = threading.Event()
-
-server_finished = threading.Event()
 
 
 def loop(cpid, runner_mode=False):
@@ -139,7 +140,7 @@ def loop(cpid, runner_mode=False):
                     elif cmd == 'path':
                         send_serialized(connection, frame_id, sys.path)
                     elif cmd == 'ready':
-                        runner_ready.set()
+                        g._runner_ready = True
                         send_ok(connection, frame_id)
                     elif cmd == 'inject':
                         print(params)
@@ -218,7 +219,7 @@ def loop(cpid, runner_mode=False):
         pass
     print('finished')
     if runner_mode:
-        server_finished.set()
+        g._server_finished = True
         os._exit(0)
 
 
@@ -235,13 +236,14 @@ def launch(cpid, wait=True):
     start(cpid, runner_mode=True)
     if wait is True:
         print('waiting for ready')
-        runner_ready.wait()
+        while not g._runner_ready:
+            time.sleep(0.2)
         print('completed. executing main code')
     elif wait > 0:
         print('waiting {} seconds'.format(wait))
         t_end = time.time() + wait
         while time.time() < t_end:
-            if runner_ready.is_set():
+            if g._runner_ready:
                 break
             time.sleep(0.1)
 
@@ -269,7 +271,8 @@ def main():
         g._runner_status = 0
     except:
         g._runner_status = -2
-    server_finished.wait()
+    while not g._server_finished:
+        time.sleep(0.2)
     print('pptop injection runner stopped')
 
 
