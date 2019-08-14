@@ -11,8 +11,8 @@ class Plugin(GenericPlugin):
 
         i      : insert new variable/function
         DEL    : delete variable/function
-        d      : duplicate
         e      : edit
+        Ctrl-d : duplicate
         Ctrl-x :  delete all variables
 
     Items should be entered as mod::object, e.g.
@@ -30,28 +30,39 @@ class Plugin(GenericPlugin):
         # self.background = True
         self.vars = {}
         default_config_file = '~/.pptop/vars.list'
-        self.inputs = {'i': None, 'e': None, 'l': default_config_file , 's': default_config_file}
+        self.inputs = {
+            'i': None,
+            'e': None,
+            'l': default_config_file,
+            's': default_config_file
+        }
 
     def add_variable(self, var):
         try:
             self.injection_command(cmd='add', var=var)
+            return True
         except:
             self.print_error('Unable to add variable')
+            return False
 
     def handle_input(self, var, value, prev_value):
         if not value:
             return
         if var in ['i', 'e']:
-            if value != prev_value:
-                self.add_variable(value)
-                self.trigger(force=True)
-            if var == 'e' and value != prev_value:
-                self.key_event = 'KEY_DC'
+            if value != prev_value or var == 'i':
+                if self.add_variable(value):
+                    self.trigger(force=True)
+                    if var == 'e' and value != prev_value:
+                        self.key_event = 'KEY_DC'
+                    self.inputs[var] = None
         if var == 's':
             try:
+                var_list = []
+                for v in self.data:
+                    var_list.append(v['name'])
                 with open(os.path.expanduser(value), 'w') as fh:
-                    for v in self.data:
-                        fh.write(v['name'] + '\n')
+                    for v in sorted(var_list):
+                        fh.write(v + '\n')
             except Exception as e:
                 self.print_error(e)
 
@@ -72,7 +83,7 @@ class Plugin(GenericPlugin):
                     self.delete_selected_row()
                 except:
                     self.print_error('Unable to delete variable')
-        elif event == 'd':
+        elif event == 'CTRL_D':
             el = self.get_selected_row()
             if el:
                 self.add_variable(el['name'])
@@ -88,6 +99,7 @@ class Plugin(GenericPlugin):
 
     async def run(self, *args, **kwargs):
         super().run(*args, **kwargs)
+
 
 def injection_load(**kwargs):
     g.vars = []

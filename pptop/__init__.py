@@ -624,7 +624,7 @@ def prompt(stdscr, prompt=': ', value=''):
     from curses.textpad import Textbox
     curses.curs_set(2)
     editwin.addstr(0, 0, value)
-    box = Textbox(editwin)
+    box = Textbox(editwin, insert_mode=True)
     stdscr.refresh()
     box.edit(enter_is_terminate)
     result = box.gather().rstrip()
