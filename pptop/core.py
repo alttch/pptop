@@ -78,7 +78,7 @@ socket_timeout = 15
 
 injection_timeout = 3
 
-socket_buf = 1024
+socket_buf = 8192
 
 
 def get_plugins():

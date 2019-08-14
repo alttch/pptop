@@ -59,7 +59,7 @@ from types import SimpleNamespace
 
 socket_timeout = 10
 
-socket_buf = 1024
+socket_buf = 8192
 
 # don't use threading.Event to hide presence
 
