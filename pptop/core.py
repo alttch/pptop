@@ -100,7 +100,7 @@ def get_child_info():
 def apply_filter(stdscr, plugin):
     with scr_lock:
         plugin.filter = prompt(
-            stdscr, prompt='f: ', value=plugin.filter).lower()
+            stdscr, ps='f: ', value=plugin.filter).lower()
         plugin.trigger()
 
 
@@ -496,6 +496,7 @@ def init_color_palette():
     palette.YELLOW = curses.color_pair(4)
     palette.YELLOW_BOLD = curses.color_pair(4) | curses.A_BOLD
     palette.WHITE_BOLD = curses.color_pair(8) | curses.A_BOLD
+    palette.PROMPT = curses.color_pair(3) | curses.A_BOLD
 
 
 def switch_plugin(stdscr, new_plugin):
@@ -645,9 +646,13 @@ def run(stdscr):
                 _d.current_plugin['p'].toggle_pause()
             elif k in _d.current_plugin['p'].inputs:
                 with scr_lock:
-                    prev_value = _d.current_plugin['p'].get_input(k)
+                    try:
+                        prev_value = _d.current_plugin['p'].get_input(k)
+                    except ValueError:
+                        continue
                     value = prompt(
                         stdscr,
+                        ps=_d.current_plugin['p'].get_input_prompt(k),
                         value=prev_value if prev_value is not None else '')
                     _d.current_plugin['p'].inputs[k] = value
                     try:

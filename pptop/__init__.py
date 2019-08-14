@@ -48,7 +48,8 @@ palette = SimpleNamespace(
     YELLOW=curses.A_NORMAL,
     YELLOW_BOLD=curses.A_BOLD,
     WHITE=curses.A_NORMAL,
-    WHITE_BOLD=curses.A_BOLD)
+    WHITE_BOLD=curses.A_BOLD,
+    PROMPT=curses.A_BOLD)
 
 
 class CriticalException(Exception):
@@ -90,6 +91,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.data_lock = threading.Lock()
         # key - hot key, value - input value
         self.inputs = {}
+        self.input_prompts = {}
 
     def on_load(self):
         '''
@@ -464,6 +466,9 @@ class GenericPlugin(BackgroundIntervalWorker):
     def get_input(self, var):
         return self.inputs.get(var)
 
+    def get_input_prompt(self, var):
+        return
+
     def handle_input(self, var, value, prev_value):
         return
 
@@ -616,11 +621,13 @@ def format_mod_name(f, path):
     return mod[i:]
 
 
-def prompt(stdscr, prompt=': ', value=''):
+def prompt(stdscr, ps=None, value=''):
+    if ps is None:
+        ps = ': '
     height, width = stdscr.getmaxyx()
-    stdscr.addstr(top_lines + 1, 0, ' ' + prompt)
-    editwin = curses.newwin(1, width - len(prompt) - 1, top_lines + 1,
-                            len(prompt) + 1)
+    stdscr.addstr(top_lines + 1, 0, ' ' + ps, palette.PROMPT)
+    editwin = curses.newwin(1, width - len(ps) - 1, top_lines + 1,
+                            len(ps) + 1)
     from curses.textpad import Textbox
     curses.curs_set(2)
     editwin.addstr(0, 0, value)

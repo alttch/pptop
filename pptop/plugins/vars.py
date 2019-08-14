@@ -71,8 +71,19 @@ class Plugin(GenericPlugin):
             el = self.get_selected_row()
             if el:
                 return el.get('name')
+            else:
+                raise ValueError
         else:
             return super().get_input(var)
+
+    def get_input_prompt(self, var):
+        ps = {
+                'i': 'add: ',
+                'e': 'e: ',
+                'l': 'load: ',
+                's': 'save: ',
+                }
+        return ps.get(var)
 
     def handle_key_event(self, event, dtd):
         if event in ['KEY_BACKSPACE', 'KEY_DC']:
