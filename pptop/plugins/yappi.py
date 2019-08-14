@@ -9,7 +9,7 @@ class Plugin(GenericPlugin):
 
     Shortcuts:
 
-        C-x  : reset stats
+        Ctrl-x  : reset stats
 
     requires yappi profiler module https://github.com/sumerc/yappi
     '''
