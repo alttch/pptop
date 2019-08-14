@@ -1,7 +1,7 @@
 __author__ = "Altertech, https://www.altertech.com/"
 __copyright__ = "Copyright (C) 2019 Altertech"
 __license__ = "MIT"
-__version__ = "0.0.14"
+__version__ = "0.0.15"
 
 import re
 import curses
