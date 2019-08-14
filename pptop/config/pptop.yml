@@ -1,0 +1,26 @@
+plugins:
+  plugin_selector:
+    default: true
+    shortcut: KEY_F(2)
+  script_runner:
+    shortcut: KEY_F(4)
+    interval: 5
+  yappi:
+    shortcut: KEY_F(5)
+    interval: 1
+    #filter: lib/python
+  help:
+    shortcut: KEY_F(1)
+  open_files:
+    shortcut: KEY_F(6)
+    interval: 1
+  threads:
+    shortcut: KEY_F(7)
+    interval: 1
+  log:
+    shortcut: KEY_F(8)
+    interval: 1
+    autostart: true
+  env:
+    shortcut: KEY_F(9)
+    interval: 2
