@@ -571,6 +571,9 @@ class GenericPlugin(BackgroundIntervalWorker):
 
 def format_mod_name(f, path):
     f = os.path.abspath(f)
+    child = get_child_info()
+    if child and f == child['c']:
+        return 'main'
     for p in path:
         if f.startswith(p):
             f = f[len(p) + 1:]
@@ -634,5 +637,5 @@ def print_message(stdscr, msg='', color=None):
         stdscr.clrtoeol()
         stdscr.refresh()
 
+from pptop.core import start, get_child_info
 
-from pptop.core import start

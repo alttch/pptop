@@ -92,6 +92,10 @@ def get_plugin(plugin_name):
     return plugins.get(plugin_name)
 
 
+def get_child_info():
+    return {'c': _d.child_cmd, 'a': _d.child_args} if _d.child else None
+
+
 def apply_filter(stdscr, plugin):
     with scr_lock:
         plugin.filter = prompt(
@@ -279,17 +283,32 @@ async def show_process_info(stdscr, p, **kwargs):
 
     height, width = stdscr.getmaxyx()
     try:
-        result = command('test')
+        status = command('status')
         with scr_lock:
             with p.oneshot():
                 ct = p.cpu_times()
                 stdscr.move(0, 0)
                 stdscr.addstr('Process: ')
-                cmdline = ' '.join(p.cmdline())[:width - 20]
-                stdscr.addstr(cmdline, palette.YELLOW)
+                cmdline = ' '.join(p.cmdline())
+                if not _d.need_inject_server:
+                    cmdline = cmdline.split(' -m pptop.injection ')[-1].split(
+                        ' ', 1)[0]
+                stdscr.addstr(cmdline[:width - 25], palette.YELLOW)
                 stdscr.addstr(' [')
-                stdscr.addstr(str(p.pid), palette.GREEN)
+                stdscr.addstr(
+                    str(p.pid), palette.GREEN
+                    if status == 1 else palette.GREY_BOLD)
                 stdscr.addstr(']')
+                if status == -1:
+                    xst = 'WAIT'
+                    xstc = palette.GREY_BOLD
+                elif status == 0:
+                    xst = 'DONE'
+                    xstc = palette.GREY_BOLD
+                else:
+                    xst = None
+                if xst:
+                    stdscr.addstr(' ' + xst, xstc)
                 stdscr.addstr('\nCPU: ')
                 stdscr.addstr('{}%'.format(p.cpu_percent()), palette.BLUE_BOLD)
                 stdscr.addstr(' user ')
@@ -399,7 +418,11 @@ _d = SimpleNamespace(
     ifoctets_prev=0,
     ifbw=0,
     pptop_dir=None,
-    work_pid=None)
+    work_pid=None,
+    need_inject_server=True,
+    child=None,
+    child_cmd=None,
+    child_args='')
 
 _cursors = SimpleNamespace(
     files_cursor=0,
@@ -425,7 +448,7 @@ def resize_handler(stdscr):
         stdscr.refresh()
 
 
-def inject_client(pid):
+def inject_server(pid):
     cmds = [
         '(PyGILState_STATE)PyGILState_Ensure()',
         ('(int)PyRun_SimpleString("import sys;sys.path.append(\\"{path}\\");' +
@@ -523,7 +546,7 @@ def run(stdscr):
     client.settimeout(socket_timeout)
     client.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, socket_buf)
     client.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, socket_buf)
-    inject_client(p.pid)
+    if _d.need_inject_server: inject_server(p.pid)
     sock_path = '/tmp/.pptop.{}'.format(os.getpid())
     for i in range(injection_timeout * 10):
         if os.path.exists(sock_path):
@@ -532,7 +555,8 @@ def run(stdscr):
     try:
         client.connect(sock_path)
     except:
-        raise RuntimeError('Unable to connect to process')
+        raise RuntimeError('Unable to connect to process {}'.format(
+            _d.work_pid))
 
     calc_bw.start()
 
@@ -615,7 +639,15 @@ def start():
         action='store_true',
         dest='_ver')
     ap.add_argument(
-        'file', nargs='?', help='file, pid file or pid', metavar='FILE/PID')
+        'file', nargs='?', help='File, PID file or PID', metavar='FILE/PID')
+    ap.add_argument(
+        '-a', '--args', metavar='ARGS', help='Child args (double quoted)')
+    ap.add_argument(
+        '-w',
+        '--wait',
+        metavar='SEC',
+        type=int,
+        help='If file is specified, wait seconds to start main code')
     ap.add_argument(
         '-f',
         '--config-file',
@@ -685,7 +717,7 @@ def start():
                     _d.work_pid = int(fh.read(128))
             except:
                 # okay, program to launch
-                pass
+                _d.child_cmd = os.path.abspath(a.file)
 
     _d.pptop_dir = os.path.expanduser('~/.pptop')
 
@@ -777,6 +809,19 @@ def start():
             plugins_autostart.append(plugin)
     atasker.task_supervisor.start()
     try:
+        if a.file and not _d.work_pid:
+            # launch file
+            _d.need_inject_server = False
+            _d.child = subprocess.Popen(
+                'python3 -m pptop.injection {file} {cpid} {wait} {args}'.format(
+                    file=a.file,
+                    cpid=os.getpid(),
+                    wait='-w {}'.format(a.wait) if a.wait is not None else '',
+                    args='-a "{}"'.format(a.args) if a.args else ''),
+                shell=True,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE)
+            _d.work_pid = _d.child.pid
         curses.wrapper(run)
         for p, v in plugins.items():
             v['p'].on_unload()
@@ -784,6 +829,10 @@ def start():
         raise
         print(e)
     finally:
+        try:
+            command('bye')
+        except:
+            pass
         try:
             client.close()
         except:

@@ -45,6 +45,7 @@ __version__ = "0.0.14"
 
 import threading
 import struct
+import signal
 import socket
 import sys
 import os
@@ -62,10 +63,14 @@ g = SimpleNamespace(clients=0)
 
 _g_lock = threading.Lock()
 
-injection_ready = threading.Event()
+runner_ready = threading.Event()
+runner_started = threading.Event()
+runner_finished = threading.Event()
+
+server_finished = threading.Event()
 
 
-def loop(cpid):
+def loop(cpid, runner_mode=False):
 
     def send_frame(conn, frame_id, data):
         conn.sendall(
@@ -126,10 +131,19 @@ def loop(cpid):
                         send_ok(connection, frame_id)
                     elif cmd == 'bye':
                         break
+                    elif cmd == 'status':
+                        if runner_mode:
+                            if runner_started.is_set():
+                                status = 0 if runner_finished.is_set() else 1
+                            else:
+                                status = -1
+                        else:
+                            status = 1
+                        send_serialized(connection, frame_id, status)
                     elif cmd == 'path':
                         send_serialized(connection, frame_id, sys.path)
                     elif cmd == 'ready':
-                        injection_ready.set()
+                        runner_ready.set()
                         send_ok(connection, frame_id)
                     elif cmd == 'inject':
                         print(params)
@@ -168,7 +182,7 @@ def loop(cpid):
                     send_frame(connection, frame_id, b'\x02')
             else:
                 break
-    except:
+    except Exception as e:
         raise
         pass
     for i, v in injections.items():
@@ -197,53 +211,58 @@ def loop(cpid):
     except:
         pass
     print('finished')
+    if runner_mode:
+        server_finished.set()
+        os._exit(0)
 
 
-def start(cpid):
+def start(cpid, runner_mode=False):
     print('starting injection server for pid {}'.format(cpid))
-    t = threading.Thread(
-        name='__pptop_injection_{}'.format(cpid), target=loop, args=(cpid,))
-    t.setDaemon(True)
-    t.start()
+    threading.Thread(
+        name='__pptop_injection_{}'.format(cpid),
+        target=loop,
+        args=(cpid, runner_mode),
+        daemon=True).start()
 
 
-def launch(wait=True):
+def launch(cpid, wait=True):
+    start(cpid, runner_mode=True)
     if wait is True:
         print('waiting for ready')
-        injection_ready.wait()
+        runner_ready.wait()
         print('completed. executing main code')
     else:
         print('waiting {} seconds'.format(wait))
-        time.sleep(wait)
+        t_end = time.time() + wait
+        while time.time() < t_end:
+            if runner_ready.is_set():
+                break
+            time.sleep(0.1)
 
 
-import logging
-logging.basicConfig(level=10)
+def main():
+    import argparse
+    import shlex
+    ap = argparse.ArgumentParser()
+    ap.add_argument('file', metavar='FILE', help='File to launch')
+    ap.add_argument('cpid', metavar='PID', type=int, help='Client PID')
+    ap.add_argument(
+        '-w', '--wait', metavar='SEC', type=int, help='Wait seconds till start')
+    ap.add_argument('-a', '--args', metavar='ARGS', help='Child args (quoted)')
+    a = ap.parse_args()
+    with open(a.file) as fh:
+        src = fh.read()
+    code = compile(src, a.file, 'exec')
+    sys.argv = [a.file]
+    if a.args:
+        sys.argv += shlex.split(a.args)
+    launch(a.cpid, wait=True if not a.wait else a.wait)
+    runner_started.set()
+    exec(code)
+    runner_finished.set()
+    server_finished.wait()
+    print('pptop injection runner stopped')
 
 
-def test():
-    import time, logging
-    logger = logging.getLogger('pptop-test')
-    while True:
-        z()
-        time.sleep(1)
-        logger.debug('test')
-        logger.info('info test')
-        logger.warning('warn test')
-        logger.error('warn test')
-        logger.critical('critical test')
-
-
-def z():
-    pass
-
-
-# f = open('/tmp/test-test', 'w')
-# f2 = open('/tmp/test-test2', 'w')
-# t = threading.Thread(target=test)
-# t2 = threading.Thread(target=test, name='test thread 2')
-# t.setDaemon(True)
-# t2.setDaemon(True)
-# t.start()
-# t2.start()
-# start(777)
+if __name__ == '__main__':
+    main()
