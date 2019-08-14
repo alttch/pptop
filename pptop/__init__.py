@@ -295,11 +295,16 @@ class GenericPlugin(BackgroundIntervalWorker):
             self.background_loader=True)
         '''
         try:
-            result = self.process_data(self.injection_command())
-            if result is False:
+            result = self.injection_command()
+            processed = self.process_data(result)
+            if isinstance(processed, list):
+                result = processed
+            if result is False or processed is False:
                 return False
             if isinstance(result, list):
                 d = result
+            else:
+                d = []
             with self.data_lock:
                 if self.append_data:
                     self.data += d
@@ -331,7 +336,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         Returns:
             if False is returned, the plugin is stopped
         '''
-        return True
+        pass
 
     def sort_dtd(self, dtd):
         '''
@@ -456,8 +461,17 @@ class GenericPlugin(BackgroundIntervalWorker):
         '''
         return True
 
-    def handle_input(self, var):
+    def get_input(self, var):
+        return self.inputs.get(var)
+
+    def handle_input(self, var, value, prev_value):
         return
+
+    def print_ok(self, msg=''):
+        self.print_message(msg=msg, color=palette.OK)
+
+    def print_error(self, msg=''):
+        self.print_message(msg=msg, color=palette.ERROR)
 
     def print_message(self, msg='', color=None):
         return print_message(self.stdscr, msg=msg, color=color)

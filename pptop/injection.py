@@ -124,7 +124,6 @@ def loop(cpid, runner_mode=False):
                 else:
                     break
             except:
-                raise
                 break
             if frame:
                 try:
@@ -164,7 +163,6 @@ def loop(cpid, runner_mode=False):
                                     print('injection removed {}'.format(
                                         injection_id))
                                 except:
-                                    raise
                                     pass
                         injections[injection_id] = {
                             'g': {
@@ -196,12 +194,12 @@ def loop(cpid, runner_mode=False):
                     else:
                         send_frame(connection, frame_id, b'\x01')
                 except:
-                    raise
+                    import traceback
+                    print(traceback.format_exc())
                     send_frame(connection, frame_id, b'\x02')
             else:
                 break
     except Exception as e:
-        raise
         pass
     for i, v in injections.items():
         u = v.get('u')
@@ -211,7 +209,6 @@ def loop(cpid, runner_mode=False):
                 exec(code, v['g'])
                 print('injection removed {}'.format(i))
             except:
-                raise
                 pass
     try:
         server.close()

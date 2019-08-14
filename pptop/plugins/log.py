@@ -59,6 +59,9 @@ class Plugin(GenericPlugin):
     def get_table_row_color(self, element=None, raw=None):
         return self.row_colors.get(element['level'])
 
+    async def run(self, *args, **kwargs):
+        super().run(*args, **kwargs)
+
 
 def injection_load(**kwargs):
     import logging

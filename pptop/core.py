@@ -645,11 +645,16 @@ def run(stdscr):
                 _d.current_plugin['p'].toggle_pause()
             elif k in _d.current_plugin['p'].inputs:
                 with scr_lock:
-                    def_value = _d.current_plugin['p'].inputs[k]
-                    _d.current_plugin['p'].inputs[k] = prompt(
+                    prev_value = _d.current_plugin['p'].get_input(k)
+                    value = prompt(
                         stdscr,
-                        value=def_value if def_value is not None else '')
-                    _d.current_plugin['p'].handle_input(k)
+                        value=prev_value if prev_value is not None else '')
+                    _d.current_plugin['p'].inputs[k] = value
+                    try:
+                        _d.current_plugin['p'].handle_input(
+                            k, value, prev_value)
+                    except:
+                        pass
             else:
                 with scr_lock:
                     _d.current_plugin['p'].key_event = k
@@ -789,7 +794,7 @@ def start():
             mod = importlib.import_module('pptopcontrib-' + i)
         plugin = {'m': mod}
         plugins[i] = plugin
-        p = mod.Plugin(interval=int(v.get('interval', 1)))
+        p = mod.Plugin(interval=float(v.get('interval', 1)))
         p.command = command
         p.get_plugins = get_plugins
         p.get_plugin = get_plugin
@@ -842,6 +847,8 @@ def start():
             p.filter = str(v['filter'])
         if v.get('autostart'):
             plugins_autostart.append(plugin)
+    atasker.task_supervisor.set_thread_pool(
+        pool_size=100, reserve_normal=100, reserve_high=50)
     atasker.task_supervisor.start()
     try:
         if a.file and not _d.work_pid:

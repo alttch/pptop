@@ -3,8 +3,11 @@ plugins:
     default: true
     shortcut: KEY_F(2)
   script_runner:
-    shortcut: KEY_F(4)
+    shortcut: KEY_F(3)
     interval: 5
+  vars:
+    shortcut: KEY_F(4)
+    interval: 0.5
   yappi:
     shortcut: KEY_F(5)
     interval: 1
