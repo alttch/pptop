@@ -552,6 +552,9 @@ def run(stdscr):
             curses.init_pair(i + 1, i, -1)
         if config['display'].get('colors'):
             init_color_palette()
+        if config['display'].get('glyphs'):
+            init_glyphs()
+
     if not _d.work_pid:
         p = select_process(stdscr)
     else:
@@ -810,9 +813,6 @@ def start():
 
     if a.raw or a.disable_glyphs:
         config['display']['glyphs'] = False
-
-    if config['display'].get('glyphs'):
-        init_glyphs()
 
     if plugin_options:
         config.update(dict_merge(config, {'plugins': plugin_options}))
