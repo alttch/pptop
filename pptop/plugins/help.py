@@ -1,4 +1,4 @@
-from pptop import GenericPlugin, format_mod_name
+from pptop import GenericPlugin
 import pptop.core as core
 import textwrap
 
