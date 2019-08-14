@@ -51,6 +51,13 @@ palette = SimpleNamespace(
     WHITE_BOLD=curses.A_BOLD,
     PROMPT=curses.A_BOLD)
 
+glyph = SimpleNamespace(
+        upload='<',
+        download= '>',
+        arrow_up= '|',
+        arrow_down = '|',
+        selector = '>',
+        )
 
 class CriticalException(Exception):
     pass
@@ -573,9 +580,9 @@ class GenericPlugin(BackgroundIntervalWorker):
                 header = ' ' + header
             if sorting_col:
                 if sorting_rev:
-                    s = '↑'
+                    s = glyph.arrow_up
                 else:
-                    s = '↓'
+                    s = glyph.arrow_down
                 if header.startswith(sorting_col + ' '):
                     header = header.replace(sorting_col + ' ', s + sorting_col,
                                             1)
@@ -586,7 +593,7 @@ class GenericPlugin(BackgroundIntervalWorker):
                 palette.HEADER)
             for i, (t, r) in enumerate(zip(d[2:], table)):
                 if print_selector:
-                    t = ('→' if cursor == i else ' ') + t
+                    t = (glyph.selector if cursor == i else ' ') + t
                 self.window.addstr(
                     1 + i, 0,
                     format_row(

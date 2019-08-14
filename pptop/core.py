@@ -54,6 +54,7 @@ from types import SimpleNamespace
 from pptop import GenericPlugin
 from pptop import CriticalException
 from pptop import palette
+from pptop import glyph
 from pptop import prompt
 from pptop import print_message
 # DEBUG
@@ -99,8 +100,7 @@ def get_child_info():
 
 def apply_filter(stdscr, plugin):
     with scr_lock:
-        plugin.filter = prompt(
-            stdscr, ps='f: ', value=plugin.filter).lower()
+        plugin.filter = prompt(stdscr, ps='f: ', value=plugin.filter).lower()
         plugin.trigger()
 
 
@@ -150,8 +150,8 @@ class ProcesSelector(GenericPlugin):
         self.stdscr.move(self.stdscr.getmaxyx()[0] - 1, 0)
         self.stdscr.clrtoeol()
 
-    async def run(self, *args, **kwargs):
-        super().run(*args, **kwargs)
+    # async def run(self, *args, **kwargs):
+        # super().run(*args, **kwargs)
 
 
 def select_process(stdscr):
@@ -336,11 +336,13 @@ async def show_process_info(stdscr, p, **kwargs):
                 stdscr.addstr('\nFiles: ')
                 stdscr.addstr(str(len(p.open_files())), palette.BLUE_BOLD)
                 ioc = p.io_counters()
-                stdscr.addstr(' ⇈ {}'.format(ioc.read_count), palette.GREEN)
+                stdscr.addstr(' {} {}'.format(glyph.upload, ioc.read_count),
+                              palette.GREEN)
                 stdscr.addstr(' (')
                 stdscr.addstr(bytes_to_iso(ioc.read_chars), palette.GREEN)
                 stdscr.addstr(')')
-                stdscr.addstr(' ⇊ {}'.format(ioc.write_count), palette.BLUE)
+                stdscr.addstr(' {} {}'.format(glyph.download, ioc.write_count),
+                              palette.BLUE)
                 stdscr.addstr(' (')
                 stdscr.addstr(bytes_to_iso(ioc.write_chars), palette.BLUE)
                 stdscr.addstr(')')
@@ -498,6 +500,13 @@ def init_color_palette():
     palette.WHITE_BOLD = curses.color_pair(8) | curses.A_BOLD
     palette.PROMPT = curses.color_pair(3) | curses.A_BOLD
 
+def init_glyphs():
+    glyph.upload='⇈'
+    glyph.download= '⇊'
+    glyph.arrow_up= '↑'
+    glyph.arrow_down = '↓'
+    glyph.selector = '→'
+
 
 def switch_plugin(stdscr, new_plugin):
     if _d.current_plugin:
@@ -541,7 +550,8 @@ def run(stdscr):
         curses.use_default_colors()
         for i in range(0, curses.COLORS):
             curses.init_pair(i + 1, i, -1)
-        init_color_palette()
+        if config['display'].get('colors'):
+            init_color_palette()
     if not _d.work_pid:
         p = select_process(stdscr)
     else:
@@ -673,11 +683,16 @@ def start():
 
     ap = argparse.ArgumentParser(description=_me)
     ap.add_argument(
-        '-V',
-        '--version',
-        help='Print version and exit',
-        action='store_true',
-        dest='_ver')
+        '-V', '--version', help='Print version and exit', action='store_true')
+    ap.add_argument(
+        '-R',
+        '--raw',
+        help='Raw mode (disable colors and unicode glyphs)',
+        action='store_true')
+    ap.add_argument(
+        '--disable-glyphs',
+        help='Raw mode (disable colors and unicode glyphs)',
+        action='store_true')
     ap.add_argument(
         'file', nargs='?', help='File, PID file or PID', metavar='FILE/PID')
     ap.add_argument('-a', '--args', metavar='ARGS', help='Child args (quoted)')
@@ -718,7 +733,7 @@ def start():
 
     a = ap.parse_args()
 
-    if a._ver:
+    if a.version:
         print(_me)
         exit()
 
@@ -786,6 +801,18 @@ def start():
         shutil.copy(dir_me + '/config/pptop.yml', _d.pptop_dir + '/pptop.yml')
     with open(config_file) as fh:
         config.update(yaml.load(fh.read()))
+
+    if config.get('display') is None:
+        config['display'] = {}
+
+    if a.raw:
+        config['display']['colors'] = False
+
+    if a.raw or a.disable_glyphs:
+        config['display']['glyphs'] = False
+
+    if config['display'].get('glyphs'):
+        init_glyphs()
 
     if plugin_options:
         config.update(dict_merge(config, {'plugins': plugin_options}))

@@ -1,3 +1,6 @@
+display:
+  colors: true
+  glyphs: true
 plugins:
   plugin_selector:
     default: true
