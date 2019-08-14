@@ -28,12 +28,13 @@ Server response:
 
 Commands:
 
-    test            Test server
-    status          Get process status
-    path            Get sys.path
-    inject          Inject a plugin
-    <plugin_id>     Command for plugin
-    bye             End communcation
+    .test            Test server
+    .status          Get process status
+    .path            Get sys.path
+    .inject          Inject a plugin
+    .le              Get last exception
+    <plugin_id>      Command for plugin
+    .bye             End communcation
 
 If client closes connection, connection is timed out (default: 10 sec) or
 server receives "bye" command, it immediately terminate itself and loaded
@@ -64,7 +65,11 @@ socket_buf = 8192
 # don't use threading.Event to hide presence
 
 g = SimpleNamespace(
-    clients=0, _runner_status=-1, _runner_ready=False, _server_finished=False)
+    clients=0,
+    _runner_status=-1,
+    _runner_ready=False,
+    _server_finished=False,
+    _last_exception=())
 
 _g_lock = threading.Lock()
 
@@ -130,19 +135,23 @@ def loop(cpid, runner_mode=False):
                     cmd = frame.decode()
                     params = {}
                 try:
-                    if cmd == 'test':
+                    if cmd == '.test':
                         send_ok(connection, frame_id)
-                    elif cmd == 'bye':
+                    elif cmd == '.bye':
                         break
-                    elif cmd == 'status':
+                    elif cmd == '.status':
                         send_serialized(connection, frame_id, g._runner_status
                                         if runner_mode else 1)
-                    elif cmd == 'path':
+                    elif cmd == '.path':
                         send_serialized(connection, frame_id, sys.path)
-                    elif cmd == 'ready':
+                    elif cmd == '.le':
+                        with _g_lock:
+                            send_serialized(connection, frame_id,
+                                            g._last_exception)
+                    elif cmd == '.ready':
                         g._runner_ready = True
                         send_ok(connection, frame_id)
-                    elif cmd == 'inject':
+                    elif cmd == '.inject':
                         print(params)
                         injection_id = params['id']
                         if injection_id in injections:
@@ -260,17 +269,22 @@ def main():
     a = ap.parse_args()
     with open(a.file) as fh:
         src = fh.read()
-    code = compile(src, a.file, 'exec')
     sys.argv = [a.file]
     if a.args:
         sys.argv += shlex.split(a.args)
     launch(a.cpid, wait=True if a.wait is None else a.wait)
     g._runner_status = 1
     try:
+        code = compile(src, a.file, 'exec')
         exec(code)
         g._runner_status = 0
     except:
         g._runner_status = -2
+        import traceback
+        e = sys.exc_info()
+        with _g_lock:
+            g._last_exception = (e[0].__name__, e[1], ['']
+                                )  # TODO: correct tb traceback.format_tb(e[2]))
     while not g._server_finished:
         time.sleep(0.2)
     print('pptop injection runner stopped')

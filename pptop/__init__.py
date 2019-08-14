@@ -66,7 +66,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.name = mod.__name__.rsplit('.', 1)[-1]
         if self.name.startswith('pptopcontrib-'):
             self.name = self.name[13:]
-        self.title = self.name.capitalize()
+        self.title = self.name.capitalize().replace('_', ' ')
         self.short_name = self.name[:6].capitalize()
         self.stdscr = None  # curses stdscr object
         self.data = []

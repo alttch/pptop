@@ -21,8 +21,7 @@ class Plugin(GenericPlugin):
         self.background_loader = True
 
     def handle_key_event(self, event, dtd, **kwargs):
-        if len(event) == 1:
-            if ord(event) == 24:
+        if event == 'CTRL_X':
                 self.injection_command(cmd='reset')
                 self.print_message(
                     'Profiler stats were reset', color=palette.WARNING)

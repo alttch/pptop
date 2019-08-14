@@ -24,3 +24,5 @@ plugins:
   env:
     shortcut: KEY_F(9)
     interval: 2
+  last_exception:
+    shortcut: CTRL_E

@@ -38,12 +38,12 @@ class Plugin(GenericPlugin):
                 })
 
     def handle_key_event(self, event, dtd):
-        if event == '\n':
+        if event == 'ENTER':
             background_task(self.switch_plugin)(
                 self.stdscr, self.get_plugin(self.get_selected_row()['id']))
 
     async def run(self, *args, **kwargs):
         super().run(*args, **kwargs)
 
-    def toggle_pause(self):
-        pass
+    def pause(self):
+        return

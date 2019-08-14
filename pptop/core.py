@@ -284,7 +284,7 @@ async def show_process_info(stdscr, p, **kwargs):
 
     height, width = stdscr.getmaxyx()
     try:
-        status = command('status')
+        status = command('.status')
         with scr_lock:
             with p.oneshot():
                 ct = p.cpu_times()
@@ -512,7 +512,7 @@ def switch_plugin(stdscr, new_plugin):
     p.key_event = None
     if new_plugin['inj'] is False:
         new_plugin['inj'] = True
-        command('inject', new_plugin['i'])
+        command('.inject', new_plugin['i'])
     if not p.is_active(): p.start()
     p.show()
     _d.current_plugin = new_plugin
@@ -526,7 +526,7 @@ def run(stdscr):
             if plugin['p'] is not _d.current_plugin.get('p'):
                 if not plugin['inj']:
                     plugin['inj'] = True
-                    command('inject', plugin['i'])
+                    command('.inject', plugin['i'])
                 p = plugin['p']
                 p.key_event = None
                 p.stdscr = stdscr
@@ -567,7 +567,7 @@ def run(stdscr):
     calc_bw.start()
 
     _d.process_path.clear()
-    for i in command('path'):
+    for i in command('.path'):
         _d.process_path.append(os.path.abspath(i))
 
     height, width = stdscr.getmaxyx()
@@ -585,14 +585,15 @@ def run(stdscr):
                     raise Exception('resize')
                 k = stdscr.getkey()
                 if len(k) == 1:
-                    if ord(k) == 6:
+                    z = ord(k)
+                    if z == 6:
                         k = 'KEY_NPAGE'
-                    elif ord(k) == 2:
+                    elif z == 2:
                         k = 'KEY_PPAGE'
-                    elif ord(k) == 9:
-                        k = 'CTRL_I'
-                    elif ord(k) == 12:
-                        k = 'CTRL_L'
+                    elif z == 10:
+                        k = 'ENTER'
+                    elif z < 27:
+                        k = 'CTRL_' + chr(z + 64)
             except KeyboardInterrupt:
                 return
             except:
@@ -609,7 +610,7 @@ def run(stdscr):
                 switch_plugin(stdscr, plugin_shortcuts[k])
             elif k == 'CTRL_L':
                 try:
-                    result = command('ready')
+                    result = command('.ready')
                 except:
                     result = None
                 with scr_lock:
@@ -621,7 +622,7 @@ def run(stdscr):
                             stdscr, 'Command failed', color=palette.ERROR)
             elif k == 'CTRL_I' and _d.current_plugin['inj'] is not None:
                 try:
-                    result = command('inject', _d.current_plugin['i'])
+                    result = command('.inject', _d.current_plugin['i'])
                 except:
                     result = None
                 with scr_lock:

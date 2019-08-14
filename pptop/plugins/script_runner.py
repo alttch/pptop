@@ -32,7 +32,7 @@ class Plugin(GenericPlugin):
             pass
 
     def handle_key_event(self, event, dtd):
-        if event == '\n':
+        if event == 'ENTER':
             script = self.get_selected_row()['script']
             try:
                 fname = self.scripts_dir + '/' + script
