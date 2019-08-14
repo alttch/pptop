@@ -1,7 +1,6 @@
 from pptop import GenericPlugin, palette
 
 import os
-import curses
 
 
 class Plugin(GenericPlugin):

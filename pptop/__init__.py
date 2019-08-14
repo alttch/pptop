@@ -85,9 +85,11 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.data_records_max = None
         self._paused = False
         self._error = False
-        self._msg = ''
+        self.msg = ''
         self._loader_active = False
         self.data_lock = threading.Lock()
+        # key - hot key, value - input value
+        self.inputs = {}
 
     def on_load(self):
         '''
@@ -232,11 +234,13 @@ class GenericPlugin(BackgroundIntervalWorker):
         title = self.title
         if self._error:
             color = palette.ERROR
-            title += ' [ERROR{}]'.format((
-                ': ' + self._msg) if self._msg else '')
+            title += ' [ERROR{}]'.format((': ' + self.msg) if self.msg else '')
         elif self._paused:
             color = palette.GREY
             title += ' [PAUSED]'
+        elif not self.is_active():
+            color = palette.GREY
+            title += ' [STOPPED]'
         else:
             color = palette.CAPTION
         height, width = self.stdscr.getmaxyx()
@@ -313,7 +317,7 @@ class GenericPlugin(BackgroundIntervalWorker):
             self.data = []
             with self.scr_lock:
                 self._error = True
-                self._msg = 'frame error: {}'.format(e)
+                self.msg = 'frame error: {}'.format(e)
                 if self._visible:
                     self.print_title()
 
@@ -452,6 +456,9 @@ class GenericPlugin(BackgroundIntervalWorker):
         '''
         return True
 
+    def handle_input(self, var):
+        return
+
     def print_message(self, msg='', color=None):
         return print_message(self.stdscr, msg=msg, color=color)
 
@@ -471,7 +478,13 @@ class GenericPlugin(BackgroundIntervalWorker):
         return self._display_ui()
 
     def get_selected_row(self):
-        return self.dtd[self.cursor]
+        try:
+            return self.dtd[self.cursor]
+        except:
+            return None
+
+    def delete_selected_row(self):
+        self.dtd.remove(self.dtd[self.cursor])
 
     def _display_ui(self):
         with self.start_stop_lock:
@@ -489,11 +502,11 @@ class GenericPlugin(BackgroundIntervalWorker):
                 self.filter_dtd(
                     dtd=self.format_dtd(dtd=self.sort_dtd(dtd=self.data))))
         self.dtd = dtd
-        self.handle_pager_event(dtd=dtd)
         if self.key_event:
             if not self.filter: self.print_message()
             if self.handle_key_event(event=self.key_event, dtd=dtd) is False:
                 return False
+        self.handle_pager_event(dtd=dtd)
         if self.key_event:
             self.key_event = None
         if dtd:
@@ -589,7 +602,7 @@ def format_mod_name(f, path):
     return mod[i:]
 
 
-def prompt(stdscr, prompt='> ', value=''):
+def prompt(stdscr, prompt=': ', value=''):
     height, width = stdscr.getmaxyx()
     stdscr.addstr(top_lines + 1, 0, ' ' + prompt)
     editwin = curses.newwin(1, width - len(prompt) - 1, top_lines + 1,

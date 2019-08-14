@@ -643,6 +643,13 @@ def run(stdscr):
                 apply_filter(stdscr, _d.current_plugin['p'])
             elif k == 'p':
                 _d.current_plugin['p'].toggle_pause()
+            elif k in _d.current_plugin['p'].inputs:
+                with scr_lock:
+                    def_value = _d.current_plugin['p'].inputs[k]
+                    _d.current_plugin['p'].inputs[k] = prompt(
+                        stdscr,
+                        value=def_value if def_value is not None else '')
+                    _d.current_plugin['p'].handle_input(k)
             else:
                 with scr_lock:
                     _d.current_plugin['p'].key_event = k

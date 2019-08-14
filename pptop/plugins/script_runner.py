@@ -33,28 +33,30 @@ class Plugin(GenericPlugin):
 
     def handle_key_event(self, event, dtd):
         if event == 'ENTER':
-            script = self.get_selected_row()['script']
-            try:
-                fname = self.scripts_dir + '/' + script
-                with open(fname) as fd:
-                    src = fd.read()
-            except:
-                self.print_message(
-                    'Unable to load {}'.format(fname), color=palette.ERROR)
-                return
-            try:
-                result = self.injection_command(src=src)
-            except Exception as e:
-                result = e
-            if not isinstance(result, Exception):
-                if result is None:
-                    msg = '{} executed'.format(script)
+            d = self.get_selected_row()
+            if d:
+                script = d['script']
+                try:
+                    fname = self.scripts_dir + '/' + script
+                    with open(fname) as fd:
+                        src = fd.read()
+                except:
+                    self.print_message(
+                        'Unable to load {}'.format(fname), color=palette.ERROR)
+                    return
+                try:
+                    result = self.injection_command(src=src)
+                except Exception as e:
+                    result = e
+                if not isinstance(result, Exception):
+                    if result is None:
+                        msg = '{} executed'.format(script)
+                    else:
+                        msg = '{}: {}'.format(script, result)
+                    self.print_message(msg, color=palette.GREEN_BOLD)
                 else:
-                    msg = '{}: {}'.format(script, result)
-                self.print_message(msg, color=palette.GREEN_BOLD)
-            else:
-                self.print_message(
-                    '{}: {}'.format(script, result), color=palette.ERROR)
+                    self.print_message(
+                        '{}: {}'.format(script, result), color=palette.ERROR)
 
     async def run(self, *args, **kwargs):
         super().run(*args, **kwargs)
