@@ -694,7 +694,7 @@ def start():
         action='store_true')
     ap.add_argument(
         '--disable-glyphs',
-        help='Raw mode (disable colors and unicode glyphs)',
+        help='disable unicode glyphs',
         action='store_true')
     ap.add_argument(
         'file', nargs='?', help='File, PID file or PID', metavar='FILE/PID')
