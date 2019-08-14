@@ -64,6 +64,8 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.hshift = 0
         mod = sys.modules[self.__module__]
         self.name = mod.__name__.rsplit('.', 1)[-1]
+        if self.name.startswith('pptopcontrib-'):
+            self.name = self.name[13:]
         self.title = self.name.capitalize()
         self.short_name = self.name[:6].capitalize()
         self.stdscr = None  # curses stdscr object

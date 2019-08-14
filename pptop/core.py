@@ -775,7 +775,7 @@ def start():
         try:
             mod = importlib.import_module('pptop.plugins.' + i)
         except ModuleNotFoundError:
-            mod = importlib.import_module('pptopcontrib.' + i)
+            mod = importlib.import_module('pptopcontrib-' + i)
         plugin = {'m': mod}
         plugins[i] = plugin
         p = mod.Plugin(interval=int(v.get('interval', 1)))
