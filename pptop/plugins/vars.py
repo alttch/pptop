@@ -9,7 +9,7 @@ class Plugin(GenericPlugin):
 
     Shortcuts:
 
-        INS    : insert new variable/function
+        i      : insert new variable/function
         DEL    : delete variable/function
         d      : duplicate
         e      : edit
