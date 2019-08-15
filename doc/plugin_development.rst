@@ -7,14 +7,17 @@ we want to analyze:
 .. literalinclude:: examples/pptopcontrib-listmodules/__init__.py
     :language: python
 
-Pretty easy isn't it?
+Pretty easy isn't it? And here's the result:
+
+.. image:: examples/pptopcontrib-listmodules/list_modules.png
+    :width: 100%
 
 File location
 =============
 
 ppTOP search for the plugins as in default Python library directories, as in
-~/.pptop/lib. Custom plugins should be named as *pptopcontrib-pluginname*, so,
-let's put all code of our example to
+*~/.pptop/lib*. Custom plugins should be named as *pptopcontrib-pluginname*,
+so, let's put all code of our example to
 *~/.pptop/lib/pptopcontrib-listmodules/__init__.py*
 
 Plugin debugging
@@ -56,9 +59,9 @@ Class definition
         '''
         #...
 
-Variable *__version__** should always be present in custom plugin module. If
-module want to use colors, it's better to use prepared colors in
-*ppptop.palette*.
+Variable *__version__* should always be present in custom plugin module. If
+module want to use colors, it's better to use prepared colors from
+*pptop.palette*.
 
 Class *Plugin* should have help documentation inside, it is displayed when user
 press *F1* key.

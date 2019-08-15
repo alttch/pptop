@@ -27,9 +27,9 @@ class Plugin(GenericPlugin):
 
     def format_dtd(self, dtd):
         # Usually this method is used to convert e.g. numbers to strings, to
-        # add leading zeroes and limit after comma, changing strings to other
-        # values is a bad practice and is provided here only for example. All
-        # data should be prepared by process_data method
+        # add leading zeroes and limit digits after comma, changing strings to
+        # other values is a bad practice and is provided here only for example.
+        # All data should be prepared by process_data method
         for d in dtd:
             z = d.copy()
             if z['license'] == '':
