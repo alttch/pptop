@@ -960,6 +960,8 @@ def start():
             shutil.copytree(dir_me + '/config/scripts',
                             _d.pptop_dir + '/scripts')
         shutil.copy(dir_me + '/config/pptop.yml', _d.pptop_dir + '/pptop.yml')
+        if not os.path.isdir(_d.pptop_dir + '/lib'):
+            os.mkdir(_d.pptop_dir + '/lib')
     with open(config_file) as fh:
         config.update(yaml.load(fh.read()))
 
