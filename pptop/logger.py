@@ -1,5 +1,5 @@
 '''
-pptop don't use logging because two processes must write to the same fname
+pptop don't use logging because two processes must write to the same file
 '''
 
 import fcntl
