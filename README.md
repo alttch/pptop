@@ -106,8 +106,9 @@ executing functions and loops etc.
 Console has own remote *globals*, which are preserved until ppTOP quit and
 injected server is terminated.
 
-## Configuration, plugin development
+## Documentation
 
+Configuration, advanced usage, plugin development:
 https://pptop.readthedocs.io/en/latest/
 
 ## TODO
