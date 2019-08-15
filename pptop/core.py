@@ -988,8 +988,13 @@ def start():
         if v is None: v = {}
         try:
             mod = importlib.import_module('pptop.plugins.' + i)
+            mod.__version__ = 'built-in'
         except ModuleNotFoundError:
             mod = importlib.import_module('pptopcontrib-' + i)
+            try:
+                mod.__version__
+            except:
+                raise RuntimeError('Please specify __version__ in plugin file')
         plugin = {'m': mod}
         plugins[i] = plugin
         p = mod.Plugin(interval=float(v.get('interval', 1)))

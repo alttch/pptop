@@ -28,13 +28,17 @@ class Plugin(GenericPlugin):
                         else:
                             sh = 'F{}'.format(fnkey)
                     except:
-                        raise
                         pass
+                try:
+                    version = str(plugin['m'].__version__)
+                except:
+                    version = ''
                 self.data.append({
                     'id': p.name,
                     'name': p.title,
                     'description': p.description,
-                    'shortcut': sh
+                    'shortcut': sh,
+                    'version': version
                 })
 
     def handle_key_event(self, event, dtd):

@@ -147,6 +147,11 @@ class GenericPlugin(BackgroundIntervalWorker):
         return None
 
     def handle_sorting_event(self):
+        '''
+        Handle sorting order changes
+
+        Set sorting_col and sorting_rev
+        '''
         if self.sorting_enabled:
             if self.key_event in ['kLFT3', 'kRIT3']:
                 if self.data:
@@ -169,9 +174,15 @@ class GenericPlugin(BackgroundIntervalWorker):
                 self.sorting_rev = True
 
     def is_visible(self):
+        '''
+        Is plugin currently visible
+        '''
         return self._visible
 
     def is_paused(self):
+        '''
+        Is plugin currently paused
+        '''
         return self._paused
 
     def handle_pager_event(self, dtd):
@@ -285,17 +296,34 @@ class GenericPlugin(BackgroundIntervalWorker):
         return self.command(self.name, params=kwargs)
 
     def get_injection_load_params(self):
+        '''
+        Called by core when plugin injection is pepared
+
+        Returns:
+            Additional injection params (kwargs)
+        '''
         return {}
 
     def toggle_pause(self):
+        '''
+        Toggle pause/resume
+        '''
         self.resume() if self._paused else self.pause()
 
     def pause(self):
+        '''
+        Pause plugin
+
+        Override to disable pause
+        '''
         with self.scr_lock:
             self._paused = True
             self.print_title()
 
     def resume(self):
+        '''
+        Resume plugin
+        '''
         with self.scr_lock:
             self._paused = False
             self.print_title()
@@ -427,10 +455,16 @@ class GenericPlugin(BackgroundIntervalWorker):
             self.status_line = curses.newwin(1, width, height - 2, 0)
 
     def start(self, *args, **kwargs):
+        '''
+        Starts plugin. Should not be overrided
+        '''
         super().start(*args, **kwargs)
         self.on_start()
 
     def show(self):
+        '''
+        Show plugin UI
+        '''
         with self.scr_lock:
             self._visible = True
             self.init_render_window()
@@ -439,6 +473,9 @@ class GenericPlugin(BackgroundIntervalWorker):
             if self.is_active(): self._display()
 
     def hide(self):
+        '''
+        Hide plugin UI
+        '''
         with self.scr_lock:
             if self.window:
                 self.window.move(0, 0)
@@ -447,6 +484,9 @@ class GenericPlugin(BackgroundIntervalWorker):
                 self.stdscr.refresh()
 
     def stop(self, *args, **kwargs):
+        '''
+        Stops plugin. Should not be overrided
+        '''
         super().stop(*args, **kwargs)
         self.hide()
         self.on_stop()
@@ -459,7 +499,7 @@ class GenericPlugin(BackgroundIntervalWorker):
 
     def on_stop(self):
         '''
-        Called after plugin shutdown
+        Called after plugin stop
         '''
         pass
 
@@ -487,21 +527,69 @@ class GenericPlugin(BackgroundIntervalWorker):
         return True
 
     def get_input(self, var):
+        '''
+        Called by core to get initial value of input var
+
+        Args:
+            var: input var name
+
+        Returns:
+            initial (current) value for editor
+
+        Raises:
+            ValueError: if raised, editing is canceled
+        '''
         return self.inputs.get(var)
 
     def get_input_prompt(self, var):
+        '''
+        Get custom input prompt for input var
+
+        Args:
+            var: input var name
+
+        Returns:
+            If string is returned, default edit prompt is changed
+        '''
         return
 
     def handle_input(self, var, value, prev_value):
+        '''
+        Handle input var editing
+
+        Args:
+            var: input var name
+            value: input var value
+            prev_value: previous value
+        '''
         return
 
     def print_ok(self, msg=''):
+        '''
+        Print okay message
+
+        Args:
+            msg: message to print
+        '''
         self.print_message(msg=msg, color=palette.OK)
 
     def print_error(self, msg=''):
+        '''
+        Print error message
+
+        Args:
+            msg: message to print
+        '''
         self.print_message(msg=msg, color=palette.ERROR)
 
     def print_message(self, msg='', color=None):
+        '''
+        Print message with specified color / attributes
+
+        Args:
+            msg: message to print
+            color: message color
+        '''
         return print_message(self.stdscr, msg=msg, color=color)
 
     def run(self, **kwargs):
@@ -529,12 +617,18 @@ class GenericPlugin(BackgroundIntervalWorker):
             return False
 
     def get_selected_row(self):
+        '''
+        Returns currently selected row (dtd)
+        '''
         try:
             return self.dtd[self.cursor]
         except:
             return None
 
     def delete_selected_row(self):
+        '''
+        Deletes currently selected row from dtd
+        '''
         self.dtd.remove(self.dtd[self.cursor])
 
     def _display_ui(self):
@@ -573,7 +667,7 @@ class GenericPlugin(BackgroundIntervalWorker):
 
     def render(self, dtd):
         '''
-        Renders plugin display
+        Renders plugin UI
         '''
         height, width = self.window.getmaxyx()
         self.tabulate(
@@ -589,6 +683,9 @@ class GenericPlugin(BackgroundIntervalWorker):
             self.status_line.clrtoeol()
 
     def render_status_line(self):
+        '''
+        Renders status line
+        '''
         return
 
     def tabulate(self,
@@ -598,6 +695,9 @@ class GenericPlugin(BackgroundIntervalWorker):
                  sorting_col=None,
                  sorting_rev=False,
                  print_selector=False):
+        '''
+        Used by table-like plugins
+        '''
 
         def format_row(element=None, raw=None, max_width=0, hshift=0):
             return self.format_table_row(
@@ -638,13 +738,37 @@ class GenericPlugin(BackgroundIntervalWorker):
             self.print_empty_sep()
 
     def get_table_row_color(self, element=None, raw=None):
+        '''
+        Override to set custom row colors
+
+        Args:
+            element: table element (dtd)
+            raw: formatted table row
+        '''
         pass
 
     def format_table_row(self, element=None, raw=None):
+        '''
+        Override to modify row formatting
+
+        Args:
+            element: table element (dtd)
+            raw: formatted table row
+
+        Returns:
+            formatted table row
+        '''
         return raw
 
 
 def format_mod_name(f, path):
+    '''
+    Extract module name from file
+
+    Args:
+        f: file
+        path: list of path dictionaries
+    '''
     f = os.path.abspath(f)
     child = get_child_info()
     if child and f == child['c']:
@@ -686,6 +810,9 @@ ansi_escape = re.compile(r'\x1B[@-_][0-?]*[ -/]*[@-~]')
 
 
 def ansi_to_plain(txt):
+    '''
+    Removes ANSI color formatting from string
+    '''
     return ansi_escape.sub('', txt)
 
 
