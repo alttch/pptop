@@ -40,6 +40,11 @@ table-based console UI, which can be easily extended with custom plugins.
 All data tables can be scrolled, filtered, new data collection ca be paused. In
 case of problems, any plugin can be re-injected at any time.
 
+## Configuring
+
+Plugins and keyboard shortcuts are configured by default in
+*~/.pptop/pptop.yml* file (created automatically at first launch)
+
 ## Standard plugins
 
 * **env** view process OS environment variables
