@@ -109,7 +109,7 @@ injected server is terminated.
 ## Documentation
 
 Configuration, advanced usage, plugin development:
-https://pptop.readthedocs.io/en/latest/
+https://pptop.readthedocs.io/
 
 ## TODO
 
