@@ -6,6 +6,11 @@ The main idea is to inject a custom code inside Python process (already running
 or going to be launched) and analyze its behavior with no any code
 modifications.
 
+<img src="https://img.shields.io/pypi/v/pptop.svg" />
+<img src="https://img.shields.io/badge/license-MIT-green" />
+<img src="https://img.shields.io/badge/python-3.5%20%7C%203.6%20%7C%203.7-blue.svg" />
+<img src="https://img.shields.io/badge/-alpha-red.svg" />
+
 Say no to "prints" and garbage in debug logs - now you have ppTOP. A modern MRI
 scanner for Python.
 
@@ -31,6 +36,9 @@ or you can load Python program manually and profile its launch
 
 Data from connected process is collected in real-time and displayed in
 table-based console UI, which can be easily extended with custom plugins.
+
+All data tables can be scrolled, filtered, new data collection ca be paused. In
+case of problems, any plugin can be re-injected at any time.
 
 ## Standard plugins
 
@@ -73,3 +81,6 @@ Plugin development guide is coming very soon.
 * [ ] Charts
 
 Enjoy! :)
+
+p.s. Code in **master** can be completely broken, install with *pip* only.
+
