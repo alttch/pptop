@@ -18,7 +18,10 @@ setuptools.setup(
     license='MIT',
     scripts=['bin/pptop'],
     include_package_data=True,
-    install_requires=['psutil', 'tabulate', 'atasker', 'pyyaml', 'yappi'],
+    install_requires=[
+        'psutil', 'tabulate', 'atasker', 'pyyaml', 'yappi', 'termcolor',
+        'pygments'
+    ],
     classifiers=('Programming Language :: Python :: 3',
                  'License :: OSI Approved :: MIT License',
                  'Topic :: Software Development :: Debuggers',

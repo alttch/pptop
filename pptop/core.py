@@ -8,6 +8,7 @@ Global shortcuts:
     p           : Pause/resume current plugin
     Ctrl-i      : Re-inject current plugin
     Ctrl-l      : Send ready event
+    ~, `        : Python console mode (limited)
     q, F10      : Quit program
 
 ppTOP v{version} (c) Altertech
@@ -43,6 +44,9 @@ import pickle
 import shutil
 import argparse
 import collections
+import readline
+
+import termcolor
 
 try:
     yaml.warnings({'YAMLLoadWarning': False})
@@ -138,6 +142,66 @@ def dict_merge(dct, merge_dct, add_keys=True):
                 dct[k] = v
 
     return dct
+
+
+def colored(text, color=None, on_color=None, attrs=None):
+    if not config['display'].get('colors'):
+        return str(text)
+    return termcolor.colored(text, color=color, on_color=on_color, attrs=attrs)
+
+
+def cli_mode():
+
+    def format_json(obj):
+        import json
+        return json.dumps(obj, indent=4, sort_keys=True)
+
+    def print_json(obj):
+        j = format_json(obj)
+        if config['display'].get('colors'):
+            from pygments import highlight, lexers, formatters
+            j = highlight(j, lexers.JsonLexer(), formatters.TerminalFormatter())
+        print(j)
+
+    os.system('clear')
+    print(
+        colored(
+            'Console mode, process {} connected'.format(_d.process.pid),
+            color='green',
+            attrs=['bold']))
+    print(colored('Enter any Python command, type Ctrl-D or exit to quit'))
+    print(colored('To toggle between JSON and normal mode, type "j"'))
+    print()
+    json_mode = True
+    while True:
+        try:
+            cmd = input('>>> ').strip()
+            if cmd == '': continue
+            elif cmd == 'exit':
+                raise EOFError
+            elif cmd == 'j':
+                json_mode = not json_mode
+                print('JSON mode ' + ('on' if json_mode else 'off'))
+            else:
+                r = command('exec', cmd)
+                if r[0] == -1:
+                    print(
+                        colored(
+                            '{}: {}'.format(r[1], r[2]),
+                            color='red',
+                            attrs=['bold']))
+                else:
+                    if r[1] is not None:
+                        if json_mode and \
+                                (isinstance(r[1], dict) or isinstance(r[1], list)):
+                            print_json(r[1])
+                        else:
+                            print(r[1])
+        except EOFError:
+            return
+        except Exception as e:
+            log_traceback()
+            print(colored(str(e), color='red', attrs=['bold']))
 
 
 class ProcesSelector(GenericPlugin):
@@ -334,7 +398,8 @@ async def show_process_info(stdscr, p, **kwargs):
                 stdscr.addstr(' system ')
                 stdscr.addstr(str(ct.system), palette.BOLD)
                 stdscr.addstr(', threads: ')
-                stdscr.addstr(str(p.num_threads()), palette.MAGENTA_BOLD)
+                # always hide pptop thread
+                stdscr.addstr(str(p.num_threads() - 1), palette.MAGENTA_BOLD)
                 stdscr.addstr('\nMemory')
                 memf = p.memory_full_info()
                 for k in ['uss', 'pss', 'swp']:
@@ -550,7 +615,8 @@ def switch_plugin(stdscr, new_plugin):
         else:
             _d.current_plugin['p'].hide()
     p = new_plugin['p']
-    p.stdscr = stdscr
+    with scr_lock:
+        p.stdscr = stdscr
     p._previous_plugin = _d.current_plugin
     p.key_event = None
     if new_plugin['inj'] is False:
@@ -702,6 +768,12 @@ def run(stdscr):
                 show_process_info.stop(wait=False)
                 show_bottom_bar.stop(wait=False)
                 return
+            elif k in ['`', '~']:
+                with scr_lock:
+                    curses.endwin()
+                    cli_mode()
+                    stdscr = curses.initscr()
+                    _d.current_plugin['p'].stdscr = stdscr
             elif k in ('f', '/'):
                 apply_filter(stdscr, _d.current_plugin['p'])
             elif k == 'p':
@@ -984,5 +1056,5 @@ def start():
             client.close()
         except:
             pass
-    atasker.task_supervisor.stop(wait=False)
+        atasker.task_supervisor.stop(wait=False)
     return 0

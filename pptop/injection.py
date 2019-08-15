@@ -120,6 +120,7 @@ def loop(cpid, runner_mode=False):
         with _g_lock:
             g.clients += 1
         connection.settimeout(socket_timeout)
+        exec_globals = {}
         while True:
             try:
                 time_start = time.time()
@@ -155,6 +156,35 @@ def loop(cpid, runner_mode=False):
                                         if runner_mode else 1)
                     elif cmd == '.path':
                         send_serialized(connection, frame_id, sys.path)
+                    elif cmd == 'exec':
+                        try:
+                            if params.startswith('help'):
+                                raise RuntimeError(
+                                    'Help on remote is not supported')
+                            p1 = params.split(' ', 1)[0]
+                            if p1 in ['import', 'def', 'for', 'while']:
+                                exec_globals['__result'] = None
+                                src = params
+                            else:
+                                src = (
+                                    'def print(*args): ' +
+                                    'return \' \'.join(str(a) for a in args)\n'
+                                    + '__result = {}').format(params)
+                            exec(src, exec_globals)
+                            result = exec_globals.get('__result')
+                            if not result is None and \
+                                        not isinstance(result, dict) and \
+                                        not isinstance(result, list) and \
+                                        not isinstance(result, tuple) and \
+                                        not isinstance(result, float) and \
+                                        not isinstance(result, int) and \
+                                        not isinstance(result, bool):
+                                result = str(result)
+                            send_serialized(connection, frame_id, (0, result))
+                        except:
+                            e = sys.exc_info()
+                            send_serialized(connection, frame_id,
+                                            (-1, e[0].__name__, e[1]))
                     elif cmd == '.le':
                         with _g_lock:
                             send_serialized(connection, frame_id,

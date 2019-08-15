@@ -13,7 +13,7 @@ class Plugin(GenericPlugin):
         DEL    : delete variable/function
         e      : edit
         Ctrl-d : duplicate
-        Ctrl-x :  delete all variables
+        Ctrl-x : delete all variables
 
     Items should be entered as mod::object, e.g.
 
