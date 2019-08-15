@@ -28,6 +28,13 @@ The next number is the current bandwidth between ppTOP and injected process. If
 it exceeds 2-3 MB per second, you should pause/stop plugin or reset it (press
 *F1* to read plugin help for more info).
 
+Plugin doesn't work in launch mode
+==================================
+
+Some plugins, e.g. log viewer, inject themselves to system objects. After the
+launch, program can create new objects (e.g. own logger) and log there. Press
+Ctrl+I to re-inject plugin after the main code is started.
+
 Other
 =====
 
