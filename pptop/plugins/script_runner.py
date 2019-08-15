@@ -8,7 +8,8 @@ class Plugin(GenericPlugin):
     '''
     script_runner plugin: run a custom script
 
-    Executes selected script from ~/.pptop/scripts
+    Executes selected script from ~/.pptop/scripts (can be changed with
+    config.script_dir option)
 
     To get result from the script, put it to variable "out", e.g.
 
@@ -21,15 +22,18 @@ class Plugin(GenericPlugin):
         self.description = 'Run selected script from ~/.pptop/scripts'
         self.short_name = 'Script'
         self.sorting_rev = False
-        self.scripts_dir = self.get_config_dir() + '/scripts'
+        if 'script_dir' in self.config:
+            self.script_dir = os.path.expanduser(self.config['script_dir'])
+        else:
+            self.script_dir = self.get_config_dir() + '/scripts'
 
     def load_data(self):
         with self.data_lock:
             self.data.clear()
             try:
                 for g in glob.glob(
-                        self.scripts_dir + '/**/*.py', recursive=True):
-                    self.data.append({'script': g[len(self.scripts_dir) + 1:]})
+                        self.script_dir + '/**/*.py', recursive=True):
+                    self.data.append({'script': g[len(self.script_dir) + 1:]})
             except:
                 pass
 
@@ -39,7 +43,7 @@ class Plugin(GenericPlugin):
             if d:
                 script = d['script']
                 try:
-                    fname = self.scripts_dir + '/' + script
+                    fname = self.script_dir + '/' + script
                     with open(fname) as fd:
                         src = fd.read()
                 except:

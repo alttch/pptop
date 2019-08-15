@@ -10,6 +10,8 @@ plugins:
   script_runner:
     shortcut: KEY_F(3)
     interval: 5
+    config:
+      script_dir: ~/.pptop/scripts
   vars:
     shortcut: KEY_F(4)
     interval: 0.5
