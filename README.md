@@ -50,7 +50,7 @@ To start ppTOP, type
 ```
 
 and then select Python process you want to inject to from the list. A process
-should have an access to *pptop.injection* package, so either use the same
+should have an access to *pptop.injection* module, so either use the same
 Python as ppTOP does, or **pptop** package must be installed manually into
 corresponding virtual environment.
 
