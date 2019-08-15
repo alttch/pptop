@@ -12,8 +12,8 @@ class Plugin(GenericPlugin):
         i      : insert new variable/function
         DEL    : delete variable/function
         e      : edit
-        l      : load variables from file
-        s      : save variables to file
+        l      : load variable list from file
+        s      : save variable list to file
         Ctrl-d : duplicate
         Ctrl-x : delete all variables
 
