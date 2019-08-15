@@ -65,11 +65,11 @@ Plugin development guide is coming very soon.
 
 ## TODO
 
-[ ] More plugins
-[ ] Advanced filtering
-[ ] Data snapshots
-[ ] Step-by-step debugger
-[ ] JSON API, web interface
-[ ] Charts
+* [ ] More plugins
+* [ ] Advanced filtering
+* [ ] Data snapshots
+* [ ] Step-by-step debugger
+* [ ] JSON API, web interface
+* [ ] Charts
 
 Enjoy! :)
