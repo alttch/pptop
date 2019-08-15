@@ -671,9 +671,10 @@ def run(stdscr):
                     plugin['inj'] = True
                     command('.inject', plugin['i'])
                 p = plugin['p']
-                p.key_event = None
-                p.stdscr = stdscr
-                p.start()
+                if p.background:
+                    p.key_event = None
+                    p.stdscr = stdscr
+                    p.start()
 
     signal.signal(signal.SIGWINCH, sigwinch_handler)
     _d.stdscr = stdscr
