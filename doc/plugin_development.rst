@@ -73,8 +73,51 @@ Methods *self.on_load* and *self.on_unload* are called when plugin is
 loaded/unloaded. The first method usually should be defined - it initializes
 plugin, set its title, description etc.
 
-Make executor async
--------------------
+Class variables
+---------------
+
+.. code:: python
+
+    self.data = []  # contains loaded data
+    self.data_lock = threading.Lock()  # should be locked when accesing data
+    self.dtd = []  # data to be displayed (after sorting and filtering)
+    self.msg = ''  # title message (reserved)
+
+    self.name = mod.__name__.rsplit('.', 1)[-1]  # plugin name(id)
+    self.title = self.name.capitalize().replace('_', ' ')  # title
+    self.short_name = self.name[:6].capitalize()  # short name (bottom bar)
+    self.description = ''  # plugin description
+
+    self.stdscr = None  # curses stdscr object
+    self.window = None  # working window
+    self.status_line = None  # status line, if requested (curses object)
+
+    self.shift = 0  # current vertical shifting
+    self.hshift = 0  # current horizontal shifting
+    self.cursor = 0  # current selected element in dtd
+
+    self.config = {}  # plugin configuration
+
+    self.filter = ''  # current filter
+    self.sorting_col = None  # current sorting column
+    self.sorting_rev = True  # current sorting direction
+
+    self.sorting_enabled = True  # is sorting enabled
+    self.cursor_enabled = True  # is cursor enabled
+
+    self.selectable = False  # show item selector arrow
+    self.background = False  # shouldn't be stopped when switched
+
+    self.background_loader = False  # for heavy plugins - load data in bg
+    self.need_status_line = False  # reserve status line
+
+    self.append_data = False  # default load_data method will append data
+    self.data_records_max = None  # max data records
+    self.inputs = {}  # key - hot key, value - input value
+    self.key_event = None # last key pressed, for custom key event handling
+
+Making executor async
+---------------------
 
 By default, plugin method *self.run* is called in separate thread. To keep your
 plugin async, define
@@ -88,8 +131,8 @@ Data flow
 ---------
 
 * when plugin is started, it continuously run *self.run* method until stopped.
-This method is also triggered when key is pressed by user but doesn't reload
-data by default unless SPACE key is pressed.
+  This method is also triggered when key is pressed by user but doesn't reload
+  data by default unless SPACE key is pressed.
 
 * to load data, plugin calls *self.load_data* method, which asks ppTOP core to
   obtain data from injected part and then stores it to *self.data* variable. By
@@ -144,6 +187,27 @@ Otherwise, it would be probably enough to override methods
 specified row according to element values) and/or
 *self.format_table_row(element=None, raw=None)* (add additional formatting to
 raw table row).
+
+Input values
+------------
+
+Allowing user to input values is very easy:
+
+Just define variable, e.g. "a" in *self.inputs*:
+
+.. code:: python
+
+    def on_load(self):
+        # ....
+        self.inputs['e'] = None
+
+And when user press "e" key, ppTOP automatically asks him to enter value for
+"e" variable.
+
+You may customize initial variable value, overriding method
+*self.get_input(var)* (by default it returns value from *self.input*),
+customize input prompt, overriding method *self.get_input_prompt(var)* and then
+handle entered value with method *self.handle_input(var, value, prev_value)*
 
 All class methods
 -----------------

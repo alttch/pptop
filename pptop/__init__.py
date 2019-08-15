@@ -104,6 +104,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.data_records_max = None  # max data records
         self.msg = ''  # title message (reserved)
         self.inputs = {}  # key - hot key, value - input value
+        self.key_event = None # last key pressed, for custom key event handling
 
     def on_load(self):
         '''
