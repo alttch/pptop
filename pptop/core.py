@@ -67,6 +67,8 @@ from pptop import print_debug
 from pptop.logger import config as log_config, log, log_traceback
 
 logging.getLogger('asyncio').setLevel(logging.CRITICAL)
+logging.getLogger('atasker/supervisor').setLevel(100)
+logging.getLogger('atasker/workers').setLevel(100)
 
 dir_me = os.path.dirname(os.path.realpath(__file__))
 

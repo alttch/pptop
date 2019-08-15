@@ -21,7 +21,7 @@ class Plugin(GenericPlugin):
 
     To modify result, use standard Python code, e.g.
 
-    my.module::my_function(1,2,3)['field'1] - valid result
+    my.module::my_function(1,2,3)['field'] - valid result
     '''
 
     def on_load(self):
