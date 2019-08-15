@@ -766,7 +766,7 @@ def run(stdscr):
                             stdscr,
                             'Plugin re-injection failed',
                             color=palette.ERROR)
-            elif k in ['q', 'KEY_F(10)']:
+            elif k in ['KEY_F(10)']:
                 _d.current_plugin['p'].stop(wait=False)
                 show_process_info.stop(wait=False)
                 show_bottom_bar.stop(wait=False)
