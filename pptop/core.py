@@ -20,7 +20,7 @@ https://github.com/alttch/pptop
 __author__ = "Altertech, https://www.altertech.com/"
 __copyright__ = "Copyright (C) 2019 Altertech"
 __license__ = "MIT"
-__version__ = "0.2.1"
+__version__ = "0.2.2"
 
 __doc__ = __doc__.format(version=__version__, license=__license__)
 
@@ -177,8 +177,8 @@ def cli_mode():
         colored(
             format_cmdline(_d.process, _d.need_inject_server), color='yellow'))
     print(colored('Enter any Python command, type Ctrl-D or exit to quit'))
-    print(colored('To toggle between JSON and normal mode, type "j"'))
-    print(colored('To execute multiple commands from file, type ".<filename>"'))
+    print(colored('To toggle between JSON and normal mode, type ".j"'))
+    print(colored('To execute multiple commands from file, type "< filename"'))
     print()
     readline.set_history_length(100)
     try:
@@ -193,12 +193,12 @@ def cli_mode():
                 if cmd == '': continue
                 elif cmd == 'exit':
                     raise EOFError
-                elif cmd == 'j':
+                elif cmd == '.j':
                     _d.console_json_mode = not _d.console_json_mode
                     print('JSON mode ' +
                           ('on' if _d.console_json_mode else 'off'))
                 else:
-                    if cmd.startswith('.'):
+                    if cmd.startswith('<'):
                         with open(os.path.expanduser(cmd[1:].strip())) as fh:
                             cmds = [x.strip() for x in fh.readlines()]
                     else:
