@@ -20,7 +20,7 @@ https://github.com/alttch/pptop
 __author__ = "Altertech, https://www.altertech.com/"
 __copyright__ = "Copyright (C) 2019 Altertech"
 __license__ = "MIT"
-__version__ = "0.1.6"
+__version__ = "0.2.0"
 
 __doc__ = __doc__.format(version=__version__, license=__license__)
 
@@ -55,16 +55,14 @@ except:
 
 from types import SimpleNamespace
 
-from pptop import GenericPlugin
-from pptop import CriticalException
-from pptop import palette
-from pptop import glyph
-from pptop import prompt
-from pptop import print_message
+from pptop.plugin import GenericPlugin, palette, glyph
+from pptop.plugin import prompt, print_message
 # DEBUG
-from pptop import print_debug
+from pptop.plugin import print_debug
 
 from pptop.logger import config as log_config, log, log_traceback
+
+from pptop.exceptions import CriticalException, ResizeException
 
 logging.getLogger('asyncio').setLevel(logging.CRITICAL)
 logging.getLogger('atasker/supervisor').setLevel(100)
@@ -82,11 +80,6 @@ plugin_shortcuts = {}
 
 resize_lock = threading.Lock()
 resize_event = threading.Event()
-
-
-class ResizeException(Exception):
-    pass
-
 
 socket_timeout = 15
 

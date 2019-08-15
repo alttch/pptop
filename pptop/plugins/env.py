@@ -1,4 +1,4 @@
-from pptop import GenericPlugin
+from pptop.plugin import GenericPlugin
 
 
 class Plugin(GenericPlugin):

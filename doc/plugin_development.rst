@@ -51,7 +51,7 @@ Class definition
 
     __version__ = '0.0.1'
 
-    from pptop import GenericPlugin, palette
+    from pptop.plugin import GenericPlugin, palette
 
         class Plugin(GenericPlugin):
         '''
@@ -212,7 +212,7 @@ handle entered value with method *self.handle_input(var, value, prev_value)*
 All class methods
 -----------------
 
-.. automodule:: pptop
+.. automodule:: pptop.plugin
     :members:
 .. autoclass:: GenericPlugin
     :members:

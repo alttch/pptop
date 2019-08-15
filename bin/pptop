@@ -4,7 +4,7 @@
 import curses
 import os
 
-from pptop import start
+from pptop.core import start
 
 exit_code = 1
 try:

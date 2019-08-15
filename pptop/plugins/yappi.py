@@ -1,4 +1,4 @@
-from pptop import GenericPlugin, format_mod_name, palette
+from pptop.plugin import GenericPlugin, format_mod_name, palette
 
 import os
 

@@ -42,10 +42,7 @@ server receives "bye" command, it immediately terminate itself and loaded
 plugins.
 '''
 
-__author__ = "Altertech Group, https://www.altertech.com/"
-__copyright__ = "Copyright (C) 2019 Altertech Group"
-__license__ = "MIT"
-__version__ = "0.1.6"
+__injection_version__ = "0.2.0"
 
 import threading
 import struct
@@ -315,7 +312,6 @@ def launch(cpid, wait=True):
 
 def main():
     import argparse
-    import shlex
     ap = argparse.ArgumentParser()
     ap.add_argument('file', metavar='FILE', help='File to launch')
     ap.add_argument('cpid', metavar='PID', type=int, help='Client PID')
@@ -336,6 +332,7 @@ def main():
         src = fh.read()
     sys.argv = [a.file]
     if a.args:
+        import shlex
         sys.argv += shlex.split(a.args)
     log('pptop injection runner started')
     launch(a.cpid, wait=True if a.wait is None else a.wait)

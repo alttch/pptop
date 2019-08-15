@@ -1,4 +1,4 @@
-from pptop import GenericPlugin, palette
+from pptop.plugin import GenericPlugin, palette
 
 
 class Plugin(GenericPlugin):

@@ -1,6 +1,6 @@
-__version__ = "0.1.6"
+__version__ = '0.0.1'
 
-from pptop import GenericPlugin, palette
+from pptop.plugin import GenericPlugin, palette
 
 
 class Plugin(GenericPlugin):
