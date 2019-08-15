@@ -41,7 +41,38 @@ table-based console UI, which can be easily extended with custom plugins.
 All data tables can be scrolled, filtered, new data collection can be paused.
 In case of problems, any plugin can be re-injected at any time.
 
-## Configuring
+## Usage
+
+To start ppTOP, type
+
+```shell
+    pptop
+```
+
+and then select Python process you want to inject to from the list. A process
+should have an access to *pptop.injection* package, so either use the same
+Python as ppTOP does, or **pptop** package must be installed manually into
+corresponding virtual environment.
+
+Alternatively, you can start it with
+
+```shell
+    pptop <PID>
+    # or
+    pptop <PID-FILE>
+```
+
+and specify the process from the command line.
+
+If you want to analyze program startup, just type
+
+```shell
+    pptop /path/to/program.py
+```
+
+The program will be loaded in waiting state, press *Ctrl+L* when you are ready.
+
+## Configuration
 
 Plugins and keyboard shortcuts are configured by default in
 *~/.pptop/pptop.yml* file (created automatically at first launch).
