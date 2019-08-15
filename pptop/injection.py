@@ -188,6 +188,8 @@ def loop(cpid, runner_mode=False):
                                 else:
                                     raise ValueError
                             except:
+                                # TODO - stringify only unpicklable values
+                                # but avoid copy.deepcopy
                                 data = pickle.dumps((0, str(result)))
                             send_frame(connection, frame_id, b'\x00' + data)
                         except:
