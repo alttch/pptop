@@ -72,6 +72,9 @@ If you want to analyze program startup, just type
 
 The program will be loaded in waiting state, press *Ctrl+L* when you are ready.
 
+To get a help for the current plugin, press *F1* to display module
+documentation.
+
 ## Configuration
 
 Plugins and keyboard shortcuts are configured by default in
