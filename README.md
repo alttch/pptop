@@ -1,4 +1,4 @@
 pptop
 *****
 
-[![asciicast](https://asciinema.org/a/261566.svg)](https://asciinema.org/a/261566)
+[![asciicast](https://asciinema.org/a/262581.svg)](https://asciinema.org/a/262581)
