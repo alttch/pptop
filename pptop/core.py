@@ -149,7 +149,9 @@ def dict_merge(dct, merge_dct, add_keys=True):
 def colored(text, color=None, on_color=None, attrs=None):
     if not config['display'].get('colors'):
         return str(text)
-    return termcolor.colored(text, color=color, on_color=on_color, attrs=attrs)
+    else:
+        return termcolor.colored(
+            text, color=color, on_color=on_color, attrs=attrs)
 
 
 def format_cmdline(p, injected):
@@ -914,17 +916,6 @@ def start():
     if a.gdb:
         _d.gdb = a.gdb
 
-    try:
-        with open('/proc/sys/kernel/yama/ptrace_scope') as fd:
-            yps = int(fd.read().strip())
-    except:
-        yps = None
-
-    if yps:
-        raise Exception(
-            'yama ptrace scope is on. ' +
-            'disable with "sudo sysctl -w kernel.yama.ptrace_scope=0"')
-
     log('initializing')
 
     plugin_options = {}
@@ -1093,6 +1084,17 @@ def start():
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE)
             _d.work_pid = _d.child.pid
+        else:
+            # check yama ptrace scope
+            try:
+                with open('/proc/sys/kernel/yama/ptrace_scope') as fd:
+                    yps = int(fd.read().strip())
+            except:
+                yps = None
+            if yps:
+                raise Exception(
+                    'yama ptrace scope is on. ' +
+                    'disable with "sudo sysctl -w kernel.yama.ptrace_scope=0"')
         curses.wrapper(run)
         for p, v in plugins.items():
             v['p'].on_unload()
