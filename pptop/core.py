@@ -173,37 +173,57 @@ def cli_mode():
             attrs=['bold']))
     print(colored('Enter any Python command, type Ctrl-D or exit to quit'))
     print(colored('To toggle between JSON and normal mode, type "j"'))
+    print(colored('To execute multiple commands from file, type ".<filename>"'))
     print()
-    while True:
-        try:
-            cmd = input('>>> ').strip()
-            if cmd == '': continue
-            elif cmd == 'exit':
-                raise EOFError
-            elif cmd == 'j':
-                _d.console_json_mode = not _d.console_json_mode
-                print('JSON mode ' + ('on' if _d.console_json_mode else 'off'))
-            else:
-                r = command('exec', cmd)
-                if r[0] == -1:
-                    print(
-                        colored(
-                            '{}: {}'.format(r[1], r[2]),
-                            color='red',
-                            attrs=['bold']))
+    readline.set_history_length(100)
+    try:
+        readline.read_history_file('{}/console.history'.format(_d.pptop_dir))
+    except:
+        pass
+    try:
+        while True:
+            try:
+                cmd = input('>>> ').strip()
+                if cmd == '': continue
+                elif cmd == 'exit':
+                    raise EOFError
+                elif cmd == 'j':
+                    _d.console_json_mode = not _d.console_json_mode
+                    print('JSON mode ' +
+                          ('on' if _d.console_json_mode else 'off'))
                 else:
-                    if r[1] is not None:
-                        if _d.console_json_mode and \
-                                (isinstance(r[1], dict) or \
-                                isinstance(r[1], list)):
-                            print_json(r[1])
+                    if cmd.startswith('.'):
+                        with open(os.path.expanduser(cmd[1:].strip())) as fh:
+                            cmds = [x.strip() for x in fh.readlines()]
+                    else:
+                        cmds = [cmd]
+                    for cmd in cmds:
+                        r = command('.exec', cmd)
+                        if r[0] == -1:
+                            print(
+                                colored(
+                                    '{}: {}'.format(r[1], r[2]),
+                                    color='red',
+                                    attrs=['bold']))
                         else:
-                            print(r[1])
-        except EOFError:
-            return
-        except Exception as e:
+                            if r[1] is not None:
+                                if _d.console_json_mode and \
+                                        (isinstance(r[1], dict) or \
+                                        isinstance(r[1], list)):
+                                    print_json(r[1])
+                                else:
+                                    print(r[1])
+            except EOFError:
+                return
+            except Exception as e:
+                log_traceback()
+                print(colored(str(e), color='red', attrs=['bold']))
+    finally:
+        try:
+            readline.write_history_file('{}/console.history'.format(
+                _d.pptop_dir))
+        except:
             log_traceback()
-            print(colored(str(e), color='red', attrs=['bold']))
 
 
 class ProcesSelector(GenericPlugin):
