@@ -42,7 +42,7 @@ server receives "bye" command, it immediately terminate itself and loaded
 plugins.
 '''
 
-__injection_version__ = "0.2.2"
+__injection_version__ = "0.2.3"
 
 import threading
 import struct
@@ -164,8 +164,11 @@ def loop(cpid, runner_mode=False):
                                     'import', 'def', 'for', 'while', 'raise',
                                     'if'
                             ]:
-                                exec_globals['__result'] = None
-                                src = params
+                                src = ('def print(*args):\n' +
+                                       ' __resultl.append(\' \'.join(str(a) ' +
+                                       'for a in args))\n__resultl=[]\n{}' +
+                                       '\n__result = \'\\n\'.join(__resultl) ' +
+                                       'if __resultl else None').format(params)
                             else:
                                 src = (
                                     'def print(*args): ' +
