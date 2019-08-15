@@ -176,7 +176,9 @@ def cli_mode():
     print(
         colored(
             format_cmdline(_d.process, _d.need_inject_server), color='yellow'))
-    print(colored('Enter any Python command, type Ctrl-D or exit to quit'))
+    print(
+        colored(
+            'Enter any Python command, press Ctrl-D or type "exit" to quit'))
     print(colored('To toggle between JSON and normal mode, type ".j"'))
     print(colored('To execute multiple commands from file, type "< filename"'))
     print()
