@@ -68,7 +68,7 @@ executing functions and loops etc.
 
 [![asciicast](https://asciinema.org/a/262587.svg)](https://asciinema.org/a/262587)
 
-Each console has own *globals*, which are preserved until ppTOP is quit and
+Console has own remote *globals*, which are preserved until ppTOP is quit and
 injected server is terminated.
 
 ## Plugin docs
