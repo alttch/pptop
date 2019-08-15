@@ -49,10 +49,7 @@ To start ppTOP, type
     pptop
 ```
 
-and then select Python process you want to inject to from the list. A process
-should have an access to *pptop.injection* module, so either use the same
-Python as ppTOP does, or **pptop** package must be installed manually into
-corresponding virtual environment.
+and then select Python process you want to inject to from the list.
 
 Alternatively, you can start it with
 
