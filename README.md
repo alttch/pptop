@@ -17,7 +17,7 @@ scanner for Python.
   pip3 install pptop
 ```
 
-* Python: 3.5+ is required, as ppTOP uses asyncore
+* Python: 3.5+ is required, as ppTOP uses asyncio
 * Injection into running processes requires *gdb* (present in almost
   all Linux distributions)
 * Only Linux systems are currently supported
