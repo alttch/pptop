@@ -37,8 +37,8 @@ args to launch it automatically after the specified delay.
 Data from connected process is collected in real-time and displayed in
 table-based console UI, which can be easily extended with custom plugins.
 
-All data tables can be scrolled, filtered, new data collection ca be paused. In
-case of problems, any plugin can be re-injected at any time.
+All data tables can be scrolled, filtered, new data collection can be paused.
+In case of problems, any plugin can be re-injected at any time.
 
 ## Configuring
 
