@@ -162,7 +162,7 @@ def loop(cpid, runner_mode=False):
                             p1 = params.split(' ', 1)[0]
                             if p1 in [
                                     'import', 'def', 'for', 'while', 'raise',
-                                    'if'
+                                    'if', 'with'
                             ]:
                                 src = ('def print(*args):\n' +
                                        ' __resultl.append(\' \'.join(str(a) ' +
