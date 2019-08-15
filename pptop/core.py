@@ -172,7 +172,6 @@ def cli_mode():
     print(colored('Enter any Python command, type Ctrl-D or exit to quit'))
     print(colored('To toggle between JSON and normal mode, type "j"'))
     print()
-    json_mode = True
     while True:
         try:
             cmd = input('>>> ').strip()
@@ -180,8 +179,8 @@ def cli_mode():
             elif cmd == 'exit':
                 raise EOFError
             elif cmd == 'j':
-                json_mode = not json_mode
-                print('JSON mode ' + ('on' if json_mode else 'off'))
+                _d.console_json_mode = not _d.console_json_mode
+                print('JSON mode ' + ('on' if _d.console_json_mode else 'off'))
             else:
                 r = command('exec', cmd)
                 if r[0] == -1:
@@ -192,8 +191,9 @@ def cli_mode():
                             attrs=['bold']))
                 else:
                     if r[1] is not None:
-                        if json_mode and \
-                                (isinstance(r[1], dict) or isinstance(r[1], list)):
+                        if _d.console_json_mode and \
+                                (isinstance(r[1], dict) or \
+                                isinstance(r[1], list)):
                             print_json(r[1])
                         else:
                             print(r[1])
@@ -524,7 +524,8 @@ _d = SimpleNamespace(
     child=None,
     child_cmd=None,
     child_args='',
-    status=None)
+    status=None,
+    console_json_mode=True)
 
 _cursors = SimpleNamespace(
     files_cursor=0,
