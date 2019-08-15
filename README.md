@@ -106,13 +106,9 @@ executing functions and loops etc.
 Console has own remote *globals*, which are preserved until ppTOP quit and
 injected server is terminated.
 
-## Plugin docs
+## Configuration, plugin development
 
-Plugins for ppTOP are very easily to write, it takes only about 100-150 lines
-of code, as Core API provides all basic functionality: loading data, processing
-data, sorting data etc.
-
-Plugin development guide is coming very soon.
+https://pptop.readthedocs.io/en/latest/
 
 ## TODO
 
