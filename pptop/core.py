@@ -9,7 +9,7 @@ Global shortcuts:
     Ctrl-i      : Re-inject current plugin
     Ctrl-l      : Send ready event
     ~, `        : Python console mode (limited)
-    q, F10      : Quit program
+    Ctrl-c, F10 : Quit program
 
 ppTOP v{version} (c) Altertech
 The product is available under {license} license.
@@ -437,12 +437,12 @@ async def show_process_info(stdscr, p, **kwargs):
                 stdscr.addstr('\nFiles: ')
                 stdscr.addstr(str(len(p.open_files())), palette.BLUE_BOLD)
                 ioc = p.io_counters()
-                stdscr.addstr(' {} {}'.format(glyph.upload, ioc.read_count),
+                stdscr.addstr(' {} {}'.format(glyph.UPLOAD, ioc.read_count),
                               palette.GREEN)
                 stdscr.addstr(' (')
                 stdscr.addstr(bytes_to_iso(ioc.read_chars), palette.GREEN)
                 stdscr.addstr(')')
-                stdscr.addstr(' {} {}'.format(glyph.download, ioc.write_count),
+                stdscr.addstr(' {} {}'.format(glyph.DOWNLOAD, ioc.write_count),
                               palette.BLUE)
                 stdscr.addstr(' (')
                 stdscr.addstr(bytes_to_iso(ioc.write_chars), palette.BLUE)
@@ -483,7 +483,8 @@ async def show_bottom_bar(stdscr, **kwargs):
             for h in sorted(bottom_bar_help):
                 stdscr.addstr('F{}'.format(h))
                 stdscr.addstr(bottom_bar_help[h].ljust(6), color)
-            stats = '⇄ {}/{} '.format(_d.client_frame_id, _d.last_frame_id)
+            stats = '{} {}/{} '.format(glyph.CONNECTION, _d.client_frame_id,
+                                       _d.last_frame_id)
             with ifoctets_lock:
                 bw = _d.ifbw
             if bw < 1000:
@@ -622,11 +623,12 @@ def init_color_palette():
 
 
 def init_glyphs():
-    glyph.upload = '⇈'
-    glyph.download = '⇊'
-    glyph.arrow_up = '↑'
-    glyph.arrow_down = '↓'
-    glyph.selector = '→'
+    glyph.UPLOAD = '⇈'
+    glyph.DOWNLOAD = '⇊'
+    glyph.ARROW_UP = '↑'
+    glyph.ARROW_DOWN = '↓'
+    glyph.SELECTOR = '→'
+    glyph.CONNECTION = '⇄'
 
 
 def switch_plugin(stdscr, new_plugin):
@@ -797,6 +799,7 @@ def run(stdscr):
                     cli_mode()
                     stdscr = curses.initscr()
                     _d.current_plugin['p'].stdscr = stdscr
+                    _d.current_plugin['p'].init_render_window()
             elif k in ('f', '/'):
                 apply_filter(stdscr, _d.current_plugin['p'])
             elif k == 'p':
@@ -1036,7 +1039,7 @@ def start():
             if sh.startswith('KEY_F('):
                 try:
                     f = int(sh[6:-1])
-                    if f <= 12:
+                    if f <= 10:
                         bottom_bar_help[f] = p.short_name
                 except:
                     pass

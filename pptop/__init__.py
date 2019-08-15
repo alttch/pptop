@@ -54,12 +54,12 @@ palette = SimpleNamespace(
     PROMPT=curses.A_BOLD)
 
 glyph = SimpleNamespace(
-    upload='<',
-    download='>',
-    arrow_up='|',
-    arrow_down='|',
-    selector='>',
-)
+    UPLOAD='<',
+    DOWNLOAD='>',
+    ARROW_UP='|',
+    ARROW_DOWN='|',
+    SELECTOR='>',
+    CONNECTION='=')
 
 
 class CriticalException(Exception):
@@ -70,39 +70,39 @@ class GenericPlugin(BackgroundIntervalWorker):
 
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
-        self.cursor = 0
-        self.shift = 0
-        self.hshift = 0
-        mod = sys.modules[self.__module__]
-        self.name = mod.__name__.rsplit('.', 1)[-1]
-        if self.name.startswith('pptopcontrib-'):
-            self.name = self.name[13:]
-        self.title = self.name.capitalize().replace('_', ' ')
-        self.short_name = self.name[:6].capitalize()
-        self.stdscr = None  # curses stdscr object
-        self.data = []
-        self.config = {}
-        self.filter = ''
-        self.description = ''
-        self.sorting_col = None
-        self.sorting_rev = True
-        self.sorting_enabled = True
-        self.cursor_enabled = True
-        self.selectable = False
-        self.window = None
-        self.background = False
-        self.background_loader = False
         self._visible = False
-        self.append_data = False
-        self.data_records_max = None
         self._paused = False
         self._error = False
-        self.msg = ''
         self._loader_active = False
-        self.data_lock = threading.Lock()
-        # key - hot key, value - input value
-        self.inputs = {}
-        self.input_prompts = {}
+        mod = sys.modules[self.__module__]
+        self.name = mod.__name__.rsplit('.', 1)[-1]  # plugin name(id)
+        if self.name.startswith('pptopcontrib-'):
+            self.name = self.name[13:]
+        self.title = self.name.capitalize().replace('_', ' ')  # title
+        self.short_name = self.name[:6].capitalize()  # short name (bottom bar)
+        self.description = ''  # plugin description
+        self.stdscr = None  # curses stdscr object
+        self.window = None  # working window
+        self.status_line = None  # status line, if requested
+        self.shift = 0  # current vertical shifting
+        self.hshift = 0  # current horizontal shifting
+        self.cursor = 0  # current selected element in dtd
+        self.config = {}  # plugin configuration
+        self.data = []  # contains loaded data
+        self.data_lock = threading.Lock()  # should be locked when accesing data
+        self.filter = ''  # current filter
+        self.sorting_col = None  # current sorting column
+        self.sorting_rev = True  # current sorting direction
+        self.sorting_enabled = True  # is sorting enabled
+        self.cursor_enabled = True  # is cursor enabled
+        self.selectable = False  # show item selector arrow
+        self.background = False  # shouldn't be stopped when switched
+        self.background_loader = False  # for heavy plugins - load data in bg
+        self.need_status_line = False  # reserve status line
+        self.append_data = False  # default load_data method will append data
+        self.data_records_max = None  # max data records
+        self.msg = ''  # title message (reserved)
+        self.inputs = {}  # key - hot key, value - input value
 
     def on_load(self):
         '''
@@ -167,6 +167,12 @@ class GenericPlugin(BackgroundIntervalWorker):
                 self.sorting_rev = False
             elif self.key_event == 'kUP3':
                 self.sorting_rev = True
+
+    def is_visible(self):
+        return self._visible
+
+    def is_paused(self):
+        return self._paused
 
     def handle_pager_event(self, dtd):
         '''
@@ -414,8 +420,11 @@ class GenericPlugin(BackgroundIntervalWorker):
         Init plugin working window
         '''
         height, width = self.stdscr.getmaxyx()
-        self.window = curses.newwin(height - top_lines - 3, width,
-                                    top_lines + 2, 0)
+        self.window = curses.newwin(
+            height - top_lines - 3 - (1 if self.need_status_line else 0), width,
+            top_lines + 2, 0)
+        if self.need_status_line:
+            self.status_line = curses.newwin(1, width, height - 2, 0)
 
     def start(self, *args, **kwargs):
         super().start(*args, **kwargs)
@@ -557,6 +566,8 @@ class GenericPlugin(BackgroundIntervalWorker):
             self.print_empty_sep()
             self.window.clrtobot()
         self.window.refresh()
+        if self.need_status_line:
+            self.status_line.refresh()
         self.stdscr.refresh()
         return True
 
@@ -572,6 +583,13 @@ class GenericPlugin(BackgroundIntervalWorker):
             sorting_col=self.sorting_col,
             sorting_rev=self.sorting_rev,
             print_selector=self.selectable)
+        if self.need_status_line:
+            self.status_line.move(0, 0)
+            self.render_status_line()
+            self.status_line.clrtoeol()
+
+    def render_status_line(self):
+        return
 
     def tabulate(self,
                  table,
@@ -596,9 +614,9 @@ class GenericPlugin(BackgroundIntervalWorker):
                 header = ' ' + header
             if sorting_col:
                 if sorting_rev:
-                    s = glyph.arrow_up
+                    s = glyph.ARROW_UP
                 else:
-                    s = glyph.arrow_down
+                    s = glyph.ARROW_DOWN
                 if header.startswith(sorting_col + ' '):
                     header = header.replace(sorting_col + ' ', s + sorting_col,
                                             1)
@@ -609,7 +627,7 @@ class GenericPlugin(BackgroundIntervalWorker):
                 palette.HEADER)
             for i, (t, r) in enumerate(zip(d[2:], table)):
                 if print_selector:
-                    t = (glyph.selector if cursor == i else ' ') + t
+                    t = (glyph.SELECTOR if cursor == i else ' ') + t
                 self.window.addstr(
                     1 + i, 0,
                     format_row(

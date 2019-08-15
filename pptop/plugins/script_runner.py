@@ -24,12 +24,14 @@ class Plugin(GenericPlugin):
         self.scripts_dir = self.get_config_dir() + '/scripts'
 
     def load_data(self):
-        self.data.clear()
-        try:
-            for g in glob.glob(self.scripts_dir + '/**/*.py', recursive=True):
-                self.data.append({'script': g[len(self.scripts_dir) + 1:]})
-        except:
-            pass
+        with self.data_lock:
+            self.data.clear()
+            try:
+                for g in glob.glob(
+                        self.scripts_dir + '/**/*.py', recursive=True):
+                    self.data.append({'script': g[len(self.scripts_dir) + 1:]})
+            except:
+                pass
 
     def handle_key_event(self, event, dtd):
         if event == 'ENTER':

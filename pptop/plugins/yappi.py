@@ -22,9 +22,9 @@ class Plugin(GenericPlugin):
 
     def handle_key_event(self, event, dtd, **kwargs):
         if event == 'CTRL_X':
-                self.injection_command(cmd='reset')
-                self.print_message(
-                    'Profiler stats were reset', color=palette.WARNING)
+            self.injection_command(cmd='reset')
+            self.print_message(
+                'Profiler stats were reset', color=palette.WARNING)
 
     def process_data(self, data):
         sess = []
