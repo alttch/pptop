@@ -31,6 +31,9 @@ or you can load Python program manually and profile its launch
 
 [![asciicast](https://asciinema.org/a/262585.svg)](https://asciinema.org/a/262585)
 
+To launch a program, press *Ctrl+L* or specify *-w sec* param in command line
+args to launch it automatically after the specified delay.
+
 Data from connected process is collected in real-time and displayed in
 table-based console UI, which can be easily extended with custom plugins.
 
