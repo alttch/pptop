@@ -83,4 +83,3 @@ Plugin development guide is coming very soon.
 Enjoy! :)
 
 p.s. Code in **master** can be completely broken, install with *pip* only.
-
