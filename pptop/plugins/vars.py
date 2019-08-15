@@ -45,7 +45,7 @@ class Plugin(GenericPlugin):
         }
 
     def get_injection_load_params(self):
-        return { 'v': self.config_vars }
+        return {'v': self.config_vars}
 
     def add_variable(self, var):
         try:
@@ -137,16 +137,24 @@ def injection_load(v=None, **kwargs):
     g.vars = []
     if v:
         for var in v:
-            var = var.replace('::', ':').strip()
-            mod, var = var.split(':')
+            try:
+                if var[var.find(':') + 1] == ':':
+                    var = var.replace('::', ':', 1).strip()
+            except:
+                pass
+            mod, var = var.split(':', 1)
             g.vars.append((mod, var))
 
 
 def injection(cmd=None, var=None):
 
     def parse_var(var):
-        var = var.replace('::', ':').strip()
-        mod, var = var.split(':')
+        try:
+            if var[var.find(':') + 1] == ':':
+                var = var.replace('::', ':', 1).strip()
+        except:
+            pass
+        mod, var = var.split(':', 1)
         return mod, var
 
     if cmd == 'add':
