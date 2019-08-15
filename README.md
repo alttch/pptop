@@ -1,10 +1,17 @@
 ppTOP
-*****
+#
 
 ppTOP is open, extensible Python injector/profiler/analyzer.
 
+The main idea is to inject a custom code inside Python process (already running
+or going to be launched) and analyze its behavior with no any code
+modifications.
+
+Say no to "prints" and garbage in debug logs - now you have ppTOP. A modern MRI
+scanner for Python.
+
 Installation
-============
+##
 
 ```
   pip3 install pptop
@@ -15,7 +22,7 @@ Installation
 * Only Linux systems are currently supported
 
 Features
-========
+##
 
 ppTOP can be injected into any running Python process
 
@@ -29,7 +36,7 @@ Data from connected process is collected in real-time and displayed in
 table-based console UI, which can be easily extended with custom plugins.
 
 Standard plugins
-================
+##
 
 * **env** view process OS environment variables
 * **log** inject into all Python loggers and collect log messages
@@ -44,7 +51,7 @@ process, other display it in ppTOP UI. For the profiling process all plug-ins
 are invisible, safe and unloadable (at least they try their best :)
 
 Console mode
-============
+##
 
 With "`" button, remote Python console can be opened. It has no full
 functionality like a standard Python console, but it supports all frequently
@@ -54,7 +61,7 @@ executing functions and loops.
 [![asciicast](https://asciinema.org/a/262587.svg)](https://asciinema.org/a/262587)
 
 Plugin docs
-===========
+##
 
 Plugins for ppTOP are very easily to write, it takes only about 100-150 lines
 of code, as Core API provides all basic functionality: loading data, processing
@@ -63,7 +70,7 @@ data, sorting data etc.
 Plugin development guide is coming very soon.
 
 TODO
-====
+##
 
 [ ] More plugins
 [ ] Advanced filtering
