@@ -43,7 +43,7 @@ case of problems, any plugin can be re-injected at any time.
 ## Configuring
 
 Plugins and keyboard shortcuts are configured by default in
-*~/.pptop/pptop.yml* file (created automatically at first launch)
+*~/.pptop/pptop.yml* file (created automatically at first launch).
 
 ## Standard plugins
 
