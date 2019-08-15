@@ -152,6 +152,13 @@ def colored(text, color=None, on_color=None, attrs=None):
     return termcolor.colored(text, color=color, on_color=on_color, attrs=attrs)
 
 
+def format_cmdline(p, injected):
+    cmdline = ' '.join(p.cmdline())
+    if not injected:
+        cmdline = cmdline.split(' -m pptop.injection ')[-1].split(' ', 1)[0]
+    return cmdline
+
+
 def cli_mode():
 
     def format_json(obj):
@@ -171,6 +178,9 @@ def cli_mode():
             'Console mode, process {} connected'.format(_d.process.pid),
             color='green',
             attrs=['bold']))
+    print(
+        colored(
+            format_cmdline(_d.process, _d.need_inject_server), color='yellow'))
     print(colored('Enter any Python command, type Ctrl-D or exit to quit'))
     print(colored('To toggle between JSON and normal mode, type "j"'))
     print(colored('To execute multiple commands from file, type ".<filename>"'))
@@ -390,10 +400,7 @@ async def show_process_info(stdscr, p, **kwargs):
                 ct = p.cpu_times()
                 stdscr.move(0, 0)
                 stdscr.addstr('Process: ')
-                cmdline = ' '.join(p.cmdline())
-                if not _d.need_inject_server:
-                    cmdline = cmdline.split(' -m pptop.injection ')[-1].split(
-                        ' ', 1)[0]
+                cmdline = format_cmdline(p, _d.need_inject_server)
                 stdscr.addstr(cmdline[:width - 25], palette.YELLOW)
                 stdscr.addstr(' [')
                 stdscr.addstr(
@@ -798,6 +805,7 @@ def run(stdscr):
                     curses.endwin()
                     cli_mode()
                     stdscr = curses.initscr()
+                    # TODO: correct display if resized in console
                     _d.current_plugin['p'].stdscr = stdscr
                     _d.current_plugin['p'].init_render_window()
             elif k in ('f', '/'):
