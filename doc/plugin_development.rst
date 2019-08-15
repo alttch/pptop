@@ -23,8 +23,8 @@ so, let's put all code of our example to
 Plugin debugging
 ================
 
-Consider there's Python program we want to test our plugin on is already
-started and its PID file is stored into */var/run/myprog.pid*
+Consider that Python program we want to test our plugin on is already started
+and its PID file is stored into */var/run/myprog.pid*
 
 Launch ppTOP as:
 
