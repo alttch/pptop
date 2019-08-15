@@ -938,6 +938,11 @@ def start():
     with open(config_file) as fh:
         config.update(yaml.load(fh.read()))
 
+    console = config.get('console')
+    if console is None: console = {}
+
+    _d.console_json_mode = console.get('json-mode')
+
     if config.get('display') is None:
         config['display'] = {}
 

@@ -1,3 +1,5 @@
+console:
+  json-mode: true
 display:
   colors: true
   glyphs: true
