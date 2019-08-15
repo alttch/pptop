@@ -199,10 +199,10 @@ Just define variable, e.g. "a" in *self.inputs*:
 
     def on_load(self):
         # ....
-        self.inputs['e'] = None
+        self.inputs['a'] = None
 
-And when user press "e" key, ppTOP automatically asks him to enter value for
-"e" variable.
+And when user press "a" key, ppTOP automatically asks him to enter value for
+"a" variable.
 
 You may customize initial variable value, overriding method
 *self.get_input(var)* (by default it returns value from *self.input*),
