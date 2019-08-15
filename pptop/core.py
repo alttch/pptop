@@ -20,7 +20,7 @@ https://github.com/alttch/pptop
 __author__ = "Altertech, https://www.altertech.com/"
 __copyright__ = "Copyright (C) 2019 Altertech"
 __license__ = "MIT"
-__version__ = "0.0.19"
+__version__ = "0.0.20"
 
 __doc__ = __doc__.format(version=__version__, license=__license__)
 
@@ -193,6 +193,7 @@ def cli_mode():
     try:
         while True:
             try:
+                # TODO: tab autocomplete
                 cmd = input('>>> ').strip()
                 if cmd == '': continue
                 elif cmd == 'exit':

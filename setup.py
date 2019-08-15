@@ -1,4 +1,4 @@
-__version__ = "0.0.19"
+__version__ = "0.0.20"
 
 import setuptools
 
@@ -10,7 +10,7 @@ setuptools.setup(
     version=__version__,
     author='Altertech Group',
     author_email='div@altertech.com',
-    description='Python profiler/analyzer',
+    description='Open, extensible Python injector/profiler/analyzer',
     long_description=long_description,
     long_description_content_type='text/markdown',
     url='https://github.com/alttch/pptop',
