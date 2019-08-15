@@ -35,6 +35,12 @@ Some plugins, e.g. log viewer, inject themselves to system objects. After the
 launch, program can create new objects (e.g. own logger) and log there. Press
 Ctrl+I to re-inject plugin after the main code is started.
 
+Console UI is broken
+====================
+
+Try disabling unicode glyphs (*"pptop --disable-glyphs"*) or run ppTOP in raw
+mode (no colors, no glyphs, *"pptop -R"*)
+
 Other
 =====
 
