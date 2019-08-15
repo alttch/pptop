@@ -18,7 +18,7 @@ scanner for Python.
 ```
 
 * Python: 3.5+ is required, as ppTOP uses asyncore
-* To connect to running processes, *gdb* must be installed (present in almost
+* Injection into running processes requires *gdb* (present in almost
   all Linux distributions)
 * Only Linux systems are currently supported
 
