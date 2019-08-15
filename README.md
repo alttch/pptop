@@ -62,11 +62,14 @@ are invisible, safe and unloadable (at least they try their best :)
 ## Console mode
 
 With "`" button, remote Python console can be opened. It has no full
-functionality like a standard Python console, but it supports all frequently
-used features, like importing modules, defining functions and variables,
-executing functions and loops.
+functionality like a standard Python console, but supports all frequently used
+features, like importing modules, defining functions and variables,
+executing functions and loops etc.
 
 [![asciicast](https://asciinema.org/a/262587.svg)](https://asciinema.org/a/262587)
+
+Each console has own *globals*, which are preserved until ppTOP is quit and
+injected server is terminated.
 
 ## Plugin docs
 
