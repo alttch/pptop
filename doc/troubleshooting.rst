@@ -27,3 +27,9 @@ First 2 numbers are frames send/received. It sound be equal and run quickly.
 The next number is the current bandwidth between ppTOP and injected process. If
 it exceeds 2-3 MB per second, you should pause/stop plugin or reset it (press
 *F1* to read plugin help for more info).
+
+Other
+=====
+
+Note that data collection by background plugins is stopped, when user enters
+console mode.
