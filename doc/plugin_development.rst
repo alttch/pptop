@@ -311,7 +311,7 @@ Function kwargs are empty and reserved for the future.
 Talking to each other
 ---------------------
 
-Functions launch with the same globals, so you can either define global
+Functions are launched with the same globals, so you can either define global
 variables (which is not recommended) or exchange data via *g* namespace:
 
 .. code:: python
