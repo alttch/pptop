@@ -8,7 +8,7 @@ Global shortcuts:
     p           : Pause/resume current plugin
     Ctrl-i      : Re-inject current plugin
     Ctrl-l      : Send ready event
-    ~, `        : Python console mode (limited)
+    `           : Python console mode (limited)
     Ctrl-c, F10 : Quit program
 
 ppTOP v{version} (c) Altertech
@@ -793,7 +793,7 @@ def run(stdscr):
                 show_process_info.stop(wait=False)
                 show_bottom_bar.stop(wait=False)
                 return
-            elif k in ['`', '~']:
+            elif k == '`':
                 with scr_lock:
                     curses.endwin()
                     cli_mode()
