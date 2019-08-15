@@ -256,8 +256,8 @@ class ProcesSelector(GenericPlugin):
         self.stdscr.move(self.stdscr.getmaxyx()[0] - 1, 0)
         self.stdscr.clrtoeol()
 
-    # async def run(self, *args, **kwargs):
-    # super().run(*args, **kwargs)
+    async def run(self, *args, **kwargs):
+        super().run(*args, **kwargs)
 
 
 def select_process(stdscr):
