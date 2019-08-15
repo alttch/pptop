@@ -101,3 +101,11 @@ alternative default list file for *vars* plugin:
     
     pptop -o vars.config.list=/path/to/mylist
 
+Let's combine all together: start ppTOP as variable watcher for the program
+which is running and store its PID into /var/run/myprog.pid process. Consider,
+list of required variables is stored into /opt/devel/myvars.list:
+
+.. code:: shell
+
+    pptop -d vars -o vars.config.list=/opt/devel/myvars.list /var/run/myprog.pid
+

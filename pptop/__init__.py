@@ -90,6 +90,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.config = {}  # plugin configuration
         self.data = []  # contains loaded data
         self.data_lock = threading.Lock()  # should be locked when accesing data
+        self.dtd = []  # data to be displayed (after sorting and filtering)
         self.filter = ''  # current filter
         self.sorting_col = None  # current sorting column
         self.sorting_rev = True  # current sorting direction
@@ -264,7 +265,8 @@ class GenericPlugin(BackgroundIntervalWorker):
         title = self.title
         if self._error:
             color = palette.ERROR
-            title += ' [ERROR{}]'.format((': ' + self.msg) if self.msg else '')
+            title += ' [ERROR{}]'.format((
+                ': ' + str(self.msg)) if self.msg else '')
         elif self._paused:
             color = palette.GREY
             title += ' [PAUSED]'
@@ -372,7 +374,7 @@ class GenericPlugin(BackgroundIntervalWorker):
             self.data = []
             with self.scr_lock:
                 self._error = True
-                self.msg = 'frame error: {}'.format(e)
+                self.msg = e
                 if self._visible:
                     self.print_title()
 

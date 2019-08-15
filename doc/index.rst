@@ -17,3 +17,5 @@ Source and basic guide: https://github.com/alttch/pptop
     :maxdepth: 1
 
     configuration
+    plugin_development
+    troubleshooting
