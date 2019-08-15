@@ -45,7 +45,7 @@ case of problems, any plugin can be re-injected at any time.
 * **script_runner** launch a custom scripts inside process
 * **threads** view process threads
 * **vars** variable/function watcher
-* **yappi** [yappi](https://github.com/sumerc/yappi) profiler/plugin
+* **yappi** [yappi](https://github.com/sumerc/yappi) profiler plugin
 
 Most of plugins contain 2 parts of code: one collects data inside profiling
 process, other display it in ppTOP UI. For the profiling process all plug-ins
