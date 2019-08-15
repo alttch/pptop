@@ -274,8 +274,8 @@ There are several important rules about this part:
   dict (use built-in object *__dict__* function or do it by yourself)
 
 * *injetion* should not perform too much module calls as it could affect
-  function profiling statistic. The best way is to realize most of functions
-  locally rather than import them.
+  function profiling statistic. The best way is to implement most of the
+  functions locally, rather than import them.
 
 * on the other hand, *injection* should not perform any heavy calculations or
   data transformation, as ppTOP communication protocol is synchronous and only
@@ -299,7 +299,8 @@ Function kwargs are provided by local code part, method
 by default.
 
 If this function start any long-term running tasks (e.g. launch profiling
-module), they should be stopped when plugin is unloaded. For this you should define function:
+module), they should be stopped when plugin is unloaded. For this you should
+define function:
 
 .. code:: python
 
