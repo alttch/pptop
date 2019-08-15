@@ -10,13 +10,13 @@ Client request:
 
     bytes 1-4 : frame length
     bytes 5-8 : client frame id
-    bytes 4-N : cmd and cmd params, separated with \xff
+    bytes 9-N : cmd and pickled cmd params, separated with \xff
 
 Server response:
 
     bytes 1-4 : frame length
     bytes 5-8 : server frame id
-    bytes 4-N : frame
+    bytes 9-N : frame
 
     First frame byte: command status:
 
