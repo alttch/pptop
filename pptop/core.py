@@ -592,7 +592,7 @@ def inject_server(gdb, pid, libcffi=None):
     cmds = []
     if libcffi:
         log('injecting {}'.format(libcffi))
-        cmds.append('print __libc_dlopen_mode("{}", 2)'.format(libcffi))
+        cmds.append('call (void)__libc_dlopen_mode("{}", 2)'.format(libcffi))
     cmds += [
         'call (PyGILState_STATE)PyGILState_Ensure()',
         ('call (int)PyRun_SimpleString("' +
@@ -600,9 +600,8 @@ def inject_server(gdb, pid, libcffi=None):
          'import pptop.injection;pptop.injection.start({mypid}{lg})")').format(
              path=os.path.abspath(os.path.dirname(__file__) + '/..'),
              mypid=os.getpid(),
-             lg='' if not log_config.fname else
-             ',lg=\\"{}\\"'.format(log_config.fname)),
-        ' call (void)PyGILState_Release(${})'.format(2 if libcffi else 1)
+             lg='' if not log_config.fname else ',lg=\\"{}\\"'.format(
+                 log_config.fname)), ' call (void)PyGILState_Release($1)'
     ]
     args = [gdb, '-p', str(pid), '--batch'
            ] + ['--eval-command={}'.format(c) for c in cmds]
