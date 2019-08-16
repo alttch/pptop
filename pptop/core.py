@@ -92,6 +92,32 @@ def get_plugins():
     return plugins
 
 
+def init_curses(initial=False):
+    stdscr = curses.initscr()
+    if initial:
+        if curses.has_colors():
+            curses.start_color()
+            curses.use_default_colors()
+            for i in range(0, curses.COLORS):
+                curses.init_pair(i + 1, i, -1)
+            if config['display'].get('colors'):
+                init_color_palette()
+            if config['display'].get('glyphs'):
+                init_glyphs()
+    curses.noecho()
+    curses.cbreak()
+    stdscr.keypad(True)
+    return stdscr
+
+
+def end_curses(stdscr):
+    if stdscr:
+        curses.nocbreak()
+        stdscr.keypad(False)
+        curses.echo()
+        curses.endwin()
+
+
 def get_config_dir():
     return _d.pptop_dir
 
@@ -672,7 +698,7 @@ def switch_plugin(stdscr, new_plugin):
     _d.current_plugin = new_plugin
 
 
-def run(stdscr):
+def run():
 
     @atasker.background_task
     def autostart_plugins(stdscr):
@@ -688,171 +714,176 @@ def run(stdscr):
                     p.stdscr = stdscr
                     p.start()
 
-    signal.signal(signal.SIGWINCH, sigwinch_handler)
-    _d.stdscr = stdscr
+    stdscr = None
 
-    if curses.has_colors():
-        curses.start_color()
-        curses.use_default_colors()
-        for i in range(0, curses.COLORS):
-            curses.init_pair(i + 1, i, -1)
-        if config['display'].get('colors'):
-            init_color_palette()
-        if config['display'].get('glyphs'):
-            init_glyphs()
-
-    if not _d.work_pid:
-        p = select_process(stdscr)
-    else:
-        p = psutil.Process(_d.work_pid)
-
-    if not p: return
-
-    _d.process = p
-
-    client.settimeout(socket_timeout)
-    client.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, socket_buf)
-    client.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, socket_buf)
-    if _d.need_inject_server:
-        if not _d.gdb:
-            _d.gdb = shutil.which('gdb')
-            if not _d.gdb:
-                raise RuntimeError(
-                    'gdb not found in path, please specify manually')
-        inject_server(_d.gdb, p.pid, find_libcffi() if _d.safe_inject else None)
-        log('server injected')
-    sock_path = '/tmp/.pptop.{}'.format(os.getpid())
-    for i in range(injection_timeout * 10):
-        if os.path.exists(sock_path):
-            break
-        time.sleep(0.1)
     try:
-        client.connect(sock_path)
-    except:
-        log_traceback()
-        raise RuntimeError('Unable to connect to process')
 
-    log('connected')
+        if not _d.work_pid:
+            stdscr = init_curses(initial=True)
+            p = select_process(stdscr)
+        else:
+            p = psutil.Process(_d.work_pid)
 
-    calc_bw.start()
-    update_status.start()
+        if not p: return
 
-    _d.process_path.clear()
-    for i in command('.path'):
-        _d.process_path.append(os.path.abspath(i))
+        _d.process = p
 
-    height, width = stdscr.getmaxyx()
-    stdscr.clear()
-    stdscr.refresh()
-    curses.curs_set(0)
-    switch_plugin(stdscr, _d.default_plugin)
-    atasker.background_task(show_process_info.start)(stdscr=stdscr, p=p)
-    atasker.background_task(show_bottom_bar.start)(stdscr=stdscr)
-    autostart_plugins(stdscr)
-    log('main loop started')
-    while True:
+        client.settimeout(socket_timeout)
+        client.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, socket_buf)
+        client.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, socket_buf)
+        if _d.need_inject_server:
+            if not _d.gdb:
+                _d.gdb = shutil.which('gdb')
+                if not _d.gdb:
+                    raise RuntimeError(
+                        'gdb not found in path, please specify manually')
+            inject_server(_d.gdb, p.pid,
+                          find_libcffi() if _d.safe_inject else None)
+            log('server injected')
+        sock_path = '/tmp/.pptop.{}'.format(os.getpid())
+        for i in range(injection_timeout * 10):
+            if os.path.exists(sock_path):
+                break
+            time.sleep(0.1)
         try:
-            try:
-                if resize_event.is_set():
-                    raise ResizeException
-                k = stdscr.getkey()
-                if len(k) == 1:
-                    z = ord(k)
-                    if z == 6:
-                        k = 'KEY_NPAGE'
-                    elif z == 2:
-                        k = 'KEY_PPAGE'
-                    elif z == 10:
-                        k = 'ENTER'
-                    elif z < 27:
-                        k = 'CTRL_' + chr(z + 64)
-                log('key pressed: {}'.format(
-                    k if len(k) > 1 else (('ord=' + str(ord(k))) if ord(k) < 32
-                                          else '"{}"'.format(k))))
-            except KeyboardInterrupt:
-                return
-            except (ResizeException, curses.error):
-                log('resize event')
-                with resize_lock:
-                    if resize_event.is_set():
-                        resize_event.clear()
-                        resize_handler(stdscr)
-                        _d.current_plugin['p'].resize()
-                        show_process_info.trigger()
-                continue
-            except Exception as e:
-                log_traceback()
-                raise
-            if not show_process_info.is_active():
-                return
-            elif k in plugin_shortcuts:
-                switch_plugin(stdscr, plugin_shortcuts[k])
-            elif k == 'CTRL_L':
-                try:
-                    result = command('.ready')
-                except:
-                    result = None
-                with scr_lock:
-                    if result:
-                        print_message(
-                            stdscr, 'Ready event sent', color=palette.OK)
-                    else:
-                        print_message(
-                            stdscr, 'Command failed', color=palette.ERROR)
-            elif k == 'CTRL_I' and _d.current_plugin['inj'] is not None:
-                try:
-                    result = command('.inject', _d.current_plugin['i'])
-                except:
-                    result = None
-                with scr_lock:
-                    if result:
-                        print_message(
-                            stdscr, 'Plugin re-injected', color=palette.OK)
-                    else:
-                        print_message(
-                            stdscr,
-                            'Plugin re-injection failed',
-                            color=palette.ERROR)
-            elif k in ['KEY_F(10)']:
-                _d.current_plugin['p'].stop(wait=False)
-                show_process_info.stop(wait=False)
-                show_bottom_bar.stop(wait=False)
-                return
-            elif k == '`':
-                with scr_lock:
-                    curses.endwin()
-                    cli_mode()
-                    stdscr = curses.initscr()
-                    # TODO: correct display if resized in console
-                    _d.current_plugin['p'].stdscr = stdscr
-                    _d.current_plugin['p'].init_render_window()
-            elif k in ('f', '/'):
-                apply_filter(stdscr, _d.current_plugin['p'])
-            elif k == 'p':
-                _d.current_plugin['p'].toggle_pause()
-            elif k in _d.current_plugin['p'].inputs:
-                with scr_lock:
-                    try:
-                        prev_value = _d.current_plugin['p'].get_input(k)
-                    except ValueError:
-                        continue
-                    value = prompt(
-                        stdscr,
-                        ps=_d.current_plugin['p'].get_input_prompt(k),
-                        value=prev_value if prev_value is not None else '')
-                    _d.current_plugin['p'].inputs[k] = value
-                    try:
-                        _d.current_plugin['p'].handle_input(
-                            k, value, prev_value)
-                    except:
-                        pass
-            else:
-                with scr_lock:
-                    _d.current_plugin['p'].key_event = k
-                    _d.current_plugin['p'].trigger()
+            client.connect(sock_path)
         except:
             log_traceback()
-            return
+            raise RuntimeError('Unable to connect to process')
+
+        log('connected')
+
+        if not stdscr:
+            stdscr = init_curses(initial=True)
+
+        signal.signal(signal.SIGWINCH, sigwinch_handler)
+        _d.stdscr = stdscr
+
+        calc_bw.start()
+        update_status.start()
+
+        _d.process_path.clear()
+        for i in command('.path'):
+            _d.process_path.append(os.path.abspath(i))
+
+        height, width = stdscr.getmaxyx()
+        stdscr.clear()
+        stdscr.refresh()
+        curses.curs_set(0)
+        switch_plugin(stdscr, _d.default_plugin)
+        atasker.background_task(show_process_info.start)(stdscr=stdscr, p=p)
+        atasker.background_task(show_bottom_bar.start)(stdscr=stdscr)
+        autostart_plugins(stdscr)
+        log('main loop started')
+        while True:
+            try:
+                try:
+                    if resize_event.is_set():
+                        raise ResizeException
+                    k = stdscr.getkey()
+                    if len(k) == 1:
+                        z = ord(k)
+                        if z == 6:
+                            k = 'KEY_NPAGE'
+                        elif z == 2:
+                            k = 'KEY_PPAGE'
+                        elif z == 10:
+                            k = 'ENTER'
+                        elif z < 27:
+                            k = 'CTRL_' + chr(z + 64)
+                    log('key pressed: {}'.format(
+                        k if len(k) > 1 else ((
+                            'ord=' +
+                            str(ord(k))) if ord(k) < 32 else '"{}"'.format(k))))
+                except KeyboardInterrupt:
+                    return
+                except (ResizeException, curses.error):
+                    log('resize event')
+                    with resize_lock:
+                        if resize_event.is_set():
+                            resize_event.clear()
+                            resize_handler(stdscr)
+                            _d.current_plugin['p'].resize()
+                            show_process_info.trigger()
+                    continue
+                except Exception as e:
+                    log_traceback()
+                    raise
+                if not show_process_info.is_active():
+                    return
+                elif k in plugin_shortcuts:
+                    switch_plugin(stdscr, plugin_shortcuts[k])
+                elif k == 'CTRL_L':
+                    try:
+                        result = command('.ready')
+                    except:
+                        result = None
+                    with scr_lock:
+                        if result:
+                            print_message(
+                                stdscr, 'Ready event sent', color=palette.OK)
+                        else:
+                            print_message(
+                                stdscr, 'Command failed', color=palette.ERROR)
+                elif k == 'CTRL_I' and _d.current_plugin['inj'] is not None:
+                    try:
+                        result = command('.inject', _d.current_plugin['i'])
+                    except:
+                        result = None
+                    with scr_lock:
+                        if result:
+                            print_message(
+                                stdscr, 'Plugin re-injected', color=palette.OK)
+                        else:
+                            print_message(
+                                stdscr,
+                                'Plugin re-injection failed',
+                                color=palette.ERROR)
+                elif k in ['KEY_F(10)']:
+                    _d.current_plugin['p'].stop(wait=False)
+                    show_process_info.stop(wait=False)
+                    show_bottom_bar.stop(wait=False)
+                    return
+                elif k == '`':
+                    with scr_lock:
+                        end_curses(stdscr)
+                        cli_mode()
+                        stdscr = init_curses()
+                        # TODO: correct display if resized in console
+                        _d.current_plugin['p'].stdscr = stdscr
+                        _d.current_plugin['p'].init_render_window()
+                elif k in ('f', '/'):
+                    apply_filter(stdscr, _d.current_plugin['p'])
+                elif k == 'p':
+                    _d.current_plugin['p'].toggle_pause()
+                elif k in _d.current_plugin['p'].inputs:
+                    with scr_lock:
+                        try:
+                            prev_value = _d.current_plugin['p'].get_input(k)
+                        except ValueError:
+                            continue
+                        value = prompt(
+                            stdscr,
+                            ps=_d.current_plugin['p'].get_input_prompt(k),
+                            value=prev_value if prev_value is not None else '')
+                        _d.current_plugin['p'].inputs[k] = value
+                        try:
+                            _d.current_plugin['p'].handle_input(
+                                k, value, prev_value)
+                        except:
+                            pass
+                else:
+                    with scr_lock:
+                        _d.current_plugin['p'].key_event = k
+                        _d.current_plugin['p'].trigger()
+            except:
+                log_traceback()
+                return
+    except:
+        log_traceback()
+        raise
+    finally:
+        end_curses(stdscr)
 
 
 def start():
@@ -1115,10 +1146,10 @@ def start():
             except:
                 yps = None
             if yps:
-                raise Exception(
+                raise RuntimeError(
                     'yama ptrace scope is on. ' +
                     'disable with "sudo sysctl -w kernel.yama.ptrace_scope=0"')
-        curses.wrapper(run)
+        run()
         for p, v in plugins.items():
             v['p'].on_unload()
     except Exception as e:
