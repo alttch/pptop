@@ -46,14 +46,11 @@ __injection_version__ = "0.2.3"
 
 import threading
 import struct
-import signal
 import socket
 import sys
 import os
 import time
-
 import pickle
-import traceback
 
 from types import SimpleNamespace
 
