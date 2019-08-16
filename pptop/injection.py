@@ -112,10 +112,11 @@ def loop(cpid, runner_mode=False):
     server.settimeout(socket_timeout)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, socket_buf)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, socket_buf)
+    injections = {}
+    log('listening')
     try:
         connection, client_address = server.accept()
         log('connected')
-        injections = {}
         with _g_lock:
             g.clients += 1
         connection.settimeout(socket_timeout)
