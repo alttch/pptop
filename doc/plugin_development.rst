@@ -35,7 +35,7 @@ Launch ppTOP as:
 Both ppTOP and injected plugins will write all messages to */tmp/debug.log*,
 your plugin is automatically selected to be displayed first.
 
-Parameter *"-o listmodules"* tells ppTOP to load plugin even if it doesn't
+Parameter *"-o listmodules"* tells ppTOP to load plugin even if it isn't
 present in configuration file.
 
 Local part
