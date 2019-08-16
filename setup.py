@@ -1,4 +1,4 @@
-__version__ = "0.2.3"
+__version__ = "0.2.4"
 
 import setuptools
 
@@ -20,7 +20,7 @@ setuptools.setup(
     include_package_data=True,
     install_requires=[
         'psutil', 'tabulate', 'atasker', 'pyyaml', 'yappi', 'termcolor',
-        'pygments'
+        'pygments', 'cffi'
     ],
     classifiers=('Programming Language :: Python :: 3',
                  'License :: OSI Approved :: MIT License',

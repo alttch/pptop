@@ -20,7 +20,7 @@ https://github.com/alttch/pptop
 __author__ = "Altertech, https://www.altertech.com/"
 __copyright__ = "Copyright (C) 2019 Altertech"
 __license__ = "MIT"
-__version__ = "0.2.3"
+__version__ = "0.2.4"
 
 __doc__ = __doc__.format(version=__version__, license=__license__)
 
@@ -549,6 +549,7 @@ _d = SimpleNamespace(
     gdb='gdb',
     work_pid=None,
     need_inject_server=True,
+    safe_inject=True,
     child=None,
     child_cmd=None,
     child_args='',
@@ -579,7 +580,25 @@ def resize_handler(stdscr):
         stdscr.refresh()
 
 
-def inject_server(pid):
+def find_libcffi():
+    import glob
+    for d in sys.path:
+        cffi = glob.glob('{}/_cffi_backend*'.format(d))
+        if cffi:
+            return cffi[0]
+
+
+def inject_server(pid, libcffi=None):
+    if libcffi:
+        log('injecting {}'.format(libcffi))
+        cmd = 'print __libc_dlopen_mode("{}", 2)'.format(libcffi)
+        gdb_cmd = '{gdb} -p {pid} --batch {cmd}'.format(
+            gdb=_d.gdb, pid=pid, cmd="--eval-command='{}'".format(cmd))
+        p = subprocess.Popen(
+            gdb_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        out, err = p.communicate()
+        if p.returncode:
+            raise RuntimeError(err)
     cmds = [
         '(PyGILState_STATE)PyGILState_Ensure()',
         ('(int)PyRun_SimpleString("import sys;sys.path.append(\\"{path}\\");' +
@@ -699,7 +718,7 @@ def run(stdscr):
     client.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, socket_buf)
     client.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, socket_buf)
     if _d.need_inject_server:
-        inject_server(p.pid)
+        inject_server(p.pid, find_libcffi() if _d.safe_inject else None)
         log('server injected')
     sock_path = '/tmp/.pptop.{}'.format(os.getpid())
     for i in range(injection_timeout * 10):
@@ -865,6 +884,11 @@ def start():
         '--python', metavar='FILE', help='Python interpreter to launch file')
     ap.add_argument('--gdb', metavar='FILE', help='Path to gdb')
     ap.add_argument(
+        '--unsafe-inject',
+        action='store_true',
+        help='Unsafe injection (don\'t inject _cffi_backend, ' +
+        ' sometimes helps if process crashes)')
+    ap.add_argument(
         '-w',
         '--wait',
         metavar='SEC',
@@ -910,6 +934,9 @@ def start():
 
     if a.gdb:
         _d.gdb = a.gdb
+
+    if a.unsafe_inject:
+        _d.safe_inject = False
 
     log('initializing')
 

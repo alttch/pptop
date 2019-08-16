@@ -108,19 +108,6 @@ injected server is terminated.
 Configuration, troubleshooting, advanced usage, plugin development:
 https://pptop.readthedocs.io/
 
-## Limitations
-
-Currently injection works 100% correctly if the process imported
-*_cffi_backend* library.  The chance this library is already imported in a
-typical big program is very high, as it used it many popular projects, e.g.
-[requests](https://2.python-requests.org/).
-
-So, **requests** imported - process automatically accepts injection, as
-*_cffi_backend* is imported too.
-
-Currently I'm working on a solution to make universal injector which will work
-without any conditions.
-
 ## TODO
 
 * [ ] More plugins
