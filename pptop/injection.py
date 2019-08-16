@@ -300,7 +300,6 @@ def launch(cpid, wait=True):
         log('waiting for ready')
         while not g._runner_ready:
             time.sleep(0.2)
-        log('completed. executing main code')
     elif wait > 0:
         log('waiting {} seconds'.format(wait))
         t_end = time.time() + wait
