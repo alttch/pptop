@@ -4,16 +4,19 @@ Troubleshooting
 Can not inject or coredumped
 ============================
 
-This happens. Injected plugins may access shared resources from own thread
-without locking and if conflicts occur, this may cause crash of ppTOP or of
-everything.
+* Try again.
 
-Actually, injecting code with *gdb* in Python program is not a reliable thing,
-but as it works in 99% of cases, why don't use this feature for development or
-testing? Just don't use ppTOP on production systems. Unless you have no choice.
+* This happens. Injected plugins may access shared resources from own thread
+  without locking and if conflicts occur, this may cause crash of ppTOP or of
+  everything.
 
-Also, you can try command line option *--unsafe-inject*, which doesn't inject
-*_cffi_backend* shared library.
+* Injecting code with *gdb* in Python program is not a reliable thing, but as
+  it works in 99% of cases, why don't use this feature for development or
+  testing? Just don't use ppTOP on production systems. Unless you have no
+  choice.
+
+* Read about :doc:`process injection<process_injection>` and try different
+  types.
 
 Everything is slow
 ==================

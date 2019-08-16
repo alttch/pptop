@@ -17,10 +17,10 @@ The product is available under {license} license.
 https://github.com/alttch/pptop
 '''
 
-__author__ = "Altertech, https://www.altertech.com/"
-__copyright__ = "Copyright (C) 2019 Altertech"
-__license__ = "MIT"
-__version__ = "0.2.5"
+__author__ = 'Altertech, https://www.altertech.com/'
+__copyright__ = 'Copyright (C) 2019 Altertech'
+__license__ = 'MIT'
+__version__ = '0.2.6'
 
 __doc__ = __doc__.format(version=__version__, license=__license__)
 
@@ -311,13 +311,12 @@ def select_process(stdscr):
                         k = 'KEY_PPAGE'
             except KeyboardInterrupt:
                 return
-            except ResizeException:
+            except (ResizeException, curses.error):
                 log('resize event')
                 with resize_lock:
-                    if resize_event.is_set():
-                        resize_event.clear()
-                        resize_handler(stdscr)
-                        selector.resize()
+                    resize_event.clear()
+                    resize_handler(stdscr)
+                    selector.resize()
                 continue
             except Exception as e:
                 log_traceback()
@@ -544,10 +543,11 @@ async def show_bottom_bar(stdscr, **kwargs):
 def update_status(**kwargs):
     try:
         _d.status = command('.status')
-        time.sleep(1)
     except:
         log_traceback()
         status = -2
+    finally:
+        time.sleep(1)
 
 
 @atasker.background_worker(interval=1, daemon=True)
@@ -575,7 +575,8 @@ _d = SimpleNamespace(
     gdb=None,
     work_pid=None,
     need_inject_server=True,
-    safe_inject=True,
+    inject_method=None,  # None (auto), 'native', 'loadcffi', 'unsafe'
+    inject_lib=None,
     child=None,
     child_cmd=None,
     child_args='',
@@ -606,29 +607,64 @@ def resize_handler(stdscr):
         stdscr.refresh()
 
 
-def find_libcffi():
+def find_lib(name):
+    '''
+    Find first library matching pattern
+    '''
     import glob
     for d in sys.path:
-        cffi = glob.glob('{}/_cffi_backend.*.so'.format(d))
-        if cffi:
-            return cffi[0]
+        lib = glob.glob('{}/{}'.format(d, name))
+        if lib:
+            return lib[0]
 
 
-def inject_server(gdb, pid, libcffi=None):
+def init_inject():
+    if _d.inject_method is None or _d.inject_method == 'auto':
+        _d.inject_method = 'native'
+        _d.inject_lib = find_lib('__pptop_injector.*.so')
+        if not _d.inject_lib:
+            _d.inject_method = 'loadcffi'
+            _d.inject_lib = find_lib('_cffi_backend.*.so')
+            if not _d.inject_lib:
+                _d.inject_method = 'unsafe'
+    else:
+        if _d.inject_method == 'native':
+            _d.inject_lib = find_lib('__pptop_injector.*.so')
+            if not _d.inject_lib:
+                raise RuntimeError(
+                    '__pptop_injector shared library not found.' +
+                    ' reinstall package or select different inject method')
+        elif _d.inject_method == 'loadcffi':
+            _d.inject_lib = find_lib('_cffi_backend.*.so')
+            if not _d.inject_lib:
+                raise RuntimeError(
+                    '_cffi_backend shared library not found.' +
+                    ' install "cffi" package or select different inject method')
+        else:
+            _d.inject_method = 'unsafe'
+
+
+def inject_server(gdb, pid):
     cmds = []
-    if libcffi:
-        log('injecting {}'.format(libcffi))
-        cmds.append('call (void)__libc_dlopen_mode("{}", 2)'.format(libcffi))
-    cmds += [
-        'call (PyGILState_STATE)PyGILState_Ensure()',
-        ('call (int)PyRun_SimpleString("' +
-         'import sys;sys.path.append(\\"{path}\\");' +
-         'import pptop.injection;pptop.injection.start({mypid}{lg})")').format(
-             path=os.path.abspath(os.path.dirname(__file__) + '/..'),
-             mypid=os.getpid(),
-             lg='' if not log_config.fname else ',lg=\\"{}\\"'.format(
-                 log_config.fname)), ' call (void)PyGILState_Release($1)'
-    ]
+    libpath = os.path.abspath(os.path.dirname(__file__) + '/..')
+    if _d.inject_method in ['native', 'loadcffi']:
+        cmds.append('call (void)__libc_dlopen_mode("{}", 2)'.format(
+            _d.inject_lib))
+    if _d.inject_method == 'native':
+        cmds.append('call (int)__pptop_start_injection("{}",{},"{}")'.format(
+            libpath, os.getpid(), log_config.fname if log_config.fname else ''))
+    else:
+        cmds += [
+            'call (PyGILState_STATE)PyGILState_Ensure()',
+            ('call (int)PyRun_SimpleString("' +
+             'import sys;sys.path.insert(0,\\"{path}\\");' +
+             'import pptop.injection;pptop.injection.start({mypid}{lg})")'
+            ).format(
+                path=libpath,
+                mypid=os.getpid(),
+                lg='' if not log_config.fname else ',lg=\\"{}\\"'.format(
+                    log_config.fname)), ' call (void)PyGILState_Release($1)'
+        ]
     args = [gdb, '-p', str(pid), '--batch'
            ] + ['--eval-command={}'.format(c) for c in cmds]
     log(args)
@@ -737,8 +773,7 @@ def run():
                 if not _d.gdb:
                     raise RuntimeError(
                         'gdb not found in path, please specify manually')
-            inject_server(_d.gdb, p.pid,
-                          find_libcffi() if _d.safe_inject else None)
+            inject_server(_d.gdb, p.pid)
             log('server injected')
         sock_path = '/tmp/.pptop.{}'.format(os.getpid())
         for i in range(injection_timeout * 10):
@@ -763,8 +798,11 @@ def run():
         update_status.start()
 
         _d.process_path.clear()
+        ppath = []
         for i in command('.path'):
-            _d.process_path.append(os.path.abspath(i))
+            ppath.append(os.path.abspath(i))
+        _d.process_path.extend(sorted(ppath, reverse=True))
+        log('process path: {}'.format(_d.process_path))
 
         height, width = stdscr.getmaxyx()
         stdscr.clear()
@@ -800,11 +838,10 @@ def run():
                 except (ResizeException, curses.error):
                     log('resize event')
                     with resize_lock:
-                        if resize_event.is_set():
-                            resize_event.clear()
-                            resize_handler(stdscr)
-                            _d.current_plugin['p'].resize()
-                            show_process_info.trigger()
+                        resize_event.clear()
+                        resize_handler(stdscr)
+                        _d.current_plugin['p'].resize()
+                        show_process_info.trigger()
                     continue
                 except Exception as e:
                     log_traceback()
@@ -849,7 +886,6 @@ def run():
                         end_curses(stdscr)
                         cli_mode()
                         stdscr = init_curses()
-                        # TODO: correct display if resized in console
                         _d.current_plugin['p'].stdscr = stdscr
                         _d.current_plugin['p'].init_render_window()
                 elif k in ('f', '/'):
@@ -915,10 +951,9 @@ def start():
         '--python', metavar='FILE', help='Python interpreter to launch file')
     ap.add_argument('--gdb', metavar='FILE', help='Path to gdb')
     ap.add_argument(
-        '--unsafe-inject',
-        action='store_true',
-        help='Unsafe injection (don\'t inject _cffi_backend, ' +
-        ' sometimes helps if process crashes)')
+        '--inject-method',
+        choices=['auto', 'native', 'loadcffi', 'unsafe'],
+        help='Injection method')
     ap.add_argument(
         '-w',
         '--wait',
@@ -965,9 +1000,6 @@ def start():
     if a.gdb:
         _d.gdb = a.gdb
 
-    if a.unsafe_inject:
-        _d.safe_inject = False
-
     log('initializing')
 
     plugin_options = {}
@@ -1005,6 +1037,7 @@ def start():
     sys.path.append(_d.pptop_dir + '/lib')
     config.clear()
     if use_default_config and not os.path.isfile(config_file):
+        log('no user config, setting default')
         try:
             os.mkdir(_d.pptop_dir)
         except:
@@ -1022,6 +1055,9 @@ def start():
     if console is None: console = {}
 
     _d.console_json_mode = console.get('json-mode')
+
+    _d.inject_method = a.inject_method if a.inject_method else config.get(
+        'inject-method')
 
     if config.get('display') is None:
         config['display'] = {}
@@ -1149,6 +1185,9 @@ def start():
                 raise RuntimeError(
                     'yama ptrace scope is on. ' +
                     'disable with "sudo sysctl -w kernel.yama.ptrace_scope=0"')
+            init_inject()
+            log('inject method: {}'.format(_d.inject_method))
+            log('inject library: {}'.format(_d.inject_lib))
         run()
         for p, v in plugins.items():
             v['p'].on_unload()

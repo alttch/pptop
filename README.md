@@ -21,6 +21,8 @@ scanner for Python.
 * Injection into running processes requires *gdb* (present in almost
   all Linux distributions)
 * Only Linux systems are currently supported
+* Only connection to Python 3 processes is supported, as ppTOP uses pickle 3
+  protocol for data exchange
 
 ## Features
 
@@ -110,7 +112,6 @@ https://pptop.readthedocs.io/
 
 ## TODO
 
-* [ ] Stable C library for injections (in progress)
 * [ ] exec-only mode (in progress)
 * [ ] More plugins
 * [ ] Advanced filtering

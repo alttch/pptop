@@ -1,3 +1,4 @@
+inject-method: native
 console:
   json-mode: true
 display:

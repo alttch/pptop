@@ -1,14 +1,17 @@
-__version__ = "0.2.5"
+__version__ = '0.2.6'
 
 import setuptools
 
 with open('README.md', 'r') as fh:
     long_description = fh.read()
 
+pptop_injector = setuptools.Extension(
+    '__pptop_injector', sources=['src/__pptop_injector.c'])
+
 setuptools.setup(
     name='pptop',
     version=__version__,
-    author='Altertech Group',
+    author='Altertech',
     author_email='div@altertech.com',
     description='Open, extensible Python injector/profiler/analyzer',
     long_description=long_description,
@@ -18,9 +21,10 @@ setuptools.setup(
     license='MIT',
     scripts=['bin/pptop'],
     include_package_data=True,
+    ext_modules=[pptop_injector],
     install_requires=[
         'psutil', 'tabulate', 'atasker', 'pyyaml', 'yappi', 'termcolor',
-        'pygments', 'cffi'
+        'pygments'
     ],
     classifiers=('Programming Language :: Python :: 3',
                  'License :: OSI Approved :: MIT License',

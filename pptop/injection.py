@@ -42,7 +42,7 @@ server receives "bye" command, it immediately terminate itself and loaded
 plugins.
 '''
 
-__injection_version__ = "0.2.5"
+__injection_version__ = '0.2.6'
 
 import threading
 import struct
@@ -53,8 +53,6 @@ import time
 import pickle
 
 from types import SimpleNamespace
-
-import pptop.logger
 
 from pptop.logger import config as log_config, log, log_traceback
 
@@ -259,6 +257,7 @@ def loop(cpid, runner_mode=False):
             else:
                 break
     except Exception as e:
+        log_traceback()
         pass
     for i, v in injections.items():
         u = v.get('u')
