@@ -18,8 +18,8 @@ Also, you can try command line option *--unsafe-inject*, which doesn't inject
 Everything is slow
 ==================
 
-* ppTOP is quickly-dirty written tool and can not display tables with a tens of
-  thousands of lines. Just keep it short.
+* ppTOP is quickly-dirty written tool and can not display tables with tens of
+  thousands lines. Just keep it short.
 
 * There's the magic meter at the bottom-right corner of ppTOP UI:
 
