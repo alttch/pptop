@@ -23,10 +23,10 @@ Everything is slow
   .. figure:: images/meter.png
     :scale: 100%
 
-First 2 numbers are frames send/received. It sound be equal and run quickly.
-The next number is the current bandwidth between ppTOP and injected process. If
-it exceeds 2-3 MB per second, you should pause/stop plugin or reset it (press
-*F1* to read plugin help for more info).
+First 2 numbers are frames sent/received. It should be equal and run quickly.
+The next number is current bandwidth between ppTOP and injected process. If it
+exceeds 2-3 MB per second, you should pause/stop plugin or reset it (press *F1*
+to read plugin help for more info).
 
 Plugin doesn't work in launch mode
 ==================================
