@@ -110,6 +110,8 @@ https://pptop.readthedocs.io/
 
 ## TODO
 
+* [ ] Stable C library for injections (in progress)
+* [ ] exec-only mode (in progress)
 * [ ] More plugins
 * [ ] Advanced filtering
 * [ ] Data snapshots
