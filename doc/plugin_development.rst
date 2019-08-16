@@ -30,7 +30,7 @@ Launch ppTOP as:
 
 .. code:: shell
 
-    pptop -o listmodules -d listmodules --debug-file /tmp/debug.log /var/run/myprog.pid
+    pptop -o listmodules -d listmodules --log /tmp/debug.log /var/run/myprog.pid
 
 Both ppTOP and injected plugins will write all messages to */tmp/debug.log*,
 your plugin is automatically selected to be displayed first.

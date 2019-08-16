@@ -20,7 +20,7 @@ https://github.com/alttch/pptop
 __author__ = "Altertech, https://www.altertech.com/"
 __copyright__ = "Copyright (C) 2019 Altertech"
 __license__ = "MIT"
-__version__ = "0.2.4"
+__version__ = "0.2.5"
 
 __doc__ = __doc__.format(version=__version__, license=__license__)
 
@@ -546,7 +546,7 @@ _d = SimpleNamespace(
     ifoctets_prev=0,
     ifbw=0,
     pptop_dir=None,
-    gdb='gdb',
+    gdb=None,
     work_pid=None,
     need_inject_server=True,
     safe_inject=True,
@@ -588,33 +588,30 @@ def find_libcffi():
             return cffi[0]
 
 
-def inject_server(pid, libcffi=None):
+def inject_server(gdb, pid, libcffi=None):
+    cmds = []
     if libcffi:
         log('injecting {}'.format(libcffi))
-        cmd = 'print __libc_dlopen_mode("{}", 2)'.format(libcffi)
-        gdb_cmd = '{gdb} -p {pid} --batch {cmd}'.format(
-            gdb=_d.gdb, pid=pid, cmd="--eval-command='{}'".format(cmd))
-        p = subprocess.Popen(
-            gdb_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        out, err = p.communicate()
-        if p.returncode:
-            raise RuntimeError(err)
-    cmds = [
-        '(PyGILState_STATE)PyGILState_Ensure()',
-        ('(int)PyRun_SimpleString("import sys;sys.path.append(\\"{path}\\");' +
+        cmds.append('print __libc_dlopen_mode("{}", 2)'.format(libcffi))
+    cmds += [
+        'call (PyGILState_STATE)PyGILState_Ensure()',
+        ('call (int)PyRun_SimpleString("' +
+         'import sys;sys.path.append(\\"{path}\\");' +
          'import pptop.injection;pptop.injection.start({mypid}{lg})")').format(
              path=os.path.abspath(os.path.dirname(__file__) + '/..'),
              mypid=os.getpid(),
-             lg='' if not log_config.fname else ',lg=\\"{}\\"'.format(
-                 log_config.fname)), '(void)PyGILState_Release($1)'
+             lg='' if not log_config.fname else
+             ',lg=\\"{}\\"'.format(log_config.fname)),
+        ' call (void)PyGILState_Release(${})'.format(2 if libcffi else 1)
     ]
-    gdb_cmd = '{gdb} -p {pid} --batch {cmds}'.format(
-        gdb=_d.gdb,
-        pid=pid,
-        cmds=' '.join(["--eval-command='call {}'".format(c) for c in cmds]))
+    args = [gdb, '-p', str(pid), '--batch'
+           ] + ['--eval-command={}'.format(c) for c in cmds]
+    log(args)
     p = subprocess.Popen(
-        gdb_cmd, shell=True, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+        args, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
     out, err = p.communicate()
+    log(out)
+    log(err)
     if p.returncode:
         raise RuntimeError(err)
 
@@ -718,7 +715,12 @@ def run(stdscr):
     client.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, socket_buf)
     client.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, socket_buf)
     if _d.need_inject_server:
-        inject_server(p.pid, find_libcffi() if _d.safe_inject else None)
+        if not _d.gdb:
+            _d.gdb = shutil.which('gdb')
+            if not _d.gdb:
+                raise RuntimeError(
+                    'gdb not found in path, please specify manually')
+        inject_server(_d.gdb, p.pid, find_libcffi() if _d.safe_inject else None)
         log('server injected')
     sock_path = '/tmp/.pptop.{}'.format(os.getpid())
     for i in range(injection_timeout * 10):
@@ -729,8 +731,7 @@ def run(stdscr):
         client.connect(sock_path)
     except:
         log_traceback()
-        raise RuntimeError('Unable to connect to process {}'.format(
-            _d.work_pid))
+        raise RuntimeError('Unable to connect to process')
 
     log('connected')
 
@@ -913,8 +914,7 @@ def start():
         metavar='NAME=VALUE',
         action='append',
         dest='plugin_options')
-    ap.add_argument(
-        '--debug-file', metavar='FILE', help='Send debug log to file')
+    ap.add_argument('--log', metavar='FILE', help='Send debug log to file')
 
     try:
         import argcomplete
@@ -924,8 +924,8 @@ def start():
 
     a = ap.parse_args()
 
-    if a.debug_file:
-        log_config.fname = a.debug_file
+    if a.log:
+        log_config.fname = a.log
         log_config.name = 'client:{}'.format(os.getpid())
 
     if a.version:
@@ -1089,8 +1089,10 @@ def start():
             if a.python:
                 python_path = a.python
             else:
-                with os.popen('which python3') as pd:
-                    python_path = pd.read().strip()
+                python_path = shutil.which('python3')
+                if not python_path:
+                    raise RuntimeError(
+                        'python3 not found in path, please specify manually')
             args = (python_path, '-m', 'pptop.injection', a.file,
                     str(os.getpid()))
             if a.wait is not None:
@@ -1098,7 +1100,7 @@ def start():
             if a.args:
                 args += ('-a', a.args)
             if log_config.fname:
-                args += ('--debug-file', log_config.fname)
+                args += ('--log', log_config.fname)
             log('starting child process')
             _d.child = subprocess.Popen(
                 args,

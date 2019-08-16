@@ -42,7 +42,7 @@ server receives "bye" command, it immediately terminate itself and loaded
 plugins.
 '''
 
-__injection_version__ = "0.2.4"
+__injection_version__ = "0.2.5"
 
 import threading
 import struct
@@ -77,6 +77,10 @@ _g_lock = threading.Lock()
 def init_logging(fname):
     log_config.fname = fname
     log_config.name = 'injection:{}'.format(os.getpid())
+
+
+def stop_logging():
+    log_config.fname = None
 
 
 def loop(cpid, runner_mode=False):
@@ -286,6 +290,8 @@ def loop(cpid, runner_mode=False):
 def start(cpid, lg=None, runner_mode=False):
     if lg:
         init_logging(lg)
+    else:
+        stop_logging()
     log('starting injection server for pid {}'.format(cpid))
     threading.Thread(
         name='__pptop_injection_{}'.format(cpid),
@@ -321,11 +327,10 @@ def main():
         type=float,
         help='Wait seconds till start')
     ap.add_argument('-a', '--args', metavar='ARGS', help='Child args (quoted)')
-    ap.add_argument(
-        '--debug-file', metavar='FILE', help='Send debug log to file')
+    ap.add_argument('--log', metavar='FILE', help='Send debug log to file')
     a = ap.parse_args()
-    if a.debug_file:
-        init_logging(a.debug_file)
+    if a.log:
+        init_logging(a.log)
 
     with open(a.file) as fh:
         src = fh.read()
