@@ -583,7 +583,7 @@ def resize_handler(stdscr):
 def find_libcffi():
     import glob
     for d in sys.path:
-        cffi = glob.glob('{}/_cffi_backend*'.format(d))
+        cffi = glob.glob('{}/_cffi_backend.*.so'.format(d))
         if cffi:
             return cffi[0]
 
