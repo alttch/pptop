@@ -23,7 +23,7 @@ setuptools.setup(
     include_package_data=True,
     ext_modules=[pptop_injector],
     install_requires=[
-        'wheel', 'psutil', 'tabulate', 'atasker', 'pyyaml', 'yappi',
+        'wheel', 'unipath', 'psutil', 'tabulate', 'atasker', 'pyyaml', 'yappi',
         'termcolor', 'pygments'
     ],
     classifiers=('Programming Language :: Python :: 3',
