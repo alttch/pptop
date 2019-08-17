@@ -326,9 +326,6 @@ def select_process(stdscr):
                     resize_handler(stdscr)
                     selector.resize()
                 continue
-            except Exception as e:
-                log_traceback()
-                raise
             if k in ['q', 'KEY_F(10)']:
                 selector.stop(wait=False)
                 return
@@ -871,9 +868,6 @@ def run():
                         _d.current_plugin['p'].resize()
                         show_process_info.trigger()
                     continue
-                except Exception as e:
-                    log_traceback()
-                    raise
                 if not show_process_info.is_active():
                     return
                 elif k in plugin_shortcuts:
@@ -1141,6 +1135,7 @@ def start():
             p.scr_lock = scr_lock
             p.get_process = get_process
             p.get_process_path = get_process_path
+            p.global_config = config
             plugin['p'] = p
             injection = {'id': i}
             need_inject = False
@@ -1233,6 +1228,7 @@ def start():
             log('inject method: {}'.format(_d.inject_method))
             log('inject library: {}'.format(_d.inject_lib))
         run()
+        log('terminating')
         for p, v in plugins.items():
             v['p'].on_unload()
     except Exception as e:
