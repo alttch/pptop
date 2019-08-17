@@ -17,5 +17,6 @@ Source and basic guide: https://github.com/alttch/pptop
     :maxdepth: 1
 
     configuration
+    process_injection
     plugin_development
     troubleshooting
