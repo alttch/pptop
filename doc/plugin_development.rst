@@ -114,7 +114,8 @@ Class variables
     self.append_data = False  # default load_data method will append data
     self.data_records_max = None  # max data records
     self.inputs = {}  # key - hot key, value - input value
-    self.key_event = None # last key pressed, for custom key event handling
+    self.key_code = None  # last key pressed, for custom key event handling
+    self.key_event = None  # last key event
 
 Making executor async
 ---------------------
@@ -167,8 +168,8 @@ If you want to override any of these methods (most probably
 *self.format_dtd(dtd)*, don't forget it should return list generator, not a
 list object itself.
 
-* *self.handle_key_event(event=self.key_event, dtd)* method is called to
-  process custom keyboard events.
+* *self.handle_key_event(event=self.key_event, key=self.key_code dtd)* method
+  is called to process custom keyboard events.
 
 * *self.handle_pager_event(dtd)* method is called to process paging/scrolling
   events.

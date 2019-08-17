@@ -40,27 +40,36 @@ class Plugin(GenericPlugin):
 
 
 def injection_load(**kwargs):
-    import yappi
     import threading
-    if not yappi.is_running():
-        yappi.start()
+    try:
+        import yappi
+        if not yappi.is_running():
+            yappi.start()
+    except:
+        pass
 
 
 def injection_unload(**kwargs):
-    import yappi
-    if yappi.is_running():
-        yappi.stop()
+    try:
+        import yappi
+        if yappi.is_running():
+            yappi.stop()
+    except:
+        pass
 
 
 def injection(**kwargs):
-    import yappi
     import threading
     result = []
     yi = {}
-    if not yappi.is_running():
-        yappi.start()
-    for d in yappi.get_thread_stats():
-        yi[d[2]] = (d[3], d[4])
+    try:
+        import yappi
+        if not yappi.is_running():
+            yappi.start()
+        for d in yappi.get_thread_stats():
+            yi[d[2]] = (d[3], d[4])
+    except:
+        pass
     for t in threading.enumerate():
         try:
             target = '{}.{}'.format(t._target.__module__, t._target.__name__)

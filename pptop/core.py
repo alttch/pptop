@@ -48,6 +48,7 @@ import shutil
 import argparse
 import collections
 import readline
+import textwrap
 
 import termcolor
 
@@ -409,7 +410,7 @@ def command(cmd, params=None):
         try:
             frame = cmd.encode()
             if params is not None:
-                frame += b'\xff' + pickle.dumps(params)
+                frame += b'\xff' + pickle.dumps(params, protocol=_d.protocol)
             client.sendall(
                 struct.pack('I', len(frame)) +
                 struct.pack('I', _d.client_frame_id) + frame)
@@ -620,6 +621,7 @@ _d = SimpleNamespace(
     process_path=[],
     default_plugin=None,
     process=None,
+    protocol=None,
     stdscr=None,
     client_frame_id=0,
     last_frame_id=0,
@@ -708,19 +710,21 @@ def inject_server(gdb, pid):
         cmds.append('call (void)__libc_dlopen_mode("{}", 2)'.format(
             _d.inject_lib))
     if _d.inject_method == 'native':
-        cmds.append('call (int)__pptop_start_injection("{}",{},"{}")'.format(
-            libpath, os.getpid(), log_config.fname if log_config.fname else ''))
+        cmds.append('call (int)__pptop_start_injection("{}",{},"{}",{})'.format(
+            libpath, os.getpid(), log_config.fname
+            if log_config.fname else '', _d.protocol))
     else:
         cmds += [
             'call (PyGILState_STATE)PyGILState_Ensure()',
             ('call (int)PyRun_SimpleString("' +
              'import sys;sys.path.insert(0,\\"{path}\\");' +
-             'import pptop.injection;pptop.injection.start({mypid}{lg})")'
-            ).format(
-                path=libpath,
-                mypid=os.getpid(),
-                lg='' if not log_config.fname else ',lg=\\"{}\\"'.format(
-                    log_config.fname)), ' call (void)PyGILState_Release($1)'
+             'import pptop.injection;pptop.injection.start(' +
+             '{mypid}{lg},protocol={protocol})")').format(
+                 path=libpath,
+                 mypid=os.getpid(),
+                 lg='' if not log_config.fname else
+                 ',lg=\\"{}\\"'.format(log_config.fname),
+                 protocol=_d.protocol), ' call (void)PyGILState_Release($1)'
         ]
     args = [gdb, '-p', str(pid), '--batch'
            ] + ['--eval-command={}'.format(c) for c in cmds]
@@ -786,7 +790,11 @@ def switch_plugin(stdscr, new_plugin):
     p.key_code = None
     if new_plugin['inj'] is False:
         new_plugin['inj'] = True
-        command('.inject', new_plugin['i'])
+        try:
+            command('.inject', new_plugin['i'])
+        except:
+            print_message(
+                stdscr, 'Plugin injection failed', color=palette.ERROR)
     if not p.is_active(): p.start()
     p.show()
     _d.current_plugin = new_plugin
@@ -921,7 +929,8 @@ def run():
                         else:
                             print_message(
                                 stdscr, 'Command failed', color=palette.ERROR)
-                elif event == 'reinject' and _d.current_plugin['inj'] is not None:
+                elif event == 'reinject' and \
+                        _d.current_plugin['inj'] is not None:
                     try:
                         result = command('.inject', _d.current_plugin['i'])
                     except:
@@ -1010,6 +1019,16 @@ def start():
     ap.add_argument(
         '--python', metavar='FILE', help='Python interpreter to launch file')
     ap.add_argument('--gdb', metavar='FILE', help='Path to gdb')
+    ap.add_argument(
+        '-p',
+        '--protocol',
+        metavar='VER',
+        type=int,
+        help=textwrap.dedent('''Pickle protocol, default is highest.
+                4: Python 3.4+,
+                3: Python 3.0+,
+                2: Python 2.3+,
+                1: vintage'''))
     ap.add_argument(
         '--inject-method',
         choices=['auto', 'native', 'loadcffi', 'unsafe'],
@@ -1249,6 +1268,8 @@ def start():
                     str(os.getpid()))
             if a.wait is not None:
                 args += ('-w', str(a.wait))
+            if a.protocol is not None:
+                args += ('-p', str(a.protocol))
             if a.args:
                 args += ('-a', a.args)
             if log_config.fname:
@@ -1274,6 +1295,14 @@ def start():
             init_inject()
             log('inject method: {}'.format(_d.inject_method))
             log('inject library: {}'.format(_d.inject_lib))
+            if a.protocol:
+                _d.protocol = a.protocol
+            else:
+                _d.protocol = pickle.HIGHEST_PROTOCOL
+            log('Pickle protocol: {}'.format(_d.protocol))
+            if a.protocol and a.protocol > pickle.HIGHEST_PROTOCOL:
+                raise ValueError('Protocol {} is not supported'.format(
+                    a.protocol))
         run()
         log('terminating')
         for p, v in plugins.items():

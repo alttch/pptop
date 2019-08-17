@@ -70,7 +70,7 @@ def injection_load(**kwargs):
     class LogHandler(logging.Handler):
 
         def __init__(self, *args, **kwargs):
-            super().__init__(*args, **kwargs)
+            logging.Handler.__init__(self, *args, **kwargs)
             self.records = []
             self.records_lock = threading.Lock()
 

@@ -1,12 +1,15 @@
 '''
-pptop don't use logging because two processes must write to the same file
+pptop doesn't use logging because two processes must write to the same file
 '''
 
 import fcntl
 import traceback
 
 from datetime import datetime
-from types import SimpleNamespace
+
+class SimpleNamespace:
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
 
 config = SimpleNamespace(fname=None, name='')
 

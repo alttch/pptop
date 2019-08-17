@@ -20,9 +20,8 @@ scanner for Python.
 * Python: 3.5+ is required, as ppTOP uses asyncio
 * Injection into running processes requires *gdb* (present in almost
   all Linux distributions)
+* Injection into older Python version is possible (use "-p" key)
 * Only Linux systems are currently supported
-* Only connection to Python 3 processes is supported, as ppTOP uses pickle 3
-  protocol for data exchange
 
 ## Features
 

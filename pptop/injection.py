@@ -53,13 +53,18 @@ import os
 import time
 import pickle
 
-from types import SimpleNamespace
-
 from pptop.logger import config as log_config, log, log_traceback
 
 socket_timeout = 10
 
 socket_buf = 8192
+
+# compat. with Python 2
+
+class SimpleNamespace:
+
+    def __init__(self, **kwargs):
+        self.__dict__.update(kwargs)
 
 # don't use threading.Event to hide presence
 
@@ -82,7 +87,7 @@ def stop_logging():
     log_config.fname = None
 
 
-def loop(cpid, runner_mode=False):
+def loop(cpid, protocol=None, runner_mode=False):
 
     def send_frame(conn, frame_id, data):
         conn.sendall(
@@ -90,7 +95,8 @@ def loop(cpid, runner_mode=False):
         # log('{}: frame {}, {} bytes sent'.format(cpid, frame_id, len(data)))
 
     def send_serialized(conn, frame_id, data):
-        send_frame(conn, frame_id, b'\x00' + pickle.dumps(data))
+        send_frame(conn, frame_id,
+                   b'\x00' + pickle.dumps(data, protocol=protocol))
 
     def send_ok(conn, frame_id):
         send_frame(conn, frame_id, b'\x00')
@@ -112,6 +118,7 @@ def loop(cpid, runner_mode=False):
     server.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, socket_buf)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, socket_buf)
     injections = {}
+    log('Pickle protocol: {}'.format(protocol))
     log('listening')
     try:
         connection, client_address = server.accept()
@@ -171,20 +178,23 @@ def loop(cpid, runner_mode=False):
                                 raise RuntimeError(
                                     'Help on remote is not supported')
                             p1 = params.split(' ', 1)[0]
+                            prfunc = '_print' if sys.version_info < (
+                                3, 0) else 'print'
                             if p1 in [
                                     'import', 'def', 'class', 'for', 'while',
                                     'raise', 'if', 'with'
                             ]:
-                                src = ('def print(*args):\n' +
+                                src = ('def {}(*args):\n' +
                                        ' __resultl.append(\' \'.join(str(a) ' +
                                        'for a in args))\n__resultl=[]\n{}' +
                                        '\n__result = \'\\n\'.join(__resultl) ' +
-                                       'if __resultl else None').format(params)
+                                       'if __resultl else None').format(
+                                           prfunc, params)
                             else:
                                 src = (
-                                    'def print(*args): ' +
+                                    'def {}(*args): ' +
                                     'return \' \'.join(str(a) for a in args)\n'
-                                    + '__result = {}').format(params)
+                                    + '__result = {}').format(prfunc, params)
                             exec(src, exec_globals)
                             result = exec_globals.get('__result')
                             try:
@@ -195,13 +205,15 @@ def loop(cpid, runner_mode=False):
                                             isinstance(result, float) or \
                                             isinstance(result, int) or \
                                             isinstance(result, bool):
-                                    data = pickle.dumps((0, result))
+                                    data = pickle.dumps(
+                                        (0, result), protocol=protocol)
                                 else:
                                     raise ValueError
                             except:
                                 # TODO - stringify only unpicklable values
                                 # but avoid copy.deepcopy
-                                data = pickle.dumps((0, str(result)))
+                                data = pickle.dumps(
+                                    (0, str(result)), protocol=protocol)
                             send_frame(connection, frame_id, b'\x00' + data)
                         except:
                             log_traceback()
@@ -297,21 +309,23 @@ def loop(cpid, runner_mode=False):
         os._exit(0)
 
 
-def start(cpid, lg=None, runner_mode=False):
+def start(cpid, lg=None, protocol=None, runner_mode=False):
     if lg:
         init_logging(lg)
     else:
         stop_logging()
     log('starting injection server for pid {}'.format(cpid))
-    threading.Thread(
+    t = threading.Thread(
         name='__pptop_injection_{}'.format(cpid),
         target=loop,
-        args=(cpid, runner_mode),
-        daemon=True).start()
+        args=(cpid, protocol
+              if protocol else pickle.HIGHEST_PROTOCOL, runner_mode))
+    t.setDaemon(True)
+    t.start()
 
 
-def launch(cpid, wait=True):
-    start(cpid, runner_mode=True)
+def launch(cpid, wait=True, protocol=None):
+    start(cpid, protocol=None, runner_mode=True)
     if wait is True:
         log('waiting for ready')
         while not g._runner_ready:
@@ -336,12 +350,15 @@ def main():
         metavar='SEC',
         type=float,
         help='Wait seconds till start')
+    ap.add_argument(
+        '-p', '--protocol', metavar='VER', type=int, help='Pickle protocol')
     ap.add_argument('-a', '--args', metavar='ARGS', help='Child args (quoted)')
     ap.add_argument('--log', metavar='FILE', help='Send debug log to file')
     a = ap.parse_args()
+    if a.protocol and a.protocol > pickle.HIGHEST_PROTOCOL:
+        raise ValueError('Protocol {} is not supported'.format(a.protocol))
     if a.log:
         init_logging(a.log)
-
     with open(a.file) as fh:
         src = fh.read()
     sys.argv = [a.file]

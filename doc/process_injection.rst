@@ -54,3 +54,9 @@ unsafe
 
 Lock GIL and call *PyRun_SimpleString* without any preparations and helpers.
 Run and pray.
+
+Injection into Python versions, older than 3.4
+==============================================
+
+Use "-p" or "--protocol" command line options. Note that some plugins may not
+work.
