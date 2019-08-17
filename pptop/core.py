@@ -333,7 +333,8 @@ class ProcesSelector(GenericPlugin):
         for p in psutil.process_iter():
             try:
                 name = p.name()
-                if name in ['python', 'python3'] and p.pid != os.getpid():
+                if name in ['python', 'python2', 'python3'
+                           ] and p.pid != os.getpid():
                     self.data.append({
                         'pid': p.pid,
                         'command line': ' '.join(p.cmdline())
@@ -575,8 +576,8 @@ async def show_bottom_bar(stdscr, **kwargs):
             for h in sorted(bottom_bar_help):
                 stdscr.addstr('F{}'.format(h))
                 stdscr.addstr(bottom_bar_help[h].ljust(6), color)
-            stats = '{} {}/{} '.format(glyph.CONNECTION, _d.client_frame_id,
-                                       _d.last_frame_id)
+            stats = '{} {} {}/{} '.format(_d.protocol, glyph.CONNECTION,
+                                           _d.client_frame_id, _d.last_frame_id)
             with ifoctets_lock:
                 bw = _d.ifbw
             if bw < 1000:
@@ -628,6 +629,7 @@ _d = SimpleNamespace(
     default_plugin=None,
     process=None,
     protocol=None,
+    force_protocol=None,
     stdscr=None,
     client_frame_id=0,
     last_frame_id=0,
@@ -709,8 +711,34 @@ def init_inject():
             _d.inject_method = 'unsafe'
 
 
-def inject_server(gdb, pid):
+def inject_server(gdb, p):
     cmds = []
+    pid = p.pid
+    if not _d.force_protocol:
+        try:
+            args = (p.exe(), '-c', 'import sys; print(sys.version_info[:])')
+            p = subprocess.Popen(
+                args,
+                shell=False,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE)
+            out, err = p.communicate()
+            if p.returncode:
+                raise RuntimeError('check version exit code {}'.format(
+                    p.returncode))
+            ver = eval(out)
+            log('Process Python version: {}'.format(ver))
+            if ver < (2, 3):
+                proto = 1
+            elif ver < (3, 0):
+                proto = 2
+            elif ver < (3, 4):
+                proto = 3
+            if proto < _d.protocol:
+                _d.protocol = proto
+                log('Falling back to pickle protocol {}'.format(_d.protocol))
+        except:
+            log_traceback()
     libpath = os.path.abspath(os.path.dirname(__file__) + '/..')
     if _d.inject_method in ['native', 'loadcffi']:
         cmds.append('call (void)__libc_dlopen_mode("{}", 2)'.format(
@@ -839,12 +867,7 @@ def run():
         client.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, socket_buf)
         client.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, socket_buf)
         if _d.need_inject_server:
-            if not _d.gdb:
-                _d.gdb = shutil.which('gdb')
-                if not _d.gdb:
-                    raise RuntimeError(
-                        'gdb not found in path, please specify manually')
-            inject_server(_d.gdb, p.pid)
+            inject_server(_d.gdb, p)
             log('server injected')
         sock_path = '/tmp/.pptop.{}'.format(os.getpid())
         for i in range(injection_timeout * 10):
@@ -1091,9 +1114,6 @@ def start():
         print(_me)
         exit()
 
-    if a.gdb:
-        _d.gdb = a.gdb
-
     log('initializing')
 
     if a.file:
@@ -1288,6 +1308,12 @@ def start():
                 stderr=subprocess.PIPE)
             _d.work_pid = _d.child.pid
         else:
+            if a.gdb:
+                _d.gdb = a.gdb
+            else:
+                _d.gdb = shutil.which('gdb')
+            if not os.path.isfile(_d.gdb):
+                raise RuntimeError('gdb not found, please specify')
             # check yama ptrace scope
             try:
                 with open('/proc/sys/kernel/yama/ptrace_scope') as fd:
@@ -1301,14 +1327,15 @@ def start():
             init_inject()
             log('inject method: {}'.format(_d.inject_method))
             log('inject library: {}'.format(_d.inject_lib))
-            if a.protocol:
+            if a.protocol is not None:
+                if a.protocol > pickle.HIGHEST_PROTOCOL or a.protocol < 1:
+                    raise ValueError('Protocol {} is not supported'.format(
+                        a.protocol))
                 _d.protocol = a.protocol
+                _d.force_protocol = a.protocol
             else:
                 _d.protocol = pickle.HIGHEST_PROTOCOL
             log('Pickle protocol: {}'.format(_d.protocol))
-            if a.protocol and a.protocol > pickle.HIGHEST_PROTOCOL:
-                raise ValueError('Protocol {} is not supported'.format(
-                    a.protocol))
         run()
         log('terminating')
         for p, v in plugins.items():
