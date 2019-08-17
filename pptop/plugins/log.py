@@ -86,20 +86,12 @@ def injection_load(**kwargs):
             return rec
 
     g.log_handler = LogHandler()
-    g.loggers_injected = [name for name in logging.root.manager.loggerDict]
-    if logging.getLogger().name not in g.loggers_injected:
-        g.loggers_injected.append(None)
-    for l in g.loggers_injected:
-        logging.getLogger(l).addHandler(g.log_handler)
+    logging.getLogger().addHandler(g.log_handler)
 
 
 def injection_unload(**kwargs):
     import logging
-    for l in g.loggers_injected:
-        try:
-            logging.getLogger(l).removeHandler(g.log_handler)
-        except:
-            pass
+    logging.getLogger().removeHandler(g.log_handler)
 
 
 def injection(**kwargs):
