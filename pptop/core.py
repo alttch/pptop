@@ -267,6 +267,12 @@ def cli_mode():
             'Enter any Python command, press Ctrl-D or type "exit" to quit'))
     print(colored('To toggle between JSON and normal mode, type ".j"'))
     print(colored('To execute multiple commands from file, type "< filename"'))
+    if _d.protocol < 3:
+        print(
+            colored(
+                'For Python 2 use \'_print\' instead of \'print\'',
+                color='yellow',
+                attrs=['bold']))
     print()
     readline.set_history_length(100)
     try:
