@@ -23,8 +23,8 @@ setuptools.setup(
     include_package_data=True,
     ext_modules=[pptop_injector],
     install_requires=[
-        'psutil', 'tabulate', 'atasker', 'pyyaml', 'yappi', 'termcolor',
-        'pygments'
+        'wheel', 'psutil', 'tabulate', 'atasker', 'pyyaml', 'yappi',
+        'termcolor', 'pygments'
     ],
     classifiers=('Programming Language :: Python :: 3',
                  'License :: OSI Approved :: MIT License',
