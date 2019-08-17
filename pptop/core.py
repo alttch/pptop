@@ -74,7 +74,38 @@ logging.getLogger('atasker/workers').setLevel(100)
 dir_me = os.path.dirname(os.path.realpath(__file__))
 
 config = {}
+
 plugins = {}
+events_by_key = {
+    'f': 'filter',
+    '/': 'filter',
+    'ENTER': 'select',
+    'CTRL_L': 'ready',
+    'CTRL_I': 'reinject',
+    '`': 'console',
+    'KEY_BACKSPACE': 'delete',
+    'KEY_DC': 'delete',
+    'p': 'pause',
+    'kRIT3': 'sort-col-next',
+    'kLFT3': 'sort-col-prev',
+    'kDN3': 'sort-normal',
+    'kUP3': 'sort-reverse',
+    'KEY_LEFT': 'left',
+    'KEY_RIGHT': 'right',
+    'KEY_UP': 'up',
+    'KEY_DOWN': 'down',
+    'kLFT5': 'hshift-left',
+    'kRIT5': 'hshift-right',
+    'KEY_PPAGE': 'page-up',
+    'CTRL_B': 'page-up',
+    'KEY_NPAGE': 'page-down',
+    'CTRL_F': 'page-down',
+    'KEY_HOME': 'home',
+    'KEY_END': 'end',
+    'KEY_F(10)': 'quit',
+    ' ': 'reload',
+    'CTRL_X': 'reset'
+}
 
 plugins_autostart = []
 
@@ -146,6 +177,29 @@ def val_to_boolean(s):
     if val.lower() in ['1', 'true', 'yes', 'on', 'y']: return True
     if val.lower() in ['0', 'false', 'no', 'off', 'n']: return False
     return None
+
+
+def format_key(k):
+    if len(k) == 1:
+        z = ord(k)
+        if z == 6:
+            k = 'KEY_NPAGE'
+        elif z == 2:
+            k = 'KEY_PPAGE'
+        elif z == 10:
+            k = 'ENTER'
+        elif z < 27:
+            k = 'CTRL_' + chr(z + 64)
+    log('key pressed: {}'.format(
+        k if len(k) > 1 else ((
+            'ord=' + str(ord(k))) if ord(k) < 32 else '"{}"'.format(k))))
+    return k
+
+
+def get_key_event(k):
+    event = events_by_key.get(k, k)
+    log('key event: {}'.format(event))
+    return event
 
 
 def dict_merge(dct, merge_dct, add_keys=True):
@@ -301,7 +355,6 @@ def select_process(stdscr):
     selector.selectable = True
     selector.scr_lock = scr_lock
     selector.finish_event = threading.Event()
-    selector.key_event = None
     selector.lock = threading.Lock()
     selector.title = 'Select process'
     selector.start()
@@ -311,12 +364,8 @@ def select_process(stdscr):
             try:
                 if resize_event.is_set():
                     raise ResizeException
-                k = stdscr.getkey()
-                if len(k) == 1:
-                    if ord(k) == 6:
-                        k = 'KEY_NPAGE'
-                    elif ord(k) == 2:
-                        k = 'KEY_PPAGE'
+                k = format_key(stdscr.getkey())
+                event = get_key_event(k)
             except KeyboardInterrupt:
                 return
             except (ResizeException, curses.error):
@@ -326,19 +375,20 @@ def select_process(stdscr):
                     resize_handler(stdscr)
                     selector.resize()
                 continue
-            if k in ['q', 'KEY_F(10)']:
+            if k == 'q' or event == 'quit':
                 selector.stop(wait=False)
                 return
-            elif k in ('f', '/'):
+            elif event == 'filter':
                 apply_filter(stdscr, selector)
-            elif k == '\n':
+            elif event == 'select':
                 selector.stop(wait=False)
                 if not selector.dtd:
                     return None
                 return psutil.Process(selector.dtd[selector.cursor]['pid'])
             else:
                 with scr_lock:
-                    selector.key_event = k
+                    selector.key_code = k
+                    selector.key_event = event
                     selector.trigger()
         except:
             log_traceback()
@@ -733,6 +783,7 @@ def switch_plugin(stdscr, new_plugin):
         p.stdscr = stdscr
     p._previous_plugin = _d.current_plugin
     p.key_event = None
+    p.key_code = None
     if new_plugin['inj'] is False:
         new_plugin['inj'] = True
         command('.inject', new_plugin['i'])
@@ -753,7 +804,6 @@ def run():
                     command('.inject', plugin['i'])
                 p = plugin['p']
                 if p.background:
-                    p.key_event = None
                     p.stdscr = stdscr
                     p.start()
 
@@ -843,21 +893,8 @@ def run():
                 try:
                     if resize_event.is_set():
                         raise ResizeException
-                    k = stdscr.getkey()
-                    if len(k) == 1:
-                        z = ord(k)
-                        if z == 6:
-                            k = 'KEY_NPAGE'
-                        elif z == 2:
-                            k = 'KEY_PPAGE'
-                        elif z == 10:
-                            k = 'ENTER'
-                        elif z < 27:
-                            k = 'CTRL_' + chr(z + 64)
-                    log('key pressed: {}'.format(
-                        k if len(k) > 1 else ((
-                            'ord=' +
-                            str(ord(k))) if ord(k) < 32 else '"{}"'.format(k))))
+                    k = format_key(stdscr.getkey())
+                    event = get_key_event(k)
                 except KeyboardInterrupt:
                     return
                 except (ResizeException, curses.error):
@@ -872,7 +909,7 @@ def run():
                     return
                 elif k in plugin_shortcuts:
                     switch_plugin(stdscr, plugin_shortcuts[k])
-                elif k == 'CTRL_L':
+                elif event == 'ready':
                     try:
                         result = command('.ready')
                     except:
@@ -884,7 +921,7 @@ def run():
                         else:
                             print_message(
                                 stdscr, 'Command failed', color=palette.ERROR)
-                elif k == 'CTRL_I' and _d.current_plugin['inj'] is not None:
+                elif event == 'reinject' and _d.current_plugin['inj'] is not None:
                     try:
                         result = command('.inject', _d.current_plugin['i'])
                     except:
@@ -898,41 +935,42 @@ def run():
                                 stdscr,
                                 'Plugin re-injection failed',
                                 color=palette.ERROR)
-                elif k in ['KEY_F(10)']:
+                elif event == 'quit':
                     _d.current_plugin['p'].stop(wait=False)
                     show_process_info.stop(wait=False)
                     show_bottom_bar.stop(wait=False)
                     return
-                elif k == '`':
+                elif event == 'console':
                     with scr_lock:
                         end_curses(stdscr)
                         cli_mode()
                         stdscr = init_curses()
                         _d.current_plugin['p'].stdscr = stdscr
                         _d.current_plugin['p'].init_render_window()
-                elif k in ('f', '/'):
+                elif event == 'filter':
                     apply_filter(stdscr, _d.current_plugin['p'])
-                elif k == 'p':
+                elif event == 'pause':
                     _d.current_plugin['p'].toggle_pause()
-                elif k in _d.current_plugin['p'].inputs:
+                elif event in _d.current_plugin['p'].inputs:
                     with scr_lock:
                         try:
-                            prev_value = _d.current_plugin['p'].get_input(k)
+                            prev_value = _d.current_plugin['p'].get_input(event)
                         except ValueError:
                             continue
                         value = prompt(
                             stdscr,
-                            ps=_d.current_plugin['p'].get_input_prompt(k),
+                            ps=_d.current_plugin['p'].get_input_prompt(event),
                             value=prev_value if prev_value is not None else '')
-                        _d.current_plugin['p'].inputs[k] = value
+                        _d.current_plugin['p'].inputs[event] = value
                         try:
                             _d.current_plugin['p'].handle_input(
-                                k, value, prev_value)
+                                event, value, prev_value)
                         except:
                             pass
                 else:
                     with scr_lock:
-                        _d.current_plugin['p'].key_event = k
+                        _d.current_plugin['p'].key_code = k
+                        _d.current_plugin['p'].key_event = event
                         _d.current_plugin['p'].trigger()
             except:
                 log_traceback()
@@ -1095,6 +1133,15 @@ def start():
         _d.output_as_json = a.json
 
     else:
+        ebk = {}
+        global_keys = config.get('keys')
+        if global_keys:
+            for event, keys in global_keys.items():
+                if keys is not None:
+                    for k in keys if isinstance(keys, list) else [keys]:
+                        ebk[str(k)] = str(event)
+
+        events_by_key.update(ebk)
         plugin_options = {}
 
         for x in a.plugin_options or []:

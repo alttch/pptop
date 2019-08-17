@@ -41,8 +41,8 @@ class Plugin(GenericPlugin):
                     'version': version
                 })
 
-    def handle_key_event(self, event, dtd):
-        if event == 'ENTER':
+    def handle_key_event(self, event, key, dtd):
+        if event == 'select':
             background_task(self.switch_plugin)(
                 self.stdscr, self.get_plugin(self.get_selected_row()['id']))
 

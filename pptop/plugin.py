@@ -98,7 +98,8 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.data_records_max = None  # max data records
         self.msg = ''  # title message (reserved)
         self.inputs = {}  # key - hot key, value - input value
-        self.key_event = None  # last key pressed, for custom key event handling
+        self.key_code = None  # last key pressed, for custom key event handling
+        self.key_event = None  # last key event
 
     def on_load(self):
         '''
@@ -149,14 +150,14 @@ class GenericPlugin(BackgroundIntervalWorker):
         Set sorting_col and sorting_rev
         '''
         if self.sorting_enabled:
-            if self.key_event in ['kLFT3', 'kRIT3']:
+            if self.key_event in ['sort-col-prev', 'sort-col-next']:
                 if self.data:
                     cols = list(self.data[0])
                     if not self.sorting_col:
                         self.sorting_col = cols[0]
                     try:
                         pos = cols.index(self.sorting_col)
-                        pos += 1 if self.key_event == 'kRIT3' else -1
+                        pos += 1 if self.key_event == 'sort-col-next' else -1
                         if pos > len(cols) - 1:
                             pos = 0
                         elif pos < 0:
@@ -164,9 +165,9 @@ class GenericPlugin(BackgroundIntervalWorker):
                         self.sorting_col = cols[pos]
                     except:
                         pass
-            elif self.key_event == 'kDN3':
+            elif self.key_event == 'sort-normal':
                 self.sorting_rev = False
-            elif self.key_event == 'kUP3':
+            elif self.key_event == 'sort-reverse':
                 self.sorting_rev = True
 
     def is_visible(self):
@@ -189,19 +190,19 @@ class GenericPlugin(BackgroundIntervalWorker):
         max_pos = len(dtd) - 1
         if max_pos < 0: max_pos = 0
         if self.key_event:
-            if self.key_event == 'KEY_LEFT':
+            if self.key_event == 'left':
                 self.hshift -= 1
                 if self.hshift < 0:
                     self.hshift = 0
-            elif self.key_event == 'kLFT5':
+            elif self.key_event == 'hshift-left':
                 self.hshift -= 20
                 if self.hshift < 0:
                     self.hshift = 0
-            elif self.key_event == 'KEY_RIGHT':
+            elif self.key_event == 'right':
                 self.hshift += 1
-            elif self.key_event == 'kRIT5':
+            elif self.key_event == 'hshift-right':
                 self.hshift += 20
-            if self.key_event == 'KEY_DOWN':
+            if self.key_event == 'down':
                 if self.cursor_enabled:
                     self.cursor += 1
                     if self.cursor > max_pos:
@@ -211,23 +212,23 @@ class GenericPlugin(BackgroundIntervalWorker):
                 else:
                     self.cursor += 1
                     self.shift += 1
-            elif self.key_event == 'KEY_UP':
+            elif self.key_event == 'up':
                 if self.cursor_enabled:
                     self.cursor -= 1
                 else:
                     self.cursor -= 1
                     self.shift -= 1
-            elif self.key_event == 'KEY_NPAGE':
+            elif self.key_event == 'page-down':
                 self.cursor += height - 1
                 self.shift += height - 1
-            elif self.key_event == 'KEY_PPAGE':
+            elif self.key_event == 'page-up':
                 self.cursor -= height + 1
                 self.shift -= height + 1
-            elif self.key_event == 'KEY_HOME':
+            elif self.key_event == 'home':
                 self.hshift = 0
                 self.cursor = 0
                 self.shift = 0
-            elif self.key_event == 'KEY_END':
+            elif self.key_event == 'end':
                 self.cursor = max_pos
                 self.shift = max_pos - height + 2
             if self.cursor < 0:
@@ -510,12 +511,13 @@ class GenericPlugin(BackgroundIntervalWorker):
             self.key_event = 'KEY_RESIZE'
             self._display()
 
-    def handle_key_event(self, event, dtd):
+    def handle_key_event(self, event, key, dtd):
         '''
         Handle custom key event
 
         Args:
-            event: curses getkey() event
+            event: key event
+            key: key code
             dtd: data to be displayed (list)
 
         Returns:
@@ -594,7 +596,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         Primary plugin executor method
         '''
         try:
-            if (not self.key_event or self.key_event == ' '
+            if (not self.key_event or self.key_event == 'reload'
                ) and not self._paused and not self._loader_active:
                 self._loader_active = True
                 if self.background_loader:
@@ -646,11 +648,12 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.dtd = dtd
         if self.key_event:
             if not self.filter: self.print_message()
-            if self.handle_key_event(event=self.key_event, dtd=dtd) is False:
+            if self.handle_key_event(
+                    event=self.key_event, key=self.key_code, dtd=dtd) is False:
                 return False
         self.handle_pager_event(dtd=dtd)
-        if self.key_event:
-            self.key_event = None
+        self.key_event = None
+        self.key_code = None
         if dtd:
             self.render(dtd=dtd)
         else:

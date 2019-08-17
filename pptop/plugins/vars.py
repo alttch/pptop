@@ -106,8 +106,8 @@ class Plugin(GenericPlugin):
         }
         return ps.get(var)
 
-    def handle_key_event(self, event, dtd):
-        if event in ['KEY_BACKSPACE', 'KEY_DC']:
+    def handle_key_event(self, event, key, dtd):
+        if event == 'delete':
             el = self.get_selected_row()
             if el:
                 try:
@@ -120,7 +120,7 @@ class Plugin(GenericPlugin):
             if el:
                 self.add_variable(el['name'])
                 self.trigger(force=True)
-        elif event == 'CTRL_X':
+        elif event == 'reset':
             self.injection_command(cmd='clear')
             self.print_message('Variable list cleared', color=palette.WARNING)
 

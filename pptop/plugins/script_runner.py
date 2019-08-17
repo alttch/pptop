@@ -37,8 +37,8 @@ class Plugin(GenericPlugin):
             except:
                 pass
 
-    def handle_key_event(self, event, dtd):
-        if event == 'ENTER':
+    def handle_key_event(self, event, key, dtd):
+        if event == 'select':
             d = self.get_selected_row()
             if d:
                 script = d['script']

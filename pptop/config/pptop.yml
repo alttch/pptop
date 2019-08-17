@@ -4,6 +4,39 @@ console:
 display:
   colors: true
   glyphs: true
+keys:
+  filter:
+    - f
+    - "/"
+  select: ENTER
+  ready: CTRL_L
+  reinject: CTRL_I
+  console: "`"
+  delete:
+    - KEY_BACKSPACE
+    - KEY_DC
+  pause: p
+  sort-col-next: kRIT3
+  sort-col-prev: kLFT3
+  sort-normal: kDN3
+  sort-reverse: kUP3
+  left: KEY_LEFT
+  right: KEY_RIGHT
+  up: KEY_UP
+  down: KEY_DOWN
+  hshift-left: kLFT5
+  hshift-right: kRIT5
+  page-up:
+    - KEY_PPAGE
+    - CTRL_B
+  page-down:
+    - KEY_NPAGE
+    - CTRL_F
+  home: KEY_HOME
+  end: KEY_END
+  quit: KEY_F(10)
+  reload: " "
+  reset: CTRL_X
 plugins:
   plugin_selector:
     default: true

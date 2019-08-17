@@ -20,8 +20,8 @@ class Plugin(GenericPlugin):
         self.sorting_col = 'ttot'
         self.background_loader = True
 
-    def handle_key_event(self, event, dtd, **kwargs):
-        if event == 'CTRL_X':
+    def handle_key_event(self, event, key, dtd, **kwargs):
+        if event == 'reset':
             self.injection_command(cmd='reset')
             self.print_message(
                 'Profiler stats were reset', color=palette.WARNING)
