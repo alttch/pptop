@@ -63,7 +63,7 @@ class Plugin(GenericPlugin):
                 if self.add_variable(value):
                     self.trigger(force=True)
                     if var == 'e' and value != prev_value:
-                        self.key_event = 'KEY_DC'
+                        self.key_event = 'delete'
                     self.inputs[var] = None
         elif var == 'l':
             try:
@@ -162,9 +162,9 @@ def injection(cmd=None, var=None):
     elif cmd == 'del':
         g.vars.remove(parse_var(var))
     elif cmd == 'clear':
-        g.vars.clear()
+        g.vars = []
     elif cmd == 'replace':
-        g.vars.clear()
+        g.vars = []
         for v in var:
             g.vars.append(parse_var(v))
     else:
