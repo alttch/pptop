@@ -7,7 +7,7 @@ line key:
 
 .. code:: shell
 
-    pptp -f <CONFIG_FILE>
+    pptop -f <CONFIG_FILE>
 
 Configuration file is YAML file, which looks like:
 
