@@ -43,7 +43,7 @@ server receives "bye" command, it immediately terminate itself and loaded
 plugins.
 '''
 
-__injection_version__ = '0.2.7'
+__injection_version__ = '0.3.0'
 
 import threading
 import struct
