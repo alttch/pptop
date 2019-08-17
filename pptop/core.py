@@ -22,7 +22,10 @@ __copyright__ = 'Copyright (C) 2019 Altertech'
 __license__ = 'MIT'
 __version__ = '0.2.6'
 
-__doc__ = __doc__.format(version=__version__, license=__license__)
+try:
+    __doc__ = __doc__.format(version=__version__, license=__license__)
+except:
+    pass
 
 import curses
 import atasker
@@ -166,7 +169,7 @@ def dict_merge(dct, merge_dct, add_keys=True):
 
 
 def colored(text, color=None, on_color=None, attrs=None):
-    if not config['display'].get('colors'):
+    if not config['display'].get('colors') or not sys.stdout.isatty():
         return str(text)
     else:
         return termcolor.colored(
@@ -180,18 +183,20 @@ def format_cmdline(p, injected):
     return cmdline
 
 
+def format_json(obj):
+    import json
+    return json.dumps(obj, indent=4, sort_keys=True)
+
+
+def print_json(obj):
+    j = format_json(obj)
+    if config['display'].get('colors') and sys.stdout.isatty():
+        from pygments import highlight, lexers, formatters
+        j = highlight(j, lexers.JsonLexer(), formatters.TerminalFormatter())
+    print(j)
+
+
 def cli_mode():
-
-    def format_json(obj):
-        import json
-        return json.dumps(obj, indent=4, sort_keys=True)
-
-    def print_json(obj):
-        j = format_json(obj)
-        if config['display'].get('colors'):
-            from pygments import highlight, lexers, formatters
-            j = highlight(j, lexers.JsonLexer(), formatters.TerminalFormatter())
-        print(j)
 
     os.system('clear')
     print(
@@ -584,7 +589,9 @@ _d = SimpleNamespace(
     child_cmd=None,
     child_args='',
     status=None,
-    console_json_mode=True)
+    console_json_mode=True,
+    exec_code=None,
+    output_as_json=False)
 
 _cursors = SimpleNamespace(
     files_cursor=0,
@@ -791,6 +798,24 @@ def run():
 
         log('connected')
 
+        if _d.exec_code:
+            end_curses(stdscr)
+            result = command('.x', _d.exec_code)
+            if stdscr:
+                os.system('clear')
+            if result[0] == 0:
+                if _d.output_as_json:
+                    print_json(result[1])
+                else:
+                    print(result[1] if result[1] else '')
+            else:
+                print(
+                    colored(
+                        '{}: {}'.format(result[1], result[2]),
+                        color='red',
+                        attrs=['bold']))
+            return
+
         if not stdscr:
             stdscr = init_curses(initial=True)
 
@@ -983,6 +1008,15 @@ def start():
         action='append',
         dest='plugin_options')
     ap.add_argument('--log', metavar='FILE', help='Send debug log to file')
+    ap.add_argument(
+        '-x',
+        '--exec',
+        help='Exec code from the specified file and exit ' + \
+                ' (code may put result to "out" var)',
+        metavar='FILE',
+        dest='_exec')
+    ap.add_argument(
+        '-J', '--json', help='Output exec result as JSON', action='store_true')
 
     try:
         import argcomplete
@@ -1004,16 +1038,6 @@ def start():
         _d.gdb = a.gdb
 
     log('initializing')
-
-    plugin_options = {}
-
-    for x in a.plugin_options or []:
-        try:
-            o, v = x.split('=', 1)
-        except:
-            o = x
-            v = None
-        format_plugin_option(plugin_options, o, v)
 
     if a.file:
         try:
@@ -1071,83 +1095,100 @@ def start():
     if a.raw or a.disable_glyphs:
         config['display']['glyphs'] = False
 
-    if plugin_options:
-        config.update(dict_merge(config, {'plugins': plugin_options}))
+    if a._exec:
+        with open(a._exec) as fd:
+            _d.exec_code = fd.read()
+        _d.output_as_json = a.json
 
-    log('loading plugins')
+    else:
+        plugin_options = {}
 
-    plugins.clear()
-    for i, v in config.get('plugins', {}).items():
-        log('+ plugin ' + i)
-        if v is None: v = {}
-        try:
-            mod = importlib.import_module('pptop.plugins.' + i)
-            mod.__version__ = 'built-in'
-        except ModuleNotFoundError:
-            mod = importlib.import_module('pptopcontrib-' + i)
+        for x in a.plugin_options or []:
             try:
-                mod.__version__
+                o, v = x.split('=', 1)
             except:
-                raise RuntimeError('Please specify __version__ in plugin file')
-        plugin = {'m': mod}
-        plugins[i] = plugin
-        p = mod.Plugin(interval=float(v.get('interval', 1)))
-        p.command = command
-        p.get_plugins = get_plugins
-        p.get_plugin = get_plugin
-        p.get_config_dir = get_config_dir
-        p.switch_plugin = switch_plugin
-        p.scr_lock = scr_lock
-        p.get_process = get_process
-        p.get_process_path = get_process_path
-        plugin['p'] = p
-        injection = {'id': i}
-        need_inject = False
-        try:
-            injection['l'] = inspect.getsource(mod.injection_load)
-            need_inject = True
-        except:
-            pass
-        try:
-            injection['i'] = inspect.getsource(mod.injection)
-            need_inject = True
-        except:
-            pass
-        try:
-            injection['u'] = inspect.getsource(mod.injection_unload)
-            need_inject = True
-        except:
-            pass
-        if need_inject:
-            plugin['inj'] = False
-            plugin['i'] = injection
-        else:
-            plugin['inj'] = None
-        if not _d.default_plugin or val_to_boolean(
-                v.get('default')) or i == a.plugin:
-            _d.default_plugin = plugin
-        p_cfg = v.get('config')
-        p.config = {} if p_cfg is None else p_cfg
-        p.on_load()
-        if 'l' in injection:
-            injection['lkw'] = p.get_injection_load_params()
-        if 'shortcut' in v:
-            sh = v['shortcut']
-            plugin['shortcut'] = sh
-            plugin_shortcuts[sh] = plugin
-            if sh.startswith('KEY_F('):
+                o = x
+                v = None
+            format_plugin_option(plugin_options, o, v)
+
+        if plugin_options:
+            config.update(dict_merge(config, {'plugins': plugin_options}))
+
+        log('loading plugins')
+
+        plugins.clear()
+        for i, v in config.get('plugins', {}).items():
+            log('+ plugin ' + i)
+            if v is None: v = {}
+            try:
+                mod = importlib.import_module('pptop.plugins.' + i)
+                mod.__version__ = 'built-in'
+            except ModuleNotFoundError:
+                mod = importlib.import_module('pptopcontrib-' + i)
                 try:
-                    f = int(sh[6:-1])
-                    if f <= 10:
-                        bottom_bar_help[f] = p.short_name
+                    mod.__version__
                 except:
-                    pass
-        else:
-            plugin['shortcut'] = ''
-        if 'filter' in v:
-            p.filter = str(v['filter'])
-        if v.get('autostart'):
-            plugins_autostart.append(plugin)
+                    raise RuntimeError(
+                        'Please specify __version__ in plugin file')
+            plugin = {'m': mod}
+            plugins[i] = plugin
+            p = mod.Plugin(interval=float(v.get('interval', 1)))
+            p.command = command
+            p.get_plugins = get_plugins
+            p.get_plugin = get_plugin
+            p.get_config_dir = get_config_dir
+            p.switch_plugin = switch_plugin
+            p.scr_lock = scr_lock
+            p.get_process = get_process
+            p.get_process_path = get_process_path
+            plugin['p'] = p
+            injection = {'id': i}
+            need_inject = False
+            try:
+                injection['l'] = inspect.getsource(mod.injection_load)
+                need_inject = True
+            except:
+                pass
+            try:
+                injection['i'] = inspect.getsource(mod.injection)
+                need_inject = True
+            except:
+                pass
+            try:
+                injection['u'] = inspect.getsource(mod.injection_unload)
+                need_inject = True
+            except:
+                pass
+            if need_inject:
+                plugin['inj'] = False
+                plugin['i'] = injection
+            else:
+                plugin['inj'] = None
+            if not _d.default_plugin or val_to_boolean(
+                    v.get('default')) or i == a.plugin:
+                _d.default_plugin = plugin
+            p_cfg = v.get('config')
+            p.config = {} if p_cfg is None else p_cfg
+            p.on_load()
+            if 'l' in injection:
+                injection['lkw'] = p.get_injection_load_params()
+            if 'shortcut' in v:
+                sh = v['shortcut']
+                plugin['shortcut'] = sh
+                plugin_shortcuts[sh] = plugin
+                if sh.startswith('KEY_F('):
+                    try:
+                        f = int(sh[6:-1])
+                        if f <= 10:
+                            bottom_bar_help[f] = p.short_name
+                    except:
+                        pass
+            else:
+                plugin['shortcut'] = ''
+            if 'filter' in v:
+                p.filter = str(v['filter'])
+            if v.get('autostart'):
+                plugins_autostart.append(plugin)
     atasker.task_supervisor.set_thread_pool(
         pool_size=100, reserve_normal=100, reserve_high=50)
     atasker.task_supervisor.start()

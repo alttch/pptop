@@ -3,14 +3,16 @@
 
 import curses
 import os
+import sys
 
-from pptop.core import start
+from pptop.core import start, _d
 
 exit_code = 1
 try:
     exit_code = start()
 except Exception as e:
-    print(e)
+    print(e, file=sys.stderr)
+    exit_code = 1
 finally:
     # always end curses
     try:
@@ -18,4 +20,5 @@ finally:
     except:
         pass
 # force exit, even if some plugin freezed
-os._exit(exit_code)
+if _d.default_plugin or _d.current_plugin: os._exit(exit_code)
+else: sys.exit(exit_code)

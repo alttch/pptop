@@ -33,6 +33,7 @@ Commands:
     .path            Get sys.path
     .inject          Inject a plugin
     .le              Get last exception
+    .x               Exec code
     .exec            Exec command
     <plugin_id>      Command for plugin
     .bye             End communcation
@@ -154,6 +155,16 @@ def loop(cpid, runner_mode=False):
                                         if runner_mode else 1)
                     elif cmd == '.path':
                         send_serialized(connection, frame_id, sys.path)
+                    elif cmd == '.x':
+                        x = {}
+                        try:
+                            exec(params, x)
+                            result = (0, x.get('out'))
+                        except:
+                            log_traceback()
+                            e = sys.exc_info()
+                            result = (1, e[0].__name__, e[1])
+                        send_serialized(connection, frame_id, result)
                     elif cmd == '.exec':
                         try:
                             if params.startswith('help'):

@@ -112,7 +112,6 @@ https://pptop.readthedocs.io/
 
 ## TODO
 
-* [ ] exec-only mode (in progress)
 * [ ] More plugins
 * [ ] Advanced filtering
 * [ ] Data snapshots
