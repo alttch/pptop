@@ -96,11 +96,11 @@ def init_curses(initial=False):
     stdscr = curses.initscr()
     if initial:
         if curses.has_colors():
-            curses.start_color()
-            curses.use_default_colors()
-            for i in range(0, curses.COLORS):
-                curses.init_pair(i + 1, i, -1)
             if config['display'].get('colors'):
+                curses.start_color()
+                curses.use_default_colors()
+                for i in range(0, curses.COLORS):
+                    curses.init_pair(i + 1, i, -1)
                 init_color_palette()
             if config['display'].get('glyphs'):
                 init_glyphs()
@@ -265,12 +265,15 @@ class ProcesSelector(GenericPlugin):
     def load_data(self):
         self.data.clear()
         for p in psutil.process_iter():
-            name = p.name()
-            if name in ['python', 'python3'] and p.pid != os.getpid():
-                self.data.append({
-                    'pid': p.pid,
-                    'command line': ' '.join(p.cmdline())
-                })
+            try:
+                name = p.name()
+                if name in ['python', 'python3'] and p.pid != os.getpid():
+                    self.data.append({
+                        'pid': p.pid,
+                        'command line': ' '.join(p.cmdline())
+                    })
+            except:
+                pass
 
     def render(self, dtd):
         super().render(dtd)

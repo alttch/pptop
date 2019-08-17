@@ -47,6 +47,15 @@ Console UI is broken
 Try disabling unicode glyphs (*"pptop --disable-glyphs"*) or run ppTOP in raw
 mode (no colors, no glyphs, *"pptop -R"*)
 
+Doesn't work properly under tmux
+================================
+
+Sometimes this happens with cursed-based UIs. Try
+
+.. code:: shell
+
+    env TERM=xterm pptop
+
 Other
 =====
 
