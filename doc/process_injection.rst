@@ -15,6 +15,9 @@ from native. Inject method can be specified in
 :doc:`configuration<configuration>` (default is *native*) or set with
 "--inject-method" command line option.
 
+If method is specified neither in configuration, nor in command line, *auto* is
+used.
+
 All methods require *gdb* and of course an access to the process, so you must
 be root or launch ppTOP under the same user. Only connections to Python 3
 processes are supported.
