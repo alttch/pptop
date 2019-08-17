@@ -258,7 +258,6 @@ def loop(cpid, runner_mode=False):
                 break
     except Exception as e:
         log_traceback()
-        pass
     for i, v in injections.items():
         u = v.get('u')
         if u:
