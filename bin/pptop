@@ -5,13 +5,13 @@ import curses
 import os
 import sys
 
-from pptop.core import start, _d
+from pptop.core import start, colored, _d
 
 exit_code = 1
 try:
     exit_code = start()
 except Exception as e:
-    print(e, file=sys.stderr)
+    print(colored(e, color='red', attrs=['bold']), file=sys.stderr)
     exit_code = 1
 finally:
     # always end curses
