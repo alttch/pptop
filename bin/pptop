@@ -11,7 +11,10 @@ exit_code = 1
 try:
     exit_code = start()
 except Exception as e:
-    print(colored(e, color='red', attrs=['bold']), file=sys.stderr)
+    try:
+        print(colored(e, color='red', attrs=['bold']), file=sys.stderr)
+    except:
+        print(e, file=sys.stderr)
     exit_code = 1
 finally:
     # always end curses
