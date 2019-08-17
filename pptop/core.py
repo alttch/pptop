@@ -953,7 +953,7 @@ def start():
     ap.add_argument(
         '--inject-method',
         choices=['auto', 'native', 'loadcffi', 'unsafe'],
-        help='Injection method')
+        help='Inject method')
     ap.add_argument(
         '-w',
         '--wait',
