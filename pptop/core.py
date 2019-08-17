@@ -102,8 +102,8 @@ def init_curses(initial=False):
                 for i in range(0, curses.COLORS):
                     curses.init_pair(i + 1, i, -1)
                 init_color_palette()
-            if config['display'].get('glyphs'):
-                init_glyphs()
+        if config['display'].get('glyphs'):
+            init_glyphs()
     curses.noecho()
     curses.cbreak()
     stdscr.keypad(True)
