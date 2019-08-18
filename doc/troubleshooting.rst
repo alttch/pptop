@@ -61,7 +61,7 @@ I see a lot of "pickle" calls
 
 Make sure cPickle is installed for the Python which runs injected process.
 Python 3 has cPickle integrated by default. ppTOP injection looks for cPickle
-module in all variations and only then fall back to usual "pickle".
+module in all variations and only then falls back to usual "pickle".
 
 Other
 =====
