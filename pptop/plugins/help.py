@@ -14,12 +14,12 @@ class Plugin(GenericPlugin):
 
     def load_data(self):
         self.data.clear()
-        self.data.append({'help': ''})
         try:
             pdoc = textwrap.dedent(self._previous_plugin['p'].__doc__)
         except:
             pdoc = None
         if pdoc:
+            self.data.append({'help': ''})
             for x in pdoc.strip().split('\n'):
                 self.data.append({'help': x})
             self.data.append({'help': ''})
