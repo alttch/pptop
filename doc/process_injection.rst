@@ -55,8 +55,11 @@ unsafe
 Lock GIL and call *PyRun_SimpleString* without any preparations and helpers.
 Run and pray.
 
-Injection into Python versions, older than 3.4
+Injecting into Python versions, older than 3.4
 ==============================================
 
-Use "-p" or "--protocol" command line options. Note that some plugins may not
-work.
+ppTOP tries to agree on pickle version protocol with injected process
+automatically. If it fails, use "-p" or "--protocol" command line options. Note
+that some plugins may not work.
+
+Also, note that pickle protocols older than version 4, may be slow.
