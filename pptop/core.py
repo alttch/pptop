@@ -228,11 +228,14 @@ def dict_merge(dct, merge_dct, add_keys=True):
 
 
 def colored(text, color=None, on_color=None, attrs=None):
-    if not config['display'].get('colors') or not sys.stdout.isatty():
+    try:
+        if not config['display'].get('colors') or not sys.stdout.isatty():
+            return str(text)
+        else:
+            return termcolor.colored(
+                str(text), color=color, on_color=on_color, attrs=attrs)
+    except:
         return str(text)
-    else:
-        return termcolor.colored(
-            str(text), color=color, on_color=on_color, attrs=attrs)
 
 
 err = partial(colored, color='red', attrs=['bold'])
