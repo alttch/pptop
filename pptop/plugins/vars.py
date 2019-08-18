@@ -137,7 +137,7 @@ class Plugin(GenericPlugin):
     def get_table_row_color(self, element=None, raw=None):
         if isinstance(element['value'],
                       str) and element['value'].startswith('!ERROR'):
-            return palette.ERROR
+            return palette.RED
 
     async def run(self, *args, **kwargs):
         super().run(*args, **kwargs)
@@ -186,13 +186,13 @@ def injection(cmd=None, var=None):
             r = {'name': '{}::{}'.format(mod, var)}
             try:
                 ge = {}
-                src = 'import {}; out={}.{}'.format(mod, mod, var)
+                src = 'import {}; out=str({}.{})'.format(mod, mod, var)
                 exec(src, ge)
                 val = ge['out']
-                r['value'] = str(ge['out'])
+                r['value'] = ge['out']
             except:
                 import sys
                 e = sys.exc_info()
-                r['value'] = '!ERROR {}: {}'.format(e[0].__name__, e[1])
+                r['value'] = '!ERROR {}: {}'.format(e[0].__name__, str(e[1]))
             result.append(r)
         return result
