@@ -1050,6 +1050,7 @@ def run():
                         end_curses(stdscr)
                         cli_mode()
                         stdscr = init_curses()
+                        hide_cursor()
                         _d.current_plugin['p'].stdscr = stdscr
                         _d.current_plugin['p'].init_render_window()
                 elif event == 'filter':
