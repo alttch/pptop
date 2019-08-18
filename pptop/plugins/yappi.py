@@ -9,10 +9,6 @@ class Plugin(GenericPlugin):
     '''
     yappi plugin: function profiler
 
-    Shortcuts:
-
-        Ctrl-x  : reset stats
-
     requires yappi profiler module https://github.com/sumerc/yappi
     '''
 

@@ -12,12 +12,10 @@ class Plugin(GenericPlugin):
     Shortcuts:
 
         i      : insert new variable/function
-        DEL    : delete variable/function
         e      : edit
         l      : load variable list from file
         s      : save variable list to file
         Ctrl-d : duplicate
-        Ctrl-x : delete all variables
 
     Items should be entered as mod::object, e.g.
 

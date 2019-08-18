@@ -12,7 +12,8 @@ class Plugin(GenericPlugin):
         ttot: time spent total
         scnt: schedule count
 
-    requires yappi profiler module https://github.com/sumerc/yappi
+    requires yappi profiler module for times and schedule count
+    https://github.com/sumerc/yappi
     '''
 
     def on_load(self):
