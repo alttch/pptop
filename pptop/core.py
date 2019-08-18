@@ -415,7 +415,10 @@ def select_process(stdscr):
 
     with scr_lock:
         stdscr.clear()
-        curses.curs_set(0)
+        try:
+            curses.curs_set(0)
+        except:
+            pass
     selector = ProcesSelector(interval=1)
     selector.events = 0
     selector.stdscr = stdscr
@@ -973,7 +976,10 @@ def run():
         height, width = stdscr.getmaxyx()
         stdscr.clear()
         stdscr.refresh()
-        curses.curs_set(0)
+        try:
+            curses.curs_set(0)
+        except:
+            pass
         switch_plugin(stdscr, _d.default_plugin)
         atasker.background_task(show_process_info.start)(stdscr=stdscr, p=p)
         atasker.background_task(show_bottom_bar.start)(stdscr=stdscr)

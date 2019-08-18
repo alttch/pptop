@@ -798,13 +798,19 @@ def prompt(stdscr, ps=None, value=''):
     stdscr.addstr(top_lines + 1, 0, ' ' + ps, palette.PROMPT)
     editwin = curses.newwin(1, width - len(ps) - 1, top_lines + 1, len(ps) + 1)
     from curses.textpad import Textbox
-    curses.curs_set(2)
+    try:
+        curses.curs_set(2)
+    except:
+        pass
     editwin.addstr(0, 0, value)
     box = Textbox(editwin, insert_mode=True)
     stdscr.refresh()
     box.edit(enter_is_terminate)
     result = box.gather().rstrip()
-    curses.curs_set(0)
+    try:
+        curses.curs_set(0)
+    except:
+        pass
     stdscr.move(top_lines + 1, 0)
     stdscr.clrtoeol()
     stdscr.refresh()
