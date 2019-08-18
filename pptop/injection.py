@@ -3,8 +3,11 @@ Client-server communication
 
 After injection, client asks server to create socket /tmp/.pptop_<Client-PID>
 
-Server accepts only one connection to socket. After connection, client and
-server exchange data via simple binary/text protocol:
+Server accepts only one connection to socket. After connection, server sends to
+client pickle protocol version (lower or equal to requested at start) as a
+single byte.
+
+Then client and server exchange data via simple binary/text protocol:
 
 Client request:
 
