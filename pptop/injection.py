@@ -54,7 +54,19 @@ import socket
 import sys
 import os
 import time
-import pickle
+
+# try all variations on older versions
+try:
+    import cPickle as pickle
+    PICKLE_PROTOCOL = pickle.HIGHEST_PROTOCOL
+except:
+    try:
+        import _pickle as pickle
+        import pickle as _pickle_orig
+        PICKLE_PROTOCOL = _pickle_orig.HIGHEST_PROTOCOL
+    except:
+        import pickle
+        PICKLE_PROTOCOL = pickle.HIGHEST_PROTOCOL
 
 from pptop.logger import config as log_config, log, log_traceback
 
@@ -322,10 +334,10 @@ def start(cpid, protocol=None, lg=None, runner_mode=False):
     else:
         stop_logging()
     log('starting injection server for pid {}'.format(cpid))
-    if protocol and protocol <= pickle.HIGHEST_PROTOCOL:
+    if protocol and protocol <= PICKLE_PROTOCOL:
         protocol = protocol
     else:
-        protocol = pickle.HIGHEST_PROTOCOL
+        protocol = PICKLE_PROTOCOL
     t = threading.Thread(
         name='__pptop_injection_{}'.format(cpid),
         target=loop,
@@ -365,7 +377,7 @@ def main():
     ap.add_argument('-a', '--args', metavar='ARGS', help='Child args (quoted)')
     ap.add_argument('--log', metavar='FILE', help='Send debug log to file')
     a = ap.parse_args()
-    if a.protocol and a.protocol > pickle.HIGHEST_PROTOCOL:
+    if a.protocol and a.protocol > PICKLE_PROTOCOL:
         raise ValueError('Protocol {} is not supported'.format(a.protocol))
     if a.log:
         init_logging(a.log)
