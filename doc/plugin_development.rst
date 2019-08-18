@@ -215,7 +215,6 @@ All class methods
 -----------------
 
 .. automodule:: pptop.plugin
-    :members:
 .. autoclass:: GenericPlugin
     :members:
 
