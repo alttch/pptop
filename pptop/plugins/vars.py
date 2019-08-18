@@ -184,8 +184,9 @@ def injection(cmd=None, var=None):
             var = v[1]
             r = {'name': '{}::{}'.format(mod, var)}
             try:
-                ge = {'__sserl': safe_serialize}
-                src = 'import {}; out=__sserl({}.{})'.format(mod, mod, var)
+                ge = {'__pptop_sserl': safe_serialize}
+                src = 'import {}; out=__pptop_sserl({}.{})'.format(
+                    mod, mod, var)
                 exec(src, ge)
                 val = ge['out']
                 r['value'] = ge['out']
