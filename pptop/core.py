@@ -37,6 +37,7 @@ import inspect
 import threading
 import psutil
 import os
+import getpass
 import sys
 import subprocess
 import importlib
@@ -332,17 +333,22 @@ class ProcesSelector(GenericPlugin):
 
     def load_data(self):
         self.data.clear()
+        px = ['python', 'python2', 'python3']
+        user = getpass.getuser() if os.getuid() else 'root'
         for p in psutil.process_iter():
             try:
-                name = p.name()
-                if name in ['python', 'python2', 'python3'
-                           ] and p.pid != os.getpid():
-                    d = OrderedDict()
-                    d['pid'] = p.pid
-                    d['command line'] = ' '.join(p.cmdline())
-                    self.data.append(d)
+                with p.oneshot():
+                    name = p.name().split('.', 1)[0]
+                    fname = p.exe().rsplit('/', 1)[-1].split('.', 1)[0]
+                    if (name in px or
+                            fname in px) and p.pid != os.getpid() and (
+                                user == 'root' or p.username() == user):
+                        d = OrderedDict()
+                        d['pid'] = p.pid
+                        d['command line'] = ' '.join(p.cmdline())
+                        self.data.append(d)
             except:
-                pass
+                log_traceback()
 
     def render(self, dtd):
         super().render(dtd)
