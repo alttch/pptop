@@ -11,6 +11,7 @@ keys:
   select: ENTER
   ready: CTRL_L
   reinject: CTRL_I
+  interval: I
   console: "`"
   delete:
     - KEY_BACKSPACE

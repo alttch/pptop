@@ -73,6 +73,7 @@ plugins = {}
 events_by_key = {
     'f': 'filter',
     '/': 'filter',
+    'I': 'interval',
     'ENTER': 'select',
     'CTRL_L': 'ready',
     'CTRL_I': 'reinject',
@@ -163,6 +164,25 @@ def apply_filter(stdscr, plugin):
     with scr_lock:
         plugin.filter = prompt(stdscr, ps='f: ', value=plugin.filter).lower()
         plugin.trigger()
+
+
+def apply_interval(stdscr, plugin):
+    with scr_lock:
+        i = plugin.delay
+        if int(i) == i:
+            i = int(i)
+        new_interval = prompt(stdscr, ps='intreval: ', value=i)
+        try:
+            new_interval = float(new_interval)
+        except:
+            print_message(stdscr, 'Invalid interval', color=palette.ERROR)
+            return
+    plugin.stop()
+    plugin.start(_interval=new_interval)
+    plugin.show()
+    with scr_lock:
+        print_message(stdscr, 'Interval changed', color=palette.OK)
+        return
 
 
 def val_to_boolean(s):
@@ -1055,6 +1075,8 @@ def run():
                         _d.current_plugin['p'].init_render_window()
                 elif event == 'filter':
                     apply_filter(stdscr, _d.current_plugin['p'])
+                elif event == 'interval':
+                    apply_interval(stdscr, _d.current_plugin['p'])
                 elif event == 'pause':
                     _d.current_plugin['p'].toggle_pause()
                 elif event in _d.current_plugin['p'].inputs:

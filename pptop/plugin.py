@@ -860,7 +860,7 @@ def prompt(stdscr, ps=None, value=''):
     editwin = curses.newwin(1, width - len(ps) - 1, top_lines + 1, len(ps) + 1)
     from curses.textpad import Textbox
     show_cursor()
-    editwin.addstr(0, 0, value)
+    editwin.addstr(0, 0, str(value))
     box = Textbox(editwin, insert_mode=True)
     stdscr.refresh()
     box.edit(enter_is_terminate)
