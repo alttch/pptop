@@ -219,7 +219,7 @@ def loop(cpid, protocol, runner_mode=False):
                                 if result is None or \
                                             isinstance(result, dict) or \
                                             isinstance(result, list) or \
-                                            isinstance(result, tuple) or \
+                                            isinstance(result, str) or \
                                             isinstance(result, float) or \
                                             isinstance(result, int) or \
                                             isinstance(result, bool):
