@@ -531,6 +531,20 @@ class GenericPlugin(BackgroundIntervalWorker):
         '''
         return True
 
+    def handle_key_global_event(self, event, key):
+        '''
+        Handle global custom key event
+
+        Called even if plugin is stopped/unfocused/invisible. As plugin may be
+        invisible, it should carefully output data if required and always use
+        self.scr_lock
+
+        Args:
+            event: key event
+            key: key code
+        '''
+        return True
+
     def get_input(self, var):
         '''
         Called by core to get initial value of input var

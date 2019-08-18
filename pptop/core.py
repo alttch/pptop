@@ -225,7 +225,13 @@ def format_shortcut(k):
         elif k.startswith('CTRL_'):
             sh = 'C-{}'.format(k[5:].lower())
         else:
-            sh = k if len(k) == 1 else k.capitalize()
+            if len(k) == 1:
+                if k.isalpha() and k.lower() != k:
+                    sh = 'Sh-{}'.format(k.lower())
+                else:
+                    sh = k
+            else:
+                sh = k.capitalize()
     except:
         log_traceback()
     return sh
@@ -1062,6 +1068,8 @@ def run():
                         except:
                             pass
                 else:
+                    for i, plugin in plugins.items():
+                        plugin['p'].handle_key_global_event(event, k)
                     with scr_lock:
                         _d.current_plugin['p'].key_code = k
                         _d.current_plugin['p'].key_event = event
@@ -1238,6 +1246,9 @@ def start():
         global_keys = config.get('keys')
         if global_keys:
             for event, keys in global_keys.items():
+                for k, v in events_by_key.copy().items():
+                    if event == v:
+                        del events_by_key[k]
                 if keys is not None:
                     for k in keys if isinstance(keys, list) else [keys]:
                         ebk[str(k)] = str(event)
