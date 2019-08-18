@@ -766,6 +766,8 @@ def init_color_palette():
     palette.OK = curses.color_pair(3) | curses.A_BOLD
     palette.BLUE = curses.color_pair(5)
     palette.BLUE_BOLD = curses.color_pair(5) | curses.A_BOLD
+    palette.RED = curses.color_pair(2)
+    palette.RED_BOLD = curses.color_pair(2) | curses.A_BOLD
     palette.CYAN = curses.color_pair(7)
     palette.CYAN_BOLD = curses.color_pair(7) | curses.A_BOLD
     palette.MAGENTA = curses.color_pair(6)
