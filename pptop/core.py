@@ -1,16 +1,4 @@
 '''
-Global shortcuts:
-
-    Arrow keys  : Navigation
-    Alt+arrows  : Sorting
-    f, /        : Filter data
-    Space       : Force data reload
-    p           : Pause/resume current plugin
-    Ctrl-i      : Re-inject current plugin
-    Ctrl-l      : Send ready event
-    `           : Python console mode (limited)
-    Ctrl-c, F10 : Quit program
-
 ppTOP v{version} (c) Altertech
 The product is available under {license} license.
 
@@ -184,6 +172,63 @@ def val_to_boolean(s):
     return None
 
 
+key_names = {
+    'KEY_DOWN': 'Down',
+    'KEY_UP': 'Up',
+    'KEY_LEFT': 'Left',
+    'KEY_RIGHT': 'Right',
+    'KEY_HOME': 'Home',
+    'KEY_END': 'End',
+    'KEY_BACKSPACE': 'Backspace',
+    'KEY_DC': 'Del',
+    'KEY_IC': 'Ins',
+    'KEY_NPAGE': 'PgDn',
+    'KEY_PPAGE': 'PgUp',
+    'CTRL_I': 'Tab',
+    'CTRL_J': 'Enter',
+    'kLFT5': 'C-Left',
+    'kRIT5': 'C-Right',
+    'kUP5': 'C-Up',
+    'kDN5': 'C-Down',
+    'kPRV5': 'C-PgUp',
+    'kNXT5': 'C-PgDn',
+    'kHOM5': 'C-Home',
+    'kEND5': 'C-End',
+    'kLFT3': 'C-Left',
+    'kRIT3': 'C-Right',
+    'kUP3': 'C-Up',
+    'kDN3': 'C-Down',
+    'kPRV3': 'C-PgUp',
+    'kNXT3': 'C-PgDn',
+    'kHOM3': 'C-Home',
+    'kEND3': 'C-End',
+}
+
+
+def format_shortcut(k):
+    sh = k
+    try:
+        if k in key_names:
+            sh = key_names[k]
+        elif k.startswith('KEY_F('):
+            fnkey = int(sh[6:-1])
+            if fnkey > 48:
+                sh = 'M-F{}'.format(fnkey - 48)
+            elif fnkey > 24:
+                sh = 'C-F{}'.format(fnkey - 24)
+            elif fnkey > 12:
+                sh = 'Sh-F{}'.format(fnkey - 12)
+            else:
+                sh = 'F{}'.format(fnkey)
+        elif k.startswith('CTRL_'):
+            sh = 'C-{}'.format(k[5:].lower())
+        else:
+            sh = k if len(k) == 1 else k.capitalize()
+    except:
+        log_traceback()
+    return sh
+
+
 def format_key(k):
     if len(k) == 1:
         z = ord(k)
@@ -193,6 +238,8 @@ def format_key(k):
             k = 'KEY_PPAGE'
         elif z == 10:
             k = 'ENTER'
+        elif z == 27:
+            k = 'ESC'
         elif z < 27:
             k = 'CTRL_' + chr(z + 64)
     log('key pressed: {}'.format(
@@ -1236,6 +1283,7 @@ def start():
             p.get_process_path = get_process_path
             p.global_config = config
             plugin['p'] = p
+            plugin['id'] = i
             injection = {'id': i}
             need_inject = False
             try:

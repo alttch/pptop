@@ -171,6 +171,8 @@ class GenericPlugin(BackgroundIntervalWorker):
                 self.sorting_rev = False
             elif self.key_event == 'sort-reverse':
                 self.sorting_rev = True
+            elif self.key_event == 'sort-toggle':
+                self.sorting_rev = not self.sorting_rev
 
     def is_visible(self):
         '''

@@ -7,24 +7,31 @@ import traceback
 
 from datetime import datetime
 
+
 class SimpleNamespace:
+
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
 
+
 config = SimpleNamespace(fname=None, name='')
+
+retries = 5
 
 
 def log(*args):
     if not config.fname:
         return
     s = '{} {}  {}'.format(
-        datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S'),
+        datetime.strftime(datetime.now(), '%Y-%m-%d %H:%M:%S,%f')[:-3],
         config.name, ' '.join([str(x) for x in args]))
-    with open(config.fname, 'a') as fh:
-        fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
-        fh.seek(0, 2)
-        fh.write(s + '\n')
-        fcntl.flock(fh, fcntl.LOCK_UN)
+    for i in range(retries):
+        with open(config.fname, 'a') as fh:
+            fcntl.flock(fh, fcntl.LOCK_EX | fcntl.LOCK_NB)
+            fh.seek(0, 2)
+            fh.write(s + '\n')
+            fcntl.flock(fh, fcntl.LOCK_UN)
+            break
 
 
 def log_traceback(msg=None):

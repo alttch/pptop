@@ -1,5 +1,7 @@
 from pptop.plugin import GenericPlugin
 
+from pptop.core import format_shortcut
+
 from atasker import background_task
 from collections import OrderedDict
 
@@ -16,20 +18,7 @@ class Plugin(GenericPlugin):
         for plugin_id, plugin in self.get_plugins().items():
             p = plugin['p']
             if p.name not in ['plugin_selector', 'help']:
-                sh = plugin['shortcut']
-                if sh.startswith('KEY_F('):
-                    try:
-                        fnkey = int(sh[6:-1])
-                        if fnkey > 48:
-                            sh = 'M-F{}'.format(fnkey - 48)
-                        elif fnkey > 24:
-                            sh = 'C-F{}'.format(fnkey - 24)
-                        elif fnkey > 12:
-                            sh = 'Sh-F{}'.format(fnkey - 12)
-                        else:
-                            sh = 'F{}'.format(fnkey)
-                    except:
-                        pass
+                sh = format_shortcut(plugin['shortcut'])
                 try:
                     version = str(plugin['m'].__version__)
                 except:

@@ -38,6 +38,19 @@ your plugin is automatically selected to be displayed first.
 Parameter *"-o listmodules"* tells ppTOP to load plugin even if it isn't
 present in configuration file.
 
+Also, you can import two logging methods from *pptop.logging*:
+
+.. code:: python
+
+    from pptop.logging import log, log_traceback
+
+    try:
+        # ... do something and log result
+        result = somefunc()
+        log(result)
+    except:
+        log_traceback()
+
 Local part
 ==========
 
