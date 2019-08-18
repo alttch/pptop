@@ -18,9 +18,9 @@ scanner for Python.
 ```
 
 * Python: 3.5+ is required, as ppTOP uses asyncio
+* Can be injected into any Python version program (tested: Python 2.3+)
 * Injection into running processes requires *gdb* (present in almost
   all Linux distributions)
-* Injection into older Python version is possible (use "-p" key)
 * Only Linux systems are currently supported
 
 ## Features
