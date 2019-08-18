@@ -8,6 +8,8 @@ import tabulate
 import sys
 import os
 import threading
+import shutil
+import subprocess
 
 from types import SimpleNamespace
 
@@ -791,6 +793,34 @@ def format_mod_name(f, path):
     return mod[i:]
 
 
+tput = shutil.which('tput')
+term = os.getenv('TERM')
+if not term: term = ''
+
+
+def set_cursor(mode):
+    if term.startswith('screen') and tput:
+        try:
+            code = os.system('tput ' + ('civis' if not mode else 'cnorm'))
+            if code:
+                raise RuntimeError('tput error code: {}'.format(code))
+            return
+        except:
+            log_traceback()
+    try:
+        curses.curs_set(mode)
+    except:
+        pass
+
+
+def hide_cursor():
+    return set_cursor(0)
+
+
+def show_cursor():
+    return set_cursor(2)
+
+
 def prompt(stdscr, ps=None, value=''):
     if ps is None:
         ps = ': '
@@ -798,19 +828,13 @@ def prompt(stdscr, ps=None, value=''):
     stdscr.addstr(top_lines + 1, 0, ' ' + ps, palette.PROMPT)
     editwin = curses.newwin(1, width - len(ps) - 1, top_lines + 1, len(ps) + 1)
     from curses.textpad import Textbox
-    try:
-        curses.curs_set(2)
-    except:
-        pass
+    show_cursor()
     editwin.addstr(0, 0, value)
     box = Textbox(editwin, insert_mode=True)
     stdscr.refresh()
     box.edit(enter_is_terminate)
     result = box.gather().rstrip()
-    try:
-        curses.curs_set(0)
-    except:
-        pass
+    hide_cursor()
     stdscr.move(top_lines + 1, 0)
     stdscr.clrtoeol()
     stdscr.refresh()

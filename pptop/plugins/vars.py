@@ -13,7 +13,7 @@ class Plugin(GenericPlugin):
 
         i      : insert new variable/function
         e      : edit
-        l      : load variable list from file
+        o      : load variable list from file
         s      : save variable list to file
         Ctrl-d : duplicate
 
@@ -40,7 +40,7 @@ class Plugin(GenericPlugin):
         self.inputs = {
             'i': None,
             'e': None,
-            'l': default_config_file,
+            'o': default_config_file,
             's': default_config_file
         }
 
@@ -73,7 +73,7 @@ class Plugin(GenericPlugin):
                     if var == 'e' and value != prev_value:
                         self.key_event = 'delete'
                     self.inputs[var] = None
-        elif var == 'l':
+        elif var == 'o':
             try:
                 with open(os.path.expanduser(value)) as fh:
                     var_list = list(
@@ -109,7 +109,7 @@ class Plugin(GenericPlugin):
         ps = {
             'i': 'add: ',
             'e': 'e: ',
-            'l': 'load: ',
+            'o': 'load: ',
             's': 'save: ',
         }
         return ps.get(var)

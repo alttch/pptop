@@ -53,6 +53,7 @@ from types import SimpleNamespace
 
 from pptop.plugin import GenericPlugin, palette, glyph
 from pptop.plugin import prompt, print_message
+from pptop.plugin import hide_cursor, show_cursor
 # DEBUG
 from pptop.plugin import print_debug
 
@@ -142,6 +143,7 @@ def end_curses(stdscr):
         curses.nocbreak()
         stdscr.keypad(False)
         curses.echo()
+        show_cursor()
         curses.endwin()
 
 
@@ -415,10 +417,7 @@ def select_process(stdscr):
 
     with scr_lock:
         stdscr.clear()
-        try:
-            curses.curs_set(0)
-        except:
-            pass
+        hide_cursor()
     selector = ProcesSelector(interval=1)
     selector.events = 0
     selector.stdscr = stdscr
@@ -976,10 +975,7 @@ def run():
         height, width = stdscr.getmaxyx()
         stdscr.clear()
         stdscr.refresh()
-        try:
-            curses.curs_set(0)
-        except:
-            pass
+        hide_cursor()
         switch_plugin(stdscr, _d.default_plugin)
         atasker.background_task(show_process_info.start)(stdscr=stdscr, p=p)
         atasker.background_task(show_bottom_bar.start)(stdscr=stdscr)
