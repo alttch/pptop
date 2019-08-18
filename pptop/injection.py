@@ -173,7 +173,7 @@ def loop(cpid, protocol, runner_mode=False):
                         except:
                             log_traceback()
                             e = sys.exc_info()
-                            result = (1, e[0].__name__, e[1])
+                            result = (1, e[0].__name__, str(e[1]))
                         send_serialized(connection, frame_id, result)
                     elif cmd == '.exec':
                         try:
@@ -222,9 +222,10 @@ def loop(cpid, protocol, runner_mode=False):
                             log_traceback()
                             e = sys.exc_info()
                             with _g_lock:
-                                g._last_exception = (e[0].__name__, e[1], [''])
+                                g._last_exception = (e[0].__name__, str(e[1]),
+                                                     [''])
                             send_serialized(connection, frame_id,
-                                            (-1, e[0].__name__, e[1]))
+                                            (-1, e[0].__name__, str(e[1])))
                     elif cmd == '.le':
                         with _g_lock:
                             send_serialized(connection, frame_id,
@@ -385,8 +386,8 @@ def main():
         log_traceback('exception in main code')
         e = sys.exc_info()
         with _g_lock:
-            g._last_exception = (e[0].__name__, e[1], ['']
-                                )  # TODO: correct tb traceback.format_tb(e[2]))
+            g._last_exception = (e[0].__name__, str(
+                e[1]), [''])  # TODO: correct tb traceback.format_tb(e[2]))
     while not g._server_finished:
         time.sleep(0.2)
     # usually not executed as server kills process
