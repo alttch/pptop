@@ -577,7 +577,7 @@ async def show_bottom_bar(stdscr, **kwargs):
                 stdscr.addstr('F{}'.format(h))
                 stdscr.addstr(bottom_bar_help[h].ljust(6), color)
             stats = '{} {} {}/{} '.format(_d.protocol, glyph.CONNECTION,
-                                           _d.client_frame_id, _d.last_frame_id)
+                                          _d.client_frame_id, _d.last_frame_id)
             with ifoctets_lock:
                 bw = _d.ifbw
             if bw < 1000:
@@ -714,46 +714,21 @@ def init_inject():
 def inject_server(gdb, p):
     cmds = []
     pid = p.pid
-    if not _d.force_protocol:
-        try:
-            args = (p.exe(), '-c', 'import sys; print(sys.version_info[:])')
-            p = subprocess.Popen(
-                args,
-                shell=False,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE)
-            out, err = p.communicate()
-            if p.returncode:
-                raise RuntimeError('check version exit code {}'.format(
-                    p.returncode))
-            ver = eval(out)
-            log('Process Python version: {}'.format(ver))
-            if ver < (2, 3):
-                proto = 1
-            elif ver < (3, 0):
-                proto = 2
-            elif ver < (3, 4):
-                proto = 3
-            if proto < _d.protocol:
-                _d.protocol = proto
-                log('Falling back to pickle protocol {}'.format(_d.protocol))
-        except:
-            log_traceback()
     libpath = os.path.abspath(os.path.dirname(__file__) + '/..')
     if _d.inject_method in ['native', 'loadcffi']:
         cmds.append('call (void)__libc_dlopen_mode("{}", 2)'.format(
             _d.inject_lib))
     if _d.inject_method == 'native':
-        cmds.append('call (int)__pptop_start_injection("{}",{},"{}",{})'.format(
-            libpath, os.getpid(), log_config.fname
-            if log_config.fname else '', _d.protocol))
+        cmds.append('call (int)__pptop_start_injection("{}",{},{},"{}")'.format(
+            libpath, os.getpid(), _d.protocol, log_config.fname
+            if log_config.fname else ''))
     else:
         cmds += [
             'call (PyGILState_STATE)PyGILState_Ensure()',
             ('call (int)PyRun_SimpleString("' +
              'import sys;sys.path.insert(0,\\"{path}\\");' +
              'import pptop.injection;pptop.injection.start(' +
-             '{mypid}{lg},protocol={protocol})")').format(
+             '{mypid},{protocol}{lg})")').format(
                  path=libpath,
                  mypid=os.getpid(),
                  lg='' if not log_config.fname else
@@ -881,6 +856,26 @@ def run():
             raise RuntimeError('Unable to connect to process')
 
         log('connected')
+
+        frame = b''
+        with client_lock:
+            time_start = time.time()
+            while len(frame) < 1:
+                data = client.recv(1)
+                if data:
+                    frame += data
+                    if time.time() > time_start + socket_timeout:
+                        raise CriticalException('Socket timeout')
+
+        server_protocol = struct.unpack('b', frame)[0]
+
+        if server_protocol < _d.protocol:
+            if _d.force_protocol:
+                raise RuntimeError(
+                    'Process doesn\'t support protocol {}'.format(_d.protocol))
+            else:
+                _d.protocol = server_protocol
+                log('Falling back to protocol {}'.format(_d.protocol))
 
         if _d.exec_code:
             end_curses(stdscr)
@@ -1307,6 +1302,7 @@ def start():
                 stdout=subprocess.PIPE,
                 stderr=subprocess.PIPE)
             _d.work_pid = _d.child.pid
+            _d.protocol = pickle.HIGHEST_PROTOCOL
         else:
             if a.gdb:
                 _d.gdb = a.gdb

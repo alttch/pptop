@@ -61,10 +61,12 @@ socket_buf = 8192
 
 # compat. with Python 2
 
+
 class SimpleNamespace:
 
     def __init__(self, **kwargs):
         self.__dict__.update(kwargs)
+
 
 # don't use threading.Event to hide presence
 
@@ -87,7 +89,7 @@ def stop_logging():
     log_config.fname = None
 
 
-def loop(cpid, protocol=None, runner_mode=False):
+def loop(cpid, protocol, runner_mode=False):
 
     def send_frame(conn, frame_id, data):
         conn.sendall(
@@ -123,6 +125,7 @@ def loop(cpid, protocol=None, runner_mode=False):
     try:
         connection, client_address = server.accept()
         log('connected')
+        connection.sendall(struct.pack('b', protocol))
         with _g_lock:
             g.clients += 1
         connection.settimeout(socket_timeout)
@@ -309,17 +312,20 @@ def loop(cpid, protocol=None, runner_mode=False):
         os._exit(0)
 
 
-def start(cpid, lg=None, protocol=None, runner_mode=False):
+def start(cpid, protocol=None, lg=None, runner_mode=False):
     if lg:
         init_logging(lg)
     else:
         stop_logging()
     log('starting injection server for pid {}'.format(cpid))
+    if protocol and protocol <= pickle.HIGHEST_PROTOCOL:
+        protocol = protocol
+    else:
+        protocol = pickle.HIGHEST_PROTOCOL
     t = threading.Thread(
         name='__pptop_injection_{}'.format(cpid),
         target=loop,
-        args=(cpid, protocol
-              if protocol else pickle.HIGHEST_PROTOCOL, runner_mode))
+        args=(cpid, protocol, runner_mode))
     t.setDaemon(True)
     t.start()
 
