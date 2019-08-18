@@ -63,6 +63,15 @@ Make sure cPickle is installed for the Python which runs injected process.
 Python 3 has cPickle integrated by default. ppTOP injection looks for cPickle
 module in all variations and only then falls back to usual "pickle".
 
+I have problems after update
+============================
+
+If you've injected ppTOP into process and then performed update, some functions
+in *pptop.injection* module were changed, but injected process still use old
+version. Restart injected process and try again.
+
+In other cases - submit an issue.
+
 Other
 =====
 
