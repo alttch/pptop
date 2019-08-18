@@ -180,7 +180,7 @@ def injection(cmd=None, var=None):
                 exec(src, ge)
                 val = ge['out']
                 r['value'] = str(ge['out'])
-            except Exception:
+            except:
                 import sys
                 e = sys.exc_info()
                 r['value'] = '!ERROR {}: {}'.format(e[0].__name__, e[1])
