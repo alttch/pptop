@@ -53,6 +53,7 @@ import textwrap
 import termcolor
 
 from collections import OrderedDict
+from functools import partial
 
 try:
     yaml.warnings({'YAMLLoadWarning': False})
@@ -230,7 +231,10 @@ def colored(text, color=None, on_color=None, attrs=None):
         return str(text)
     else:
         return termcolor.colored(
-            text, color=color, on_color=on_color, attrs=attrs)
+            str(text), color=color, on_color=on_color, attrs=attrs)
+
+
+err = partial(colored, color='red', attrs=['bold'])
 
 
 def format_cmdline(p, injected):
@@ -302,11 +306,7 @@ def cli_mode():
                     for cmd in cmds:
                         r = command('.exec', cmd)
                         if r[0] == -1:
-                            print(
-                                colored(
-                                    '{}: {}'.format(r[1], r[2]),
-                                    color='red',
-                                    attrs=['bold']))
+                            print(err('{}: {}'.format(r[1], r[2])))
                         else:
                             if r[1] is not None:
                                 if _d.console_json_mode and \
@@ -319,7 +319,7 @@ def cli_mode():
                 return
             except Exception as e:
                 log_traceback()
-                print(colored(str(e), color='red', attrs=['bold']))
+                print(err(e))
     finally:
         try:
             readline.write_history_file('{}/console.history'.format(
@@ -892,11 +892,7 @@ def run():
                 else:
                     print(result[1] if result[1] else '')
             else:
-                print(
-                    colored(
-                        '{}: {}'.format(result[1], result[2]),
-                        color='red',
-                        attrs=['bold']))
+                print(err('{}: {}'.format(result[1], result[2])))
             return
 
         if not stdscr:
