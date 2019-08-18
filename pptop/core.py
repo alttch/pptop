@@ -350,6 +350,8 @@ class ProcesSelector(GenericPlugin):
                         d['pid'] = p.pid
                         d['command line'] = ' '.join(p.cmdline())
                         self.data.append(d)
+            except psutil.AccessDenied:
+                pass
             except:
                 log_traceback()
 
@@ -737,7 +739,8 @@ def inject_server(gdb, p):
         cmds += [
             'call (PyGILState_STATE)PyGILState_Ensure()',
             ('call (int)PyRun_SimpleString("' +
-             'import sys;sys.path.insert(0,\\"{path}\\");' +
+             'import sys\\nif \\"{path}\\" not in sys.path: ' +
+             'sys.path.insert(0,\\"{path}\\")\\n' +
              'import pptop.injection;pptop.injection.start(' +
              '{mypid},{protocol}{lg})")').format(
                  path=libpath,

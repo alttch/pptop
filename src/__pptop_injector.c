@@ -9,9 +9,9 @@ static int __attribute__((used))
     PyGILState_STATE gstate;
     gstate = PyGILState_Ensure();
     sprintf(cmd,
-        "import sys; sys.path.insert(0, '%s');" \
+        "import sys\nif '%s' not in sys.path: sys.path.insert(0, '%s')\n" \
         "import pptop.injection; pptop.injection.start(%u, %u, '%s')",
-        libpath, pid, protocol, logfile);
+        libpath, libpath, pid, protocol, logfile);
     result = PyRun_SimpleString(cmd);
     PyGILState_Release(gstate);
     return result;
