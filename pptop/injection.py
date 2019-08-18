@@ -104,6 +104,26 @@ def stop_logging():
     log_config.fname = None
 
 
+def safe_serialize(obj):
+    if obj is None or \
+            isinstance(obj, str) or \
+            isinstance(obj, float) or \
+            isinstance(obj, int) or \
+            isinstance(obj, bool):
+        result = obj
+    elif isinstance(obj, list):
+        result = []
+        for o in obj.copy():
+            result.append(safe_serialize(o))
+    elif isinstance(obj, dict):
+        result = {}
+        for o, v in obj.copy().items():
+            result[safe_serialize(o)] = safe_serialize(v)
+    else:
+        result = str(obj)
+    return result
+
+
 def loop(cpid, protocol, runner_mode=False):
 
     def send_frame(conn, frame_id, data):
@@ -216,20 +236,11 @@ def loop(cpid, protocol, runner_mode=False):
                             exec(src, exec_globals)
                             result = exec_globals.get('__result')
                             try:
-                                if result is None or \
-                                            isinstance(result, dict) or \
-                                            isinstance(result, list) or \
-                                            isinstance(result, str) or \
-                                            isinstance(result, float) or \
-                                            isinstance(result, int) or \
-                                            isinstance(result, bool):
-                                    data = pickle.dumps(
-                                        (0, result), protocol=protocol)
-                                else:
-                                    raise ValueError
+                                data = pickle.dumps(
+                                    (0, safe_serialize(result)),
+                                    protocol=protocol)
                             except:
-                                # TODO - stringify only unpicklable values
-                                # but avoid copy.deepcopy
+                                log_traceback()
                                 data = pickle.dumps(
                                     (0, str(result)), protocol=protocol)
                             send_frame(connection, frame_id, b'\x00' + data)

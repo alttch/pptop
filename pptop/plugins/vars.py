@@ -177,14 +177,15 @@ def injection(cmd=None, var=None):
             g.vars.append(parse_var(v))
     else:
         import importlib
+        from pptop.injection import safe_serialize
         result = []
         for v in g.vars:
             mod = v[0]
             var = v[1]
             r = {'name': '{}::{}'.format(mod, var)}
             try:
-                ge = {}
-                src = 'import {}; out=str({}.{})'.format(mod, mod, var)
+                ge = {'__sserl': safe_serialize}
+                src = 'import {}; out=__sserl({}.{})'.format(mod, mod, var)
                 exec(src, ge)
                 val = ge['out']
                 r['value'] = ge['out']
