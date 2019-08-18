@@ -2,6 +2,8 @@ __version__ = '0.0.1'
 
 from pptop.plugin import GenericPlugin, palette
 
+from collections import OrderedDict
+
 
 class Plugin(GenericPlugin):
     '''
@@ -17,12 +19,13 @@ class Plugin(GenericPlugin):
     def process_data(self, data):
         result = []
         for d in data:
-            result.append({
-                'name': d[0],
-                'version': str(d[1]),
-                'author': str(d[2]),
-                'license': d[3]
-            })
+            # it's recommended to use ordered dict to keep order of columns
+            r = OrderedDict()
+            r['name'] = d[0]
+            r['version'] = str(d[1])
+            r['author'] = str(d[2])
+            r['license'] = d[3]
+            result.append(r)
         return result
 
     def format_dtd(self, dtd):

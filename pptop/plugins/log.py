@@ -2,6 +2,8 @@ from pptop.plugin import GenericPlugin, palette
 
 import os
 
+from collections import OrderedDict
+
 
 class Plugin(GenericPlugin):
     '''
@@ -19,22 +21,16 @@ class Plugin(GenericPlugin):
     def process_data(self, data):
         result = []
         for record in data:
-            result.append({
-                'logger':
-                record.name,
-                'time':
-                record.created,
-                'level':
-                record.levelno,
-                'module':
-                record.module,
-                'thread':
-                record.threadName,
-                'file':
-                '{}:{}'.format(os.path.abspath(record.pathname), record.lineno),
-                'message':
-                record.getMessage().replace('\n', ' ')
-            })
+            r = OrderedDict()
+            r['logger'] = record.name
+            r['time'] = record.created
+            r['level'] = record.levelno
+            r['module'] = record.module
+            r['thread'] = record.threadName
+            r['file'] = '{}]={}'.format(
+                os.path.abspath(record.pathname), record.lineno)
+            r['message'] = record.getMessage().replace('\n', ' ')
+            result.append(r)
         return result
 
     def format_dtd(self, dtd):

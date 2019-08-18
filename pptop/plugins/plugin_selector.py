@@ -1,6 +1,7 @@
 from pptop.plugin import GenericPlugin
 
 from atasker import background_task
+from collections import OrderedDict
 
 
 class Plugin(GenericPlugin):
@@ -33,13 +34,13 @@ class Plugin(GenericPlugin):
                     version = str(plugin['m'].__version__)
                 except:
                     version = ''
-                self.data.append({
-                    'id': p.name,
-                    'name': p.title,
-                    'description': p.description,
-                    'shortcut': sh,
-                    'version': version
-                })
+                d = OrderedDict()
+                d['id'] = p.name
+                d['name'] = p.title
+                d['description'] = p.description
+                d['shortcut'] = sh
+                d['version'] = version
+                self.data.append(d)
 
     def handle_key_event(self, event, key, dtd):
         if event == 'select':

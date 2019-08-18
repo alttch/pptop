@@ -1,10 +1,13 @@
 from pptop.plugin import GenericPlugin
 
+from collections import OrderedDict
+
 
 class Plugin(GenericPlugin):
     '''
     env plugin: view process OS environment
     '''
+
     def on_load(self):
         self.description = 'Process OS environment'
         self.title = 'OS Environment'
@@ -17,7 +20,10 @@ class Plugin(GenericPlugin):
         for i, v in self.get_process().environ().items():
             if len(v) > max_length:
                 v = v[:max_length - 3] + '...'
-            self.data.append({'var': i, 'value': v})
+            d = OrderedDict()
+            d['var'] = i
+            d['value'] = v
+            self.data.append(d)
 
     async def run(self, *args, **kwargs):
         super().run(*args, **kwargs)

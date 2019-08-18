@@ -52,6 +52,8 @@ import textwrap
 
 import termcolor
 
+from collections import OrderedDict
+
 try:
     yaml.warnings({'YAMLLoadWarning': False})
 except:
@@ -335,10 +337,10 @@ class ProcesSelector(GenericPlugin):
                 name = p.name()
                 if name in ['python', 'python2', 'python3'
                            ] and p.pid != os.getpid():
-                    self.data.append({
-                        'pid': p.pid,
-                        'command line': ' '.join(p.cmdline())
-                    })
+                    d = OrderedDict()
+                    d['pid'] = p.pid
+                    d['command line'] = ' '.join(p.cmdline())
+                    self.data.append(d)
             except:
                 pass
 

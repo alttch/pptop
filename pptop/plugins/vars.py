@@ -2,6 +2,8 @@ from pptop.plugin import GenericPlugin, palette
 
 import os
 
+from collections import OrderedDict
+
 
 class Plugin(GenericPlugin):
     '''
@@ -43,6 +45,14 @@ class Plugin(GenericPlugin):
             'l': default_config_file,
             's': default_config_file
         }
+
+    def process_data(self, data):
+        result = []
+        for d in data:
+            v = OrderedDict()
+            v['name'] = d['name']
+            v['value'] = d['value']
+            result.append(d)
 
     def get_injection_load_params(self):
         return {'v': self.config_vars}

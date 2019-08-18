@@ -2,6 +2,8 @@ from pptop.plugin import GenericPlugin, format_mod_name, palette
 
 import os
 
+from collections import OrderedDict
+
 
 class Plugin(GenericPlugin):
     '''
@@ -33,24 +35,16 @@ class Plugin(GenericPlugin):
             if not mod.startswith('pptop.') and \
                     not mod.startswith('pptopcontrib-') and \
                         mod.find('_pptop_injection') == -1:
-                sess.append({
-                    'function':
-                    '{}.{}'.format(mod, s[0]),
-                    'ncall':
-                    s[3],
-                    'nacall':
-                    s[4],
-                    'ttot':
-                    s[6],
-                    'tsub':
-                    s[7],
-                    'tavg':
-                    s[11],
-                    'file':
-                    '{}:{}'.format(os.path.abspath(s[1]), s[2]),
-                    'builtin':
-                    'builtin' if s[5] else ''
-                })
+                d = OrderedDict()
+                d['function']= '{}.{}'.format(mod, s[0])
+                d['ncall']= s[3]
+                d['nacall']= s[4]
+                d['ttot']= s[6]
+                d['tsub']= s[7]
+                d['tavg']= s[11]
+                d['file']= '{}]={}'.format(os.path.abspath(s[1]), s[2])
+                d['builtin']= 'builtin' if s[5] else ''
+                sess.append(d)
         return sess
 
     def format_dtd(self, dtd):

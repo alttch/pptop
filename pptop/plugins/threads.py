@@ -60,6 +60,7 @@ def injection_unload(**kwargs):
 
 def injection(**kwargs):
     import threading
+    from collections import OrderedDict
     result = []
     yi = {}
     try:
@@ -76,12 +77,12 @@ def injection(**kwargs):
         except:
             target = None
         y = yi.get(t.ident)
-        result.append({
-            'ident': t.ident,
-            'daemon': t.daemon,
-            'name': t.getName(),
-            'target': target if target else '',
-            'ttot': y[0] if y else 0,
-            'scnt': y[1] if y else 0
-        })
+        r = OrderedDict()
+        r['ident']= t.ident
+        r['daemon']= t.daemon
+        r['name']= t.getName()
+        r['target']= target if target else ''
+        r['ttot']= y[0] if y else 0
+        r['scnt']= y[1] if y else 0
+        result.append(r)
     return result

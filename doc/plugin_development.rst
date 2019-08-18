@@ -144,7 +144,8 @@ Data flow
 * before data is stored, method *self.process_data(data)* is called which
   should either process data object in-place or return new list object to
   store. At this step, if default table-based rendering is used, data should be
-  converted to the list of dictionaries.
+  converted to the list of dictionaries (preferred to list of ordered
+  dictionaries, to keep column ordering in table).
 
 .. warning::
 

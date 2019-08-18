@@ -1,5 +1,7 @@
 from pptop.plugin import GenericPlugin
 
+from collections import OrderedDict
+
 
 class Plugin(GenericPlugin):
     '''
@@ -22,12 +24,12 @@ class Plugin(GenericPlugin):
             with self.data_lock:
                 self.data.clear()
                 for f in self.get_process().open_files():
-                    self.data.append({
-                        'path': f.path,
-                        'fd': f.fd,
-                        'pos.': f.position,
-                        'mode': f.mode
-                    })
+                    d = OrderedDict()
+                    d['path']= f.path
+                    d['fd']= f.fd
+                    d['pos.']= f.position
+                    d['mode']= f.mode
+                    self.data.append(d)
                 return True
         except:
             return False
