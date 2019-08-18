@@ -854,6 +854,19 @@ def init_glyphs():
     glyph.CONNECTION = '⇄'
 
 
+def inject_plugin(plugin):
+    if plugin['p'].injected is False:
+        log('injecting plugin {}'.format(plugin['p'].name))
+        plugin['p'].injected = True
+        try:
+            command('.inject', plugin['i'])
+            return True
+        except:
+            print_message(
+                stdscr, 'Plugin injection failed', color=palette.ERROR)
+            return False
+
+
 def switch_plugin(stdscr, new_plugin):
     if _d.current_plugin:
         if _d.current_plugin is new_plugin:
@@ -868,13 +881,7 @@ def switch_plugin(stdscr, new_plugin):
     p._previous_plugin = _d.current_plugin
     p.key_event = None
     p.key_code = None
-    if new_plugin['inj'] is False:
-        new_plugin['inj'] = True
-        try:
-            command('.inject', new_plugin['i'])
-        except:
-            print_message(
-                stdscr, 'Plugin injection failed', color=palette.ERROR)
+    inject_plugin(new_plugin)
     if not p.is_active(): p.start()
     p.show()
     _d.current_plugin = new_plugin
@@ -887,9 +894,7 @@ def run():
         for plugin in plugins_autostart:
             if plugin['p'] is not _d.current_plugin.get('p'):
                 log('autostarting {}'.format(plugin['m']))
-                if not plugin['inj']:
-                    plugin['inj'] = True
-                    command('.inject', plugin['i'])
+                inject_plugin(plugin)
                 p = plugin['p']
                 if p.background:
                     p.stdscr = stdscr
@@ -1021,7 +1026,7 @@ def run():
                             print_message(
                                 stdscr, 'Command failed', color=palette.ERROR)
                 elif event == 'reinject' and \
-                        _d.current_plugin['inj'] is not None:
+                        _d.current_plugin['p'].injected is not None:
                     try:
                         result = command('.inject', _d.current_plugin['i'])
                     except:
@@ -1069,7 +1074,10 @@ def run():
                             pass
                 else:
                     for i, plugin in plugins.items():
-                        plugin['p'].handle_key_global_event(event, k)
+                        try:
+                            plugin['p'].handle_key_global_event(event, k)
+                        except:
+                            log_traceback()
                     with scr_lock:
                         _d.current_plugin['p'].key_code = k
                         _d.current_plugin['p'].key_event = event
@@ -1269,81 +1277,86 @@ def start():
 
         log('loading plugins')
 
-        plugins.clear()
-        for i, v in config.get('plugins', {}).items():
-            log('+ plugin ' + i)
-            if v is None: v = {}
-            try:
-                mod = importlib.import_module('pptop.plugins.' + i)
-                mod.__version__ = 'built-in'
-            except ModuleNotFoundError:
-                mod = importlib.import_module('pptopcontrib-' + i)
+        try:
+            plugins.clear()
+            for i, v in config.get('plugins', {}).items():
+                log('+ plugin ' + i)
+                if v is None: v = {}
                 try:
-                    mod.__version__
-                except:
-                    raise RuntimeError(
-                        'Please specify __version__ in plugin file')
-            plugin = {'m': mod}
-            plugins[i] = plugin
-            p = mod.Plugin(interval=float(v.get('interval', 1)))
-            p.command = command
-            p.get_plugins = get_plugins
-            p.get_plugin = get_plugin
-            p.get_config_dir = get_config_dir
-            p.switch_plugin = switch_plugin
-            p.scr_lock = scr_lock
-            p.get_process = get_process
-            p.get_process_path = get_process_path
-            p.global_config = config
-            plugin['p'] = p
-            plugin['id'] = i
-            injection = {'id': i}
-            need_inject = False
-            try:
-                injection['l'] = inspect.getsource(mod.injection_load)
-                need_inject = True
-            except:
-                pass
-            try:
-                injection['i'] = inspect.getsource(mod.injection)
-                need_inject = True
-            except:
-                pass
-            try:
-                injection['u'] = inspect.getsource(mod.injection_unload)
-                need_inject = True
-            except:
-                pass
-            if need_inject:
-                plugin['inj'] = False
-                plugin['i'] = injection
-            else:
-                plugin['inj'] = None
-            if not _d.default_plugin or val_to_boolean(
-                    v.get('default')) or i == a.plugin:
-                _d.default_plugin = plugin
-            p_cfg = v.get('config')
-            p.config = {} if p_cfg is None else p_cfg
-            p.on_load()
-            if 'l' in injection:
-                injection['lkw'] = p.get_injection_load_params()
-            if 'shortcut' in v:
-                sh = v['shortcut']
-                plugin['shortcut'] = sh
-                plugin_shortcuts[sh] = plugin
-                if sh.startswith('KEY_F('):
+                    mod = importlib.import_module('pptop.plugins.' + i)
+                    mod.__version__ = 'built-in'
+                except ModuleNotFoundError:
+                    mod = importlib.import_module('pptopcontrib-' + i)
                     try:
-                        f = int(sh[6:-1])
-                        if f <= 10:
-                            bottom_bar_help[f] = p.short_name
+                        mod.__version__
                     except:
-                        pass
-            else:
-                plugin['shortcut'] = ''
-            if 'filter' in v:
-                p.filter = str(v['filter'])
-            if v.get('autostart'):
-                plugins_autostart.append(plugin)
+                        raise RuntimeError(
+                            'Please specify __version__ in plugin file')
+                plugin = {'m': mod}
+                plugins[i] = plugin
+                p = mod.Plugin(interval=float(v.get('interval', 1)))
+                p.command = command
+                p.get_plugins = get_plugins
+                p.get_plugin = get_plugin
+                p.get_config_dir = get_config_dir
+                p.switch_plugin = switch_plugin
+                p.scr_lock = scr_lock
+                p.get_process = get_process
+                p.get_process_path = get_process_path
+                p.global_config = config
+                plugin['p'] = p
+                plugin['id'] = i
+                p.inject = partial(inject_plugin, plugin)
+                injection = {'id': i}
+                need_inject = False
+                try:
+                    injection['l'] = inspect.getsource(mod.injection_load)
+                    need_inject = True
+                except:
+                    pass
+                try:
+                    injection['i'] = inspect.getsource(mod.injection)
+                    need_inject = True
+                except:
+                    pass
+                try:
+                    injection['u'] = inspect.getsource(mod.injection_unload)
+                    need_inject = True
+                except:
+                    pass
+                if need_inject:
+                    p.injected = False
+                    plugin['i'] = injection
+                else:
+                    p.injected = None
+                if not _d.default_plugin or val_to_boolean(
+                        v.get('default')) or i == a.plugin:
+                    _d.default_plugin = plugin
+                p_cfg = v.get('config')
+                p.config = {} if p_cfg is None else p_cfg
+                p.on_load()
+                if 'l' in injection:
+                    injection['lkw'] = p.get_injection_load_params()
+                if 'shortcut' in v:
+                    sh = v['shortcut']
+                    plugin['shortcut'] = sh
+                    plugin_shortcuts[sh] = plugin
+                    if sh.startswith('KEY_F('):
+                        try:
+                            f = int(sh[6:-1])
+                            if f <= 10:
+                                bottom_bar_help[f] = p.short_name
+                        except:
+                            pass
+                else:
+                    plugin['shortcut'] = ''
+                if 'filter' in v:
+                    p.filter = str(v['filter'])
+                if v.get('autostart'):
+                    plugins_autostart.append(plugin)
+        except:
+            log_traceback()
+            raise
     atasker.task_supervisor.set_thread_pool(
         pool_size=100, reserve_normal=100, reserve_high=50)
     atasker.task_supervisor.start()

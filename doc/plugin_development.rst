@@ -129,6 +129,7 @@ Class variables
     self.inputs = {}  # key - hot key, value - input value
     self.key_code = None  # last key pressed, for custom key event handling
     self.key_event = None  # last key event
+    self.injected = False # is plugin injected
 
 Making executor async
 ---------------------

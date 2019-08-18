@@ -104,6 +104,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.inputs = {}  # key - hot key, value - input value
         self.key_code = None  # last key pressed, for custom key event handling
         self.key_event = None  # last key event
+        self.injected = False # is plugin injected
 
     def on_load(self):
         '''
@@ -287,6 +288,22 @@ class GenericPlugin(BackgroundIntervalWorker):
         '''
         height, width = self.window.getmaxyx()
         self.window.addstr(0, 0, ' ' * (width - 1), palette.HEADER)
+
+    def inject(self):
+        '''
+        Inject current plugin
+
+        Is started automatically when plugin is selected, may be started
+        manually, e.g. if plugin handles global hot key, need to perform
+        injection command however may be not injected yet.
+
+        To re-inject set self.injected = False before
+        Note that plugin is marked as injected even if command is failed
+
+        Returns:
+            True if plugin was injected, False if failed
+        '''
+        return
 
     def injection_command(self, **kwargs):
         '''
