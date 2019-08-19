@@ -11,8 +11,6 @@ modifications.
 Say no to "prints" and garbage in debug logs - now you have ppTOP. A modern MRI
 scanner for Python.
 
-<img src="https://github.com/alttch/pptop/blob/master/doc/video/pptop.gif?raw=true" width="700" />
-
 ## Installation
 
 ```
@@ -24,6 +22,8 @@ scanner for Python.
 * Injection into running processes requires *gdb* (present in almost
   all Linux distributions)
 * Only Linux systems are currently supported
+
+<img src="https://github.com/alttch/pptop/blob/master/doc/video/pptop.gif?raw=true" width="550" />
 
 ## Features
 
