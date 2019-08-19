@@ -50,7 +50,8 @@ class Plugin(GenericPlugin):
             v = OrderedDict()
             v['name'] = d['name']
             v['value'] = d['value']
-            result.append(d)
+            result.append(v)
+        return result
 
     def get_injection_load_params(self):
         return {'v': self.config_vars}
