@@ -44,21 +44,11 @@ class Plugin(GenericPlugin):
         result = []
         for d in data:
             v = OrderedDict()
-            v['loop'] = d['loop']
-            v['state'] = d['state']
-            coro = ''
-            fname = ''
-            isl = d['info'].split()
-            # will parse Task repr until official interface appear
-            for i, z in enumerate(isl):
-                if z.startswith('coro='):
-                    coro = z.split('=', 1)[-1]
-                    if coro.startswith('<'): coro = coro[1:]
-                elif z == 'at' and isl[i - 1] == 'running' and i + 1 < len(isl):
-                    fname = isl[i + 1]
-                    if fname.endswith('>'): fname = fname[:-1]
-            v['coro'] = coro
-            v['fname'] = fname
+            v['loop'] = d[0]
+            v['state'] = d[1]
+            v['coro'] = d[2]
+            v['cmd'] = d[4]
+            v['fname'] = d[3]
             result.append(v)
         return result
 
@@ -109,6 +99,14 @@ class Plugin(GenericPlugin):
             's': 'save: ',
         }
         return ps.get(var)
+
+    def get_table_row_color(self, element=None, raw=None):
+        if element['state'] == '!ERROR':
+            return palette.ERROR
+        elif element['state'] == 'FINISHED':
+            return palette.OK
+        elif element['state'] == 'CANCELLED':
+            return palette.WARNING
 
     def handle_key_event(self, event, key, dtd):
         if event == 'delete':
@@ -168,6 +166,7 @@ def injection(cmd=None, loop=None):
             g.loops.append(parse_loop(v))
     else:
         import importlib
+        import linecache
         result = []
         for v in g.loops:
             mod = v[0]
@@ -181,17 +180,31 @@ def injection(cmd=None, loop=None):
                           mod=mod, loop=loop)
                 exec(src, ge)
                 for l in ge['out']:
-                    r = {'loop': loop_name}
-                    r['state'] = l._state
-                    r['info'] = str(l)
-                    result.append(r)
+                    coro = ''
+                    fname = ''
+                    isl = str(l).split()
+                    # will parse Task repr until official interface appear
+                    for i, z in enumerate(isl):
+                        if z.startswith('coro='):
+                            coro = z.split('=', 1)[-1].strip()
+                            if coro.startswith('<'): coro = coro[1:]
+                        elif z == 'at' and isl[i -
+                                               1] == 'running' and i + 1 < len(
+                                                   isl):
+                            fname = isl[i + 1].strip()
+                            if fname.endswith('>'): fname = fname[:-1]
+                    try:
+                        f, ln = fname.split(':')
+                        cmd = linecache.getline(f, int(ln)).strip()
+                    except:
+                        from pptop.logger import log_traceback
+                        log_traceback()
+                        cmd = ''
+                    result.append((loop_name, l._state, coro, fname, cmd))
             except:
                 import sys
                 e = sys.exc_info()
-                r = {
-                    'loop': loop_name,
-                    'info': '!ERROR {}: {}'.format(e[0].__name__, str(e[1])),
-                    'state': ''
-                }
+                coro = '{}: {}'.format(e[0].__name__, str(e[1]))
+                result.append((loop_name, '!ERROR', coro, '', ''))
                 result.append(r)
         return result

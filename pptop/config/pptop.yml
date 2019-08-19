@@ -62,6 +62,8 @@ plugins:
     shortcut: KEY_F(7)
   asyncio:
     shortcut: KEY_F(8)
+    config:
+      list: ~/.pptop/asyncio_loops.list
   log:
     shortcut: KEY_F(9)
     autostart: true
