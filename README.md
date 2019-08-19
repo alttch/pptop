@@ -80,6 +80,7 @@ Plugins and keyboard shortcuts are configured by default in
 
 ## Standard plugins
 
+* **asyncio** asyncio loop monitor
 * **env** view process OS environment variables
 * **log** inject into all Python loggers and collect log messages
 * **open_files** view process open files
