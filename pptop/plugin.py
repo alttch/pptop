@@ -66,6 +66,8 @@ glyph = SimpleNamespace(
 
 class GenericPlugin(BackgroundIntervalWorker):
 
+    default_interval = 1
+
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self._visible = False

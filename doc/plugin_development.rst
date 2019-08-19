@@ -70,6 +70,7 @@ Class definition
         '''
         list_modules plugin: list modules
         '''
+        default_interval = 1
         #...
 
 Variable *__version__* should always be present in custom plugin module. If

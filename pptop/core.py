@@ -1336,7 +1336,9 @@ def start():
                             'Please specify __version__ in plugin file')
                 plugin = {'m': mod}
                 plugins[i] = plugin
-                p = mod.Plugin(interval=float(v.get('interval', 1)))
+                p = mod.Plugin(
+                    interval=float(
+                        v.get('interval', mod.Plugin.default_interval)))
                 p.command = command
                 p.get_plugins = get_plugins
                 p.get_plugin = get_plugin

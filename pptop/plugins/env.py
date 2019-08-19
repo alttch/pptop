@@ -8,6 +8,8 @@ class Plugin(GenericPlugin):
     env plugin: view process OS environment
     '''
 
+    default_interval = 10
+
     def on_load(self):
         self.description = 'Process OS environment'
         self.title = 'OS Environment'

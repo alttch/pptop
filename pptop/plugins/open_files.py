@@ -12,6 +12,7 @@ class Plugin(GenericPlugin):
         pos: position in file
         mode: work mode
     '''
+    default_interval = 0.5
 
     def on_load(self):
         self.description = 'Process open files'

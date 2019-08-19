@@ -8,6 +8,8 @@ from collections import OrderedDict
 
 class Plugin(GenericPlugin):
 
+    default_interval = 60
+
     def on_load(self):
         self.title = 'Select plugin'
         self.short_name = 'Plugns'

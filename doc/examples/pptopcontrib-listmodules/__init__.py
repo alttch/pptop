@@ -9,6 +9,7 @@ class Plugin(GenericPlugin):
     '''
     list_modules plugin: list modules
     '''
+    default_interval = 1
 
     def on_load(self):
         self.title = 'List modules'

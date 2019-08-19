@@ -29,6 +29,7 @@ class Plugin(GenericPlugin):
             tests/test1.py: 1
             tests/test2.py: 2
     '''
+    default_interval = 30
 
     def on_load(self):
         self.title = 'Script runner'
@@ -41,7 +42,10 @@ class Plugin(GenericPlugin):
             self.script_dir = self.get_config_dir() + '/scripts'
         self.global_script_hotkeys = {}
         self.script_hotkey_help = {}
-        for i, v in self.config.get('script-keys').items():
+        script_keys = self.config.get('script-keys')
+        if not script_keys:
+            script_keys = {}
+        for i, v in script_keys.items():
             for k in v if isinstance(v, list) else [v]:
                 self.global_script_hotkeys[str(k)] = str(i)
                 log('script hot key {} = {}'.format(k, i))
