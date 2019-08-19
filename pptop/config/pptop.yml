@@ -60,10 +60,12 @@ plugins:
     shortcut: KEY_F(6)
   threads:
     shortcut: KEY_F(7)
-  log:
+  asyncio:
     shortcut: KEY_F(8)
+  log:
+    shortcut: KEY_F(9)
     autostart: true
   env:
-    shortcut: KEY_F(9)
+    shortcut: KEY_F(33) # C-F9
   last_exception:
     shortcut: CTRL_E
