@@ -110,6 +110,8 @@ plugin_shortcuts = {}
 resize_lock = threading.Lock()
 resize_event = threading.Event()
 
+plugin_lock = threading.Lock()
+
 socket_timeout = 15
 
 injection_timeout = 3
@@ -174,6 +176,8 @@ def apply_interval(stdscr, plugin):
         new_interval = prompt(stdscr, ps='intreval: ', value=i)
         try:
             new_interval = float(new_interval)
+            if new_interval <= 0:
+                raise ValueError
         except:
             print_message(stdscr, 'Invalid interval', color=palette.ERROR)
             return
@@ -498,10 +502,15 @@ client_lock = threading.Lock()
 
 client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
 
+frame_counter_reset = 1000
+
 
 def command(cmd, params=None):
     with client_lock:
         _d.client_frame_id += 1
+        if _d.client_frame_id >= frame_counter_reset:
+            _d.client_frame_id = 1
+            _d.last_frame_id = 0
         try:
             frame = cmd.encode()
             if params is not None:
@@ -664,8 +673,17 @@ async def show_bottom_bar(stdscr, **kwargs):
             for h in sorted(bottom_bar_help):
                 stdscr.addstr('F{}'.format(h))
                 stdscr.addstr(bottom_bar_help[h].ljust(6), color)
-            stats = '{} {} {}/{} '.format(_d.protocol, glyph.CONNECTION,
-                                          _d.client_frame_id, _d.last_frame_id)
+            try:
+                with plugin_lock:
+                    i = _d.current_plugin['p'].delay
+                if int(i) == i:
+                    i = int(i)
+                i = 'I:' + str(i)
+            except:
+                i = ''
+            stats = '{} P:{} {} {:03d}/{:03d} '.format(
+                i, _d.protocol, glyph.CONNECTION, _d.client_frame_id,
+                _d.last_frame_id)
             with ifoctets_lock:
                 bw = _d.ifbw
             if bw < 1000:
@@ -904,7 +922,8 @@ def switch_plugin(stdscr, new_plugin):
     inject_plugin(new_plugin)
     if not p.is_active(): p.start()
     p.show()
-    _d.current_plugin = new_plugin
+    with plugin_lock:
+        _d.current_plugin = new_plugin
 
 
 def run():
