@@ -22,46 +22,44 @@ top_lines = 5
 
 tabulate.PRESERVE_WHITESPACE = True
 
-palette = SimpleNamespace(
-    DEFAULT=curses.A_NORMAL,
-    BOLD=curses.A_BOLD,
-    REVERSE=curses.A_REVERSE,
-    DEBUG=curses.A_NORMAL,
-    WARNING=curses.A_BOLD,
-    ERROR=curses.A_BOLD,
-    CAPTION=curses.A_BOLD,
-    HEADER=curses.A_REVERSE,
-    CURSOR=curses.A_REVERSE,
-    BAR=curses.A_REVERSE,
-    BAR_OK=curses.A_REVERSE,
-    BAR_WARNING=curses.A_REVERSE | curses.A_BOLD,
-    BAR_ERROR=curses.A_REVERSE | curses.A_BOLD,
-    GREY=curses.A_NORMAL,
-    GREY_BOLD=curses.A_BOLD,
-    GREEN=curses.A_NORMAL,
-    GREEN_BOLD=curses.A_BOLD,
-    OK=curses.A_BOLD,
-    BLUE=curses.A_NORMAL,
-    BLUE_BOLD=curses.A_BOLD,
-    RED=curses.A_NORMAL,
-    RED_BOLD=curses.A_BOLD,
-    CYAN=curses.A_NORMAL,
-    CYAN_BOLD=curses.A_BOLD,
-    MAGENTA=curses.A_NORMAL,
-    MAGENTA_BOLD=curses.A_BOLD,
-    YELLOW=curses.A_NORMAL,
-    YELLOW_BOLD=curses.A_BOLD,
-    WHITE=curses.A_NORMAL,
-    WHITE_BOLD=curses.A_BOLD,
-    PROMPT=curses.A_BOLD)
+palette = SimpleNamespace(DEFAULT=curses.A_NORMAL,
+                          BOLD=curses.A_BOLD,
+                          REVERSE=curses.A_REVERSE,
+                          DEBUG=curses.A_NORMAL,
+                          WARNING=curses.A_BOLD,
+                          ERROR=curses.A_BOLD,
+                          CAPTION=curses.A_BOLD,
+                          HEADER=curses.A_REVERSE,
+                          CURSOR=curses.A_REVERSE,
+                          BAR=curses.A_REVERSE,
+                          BAR_OK=curses.A_REVERSE,
+                          BAR_WARNING=curses.A_REVERSE | curses.A_BOLD,
+                          BAR_ERROR=curses.A_REVERSE | curses.A_BOLD,
+                          GREY=curses.A_NORMAL,
+                          GREY_BOLD=curses.A_BOLD,
+                          GREEN=curses.A_NORMAL,
+                          GREEN_BOLD=curses.A_BOLD,
+                          OK=curses.A_BOLD,
+                          BLUE=curses.A_NORMAL,
+                          BLUE_BOLD=curses.A_BOLD,
+                          RED=curses.A_NORMAL,
+                          RED_BOLD=curses.A_BOLD,
+                          CYAN=curses.A_NORMAL,
+                          CYAN_BOLD=curses.A_BOLD,
+                          MAGENTA=curses.A_NORMAL,
+                          MAGENTA_BOLD=curses.A_BOLD,
+                          YELLOW=curses.A_NORMAL,
+                          YELLOW_BOLD=curses.A_BOLD,
+                          WHITE=curses.A_NORMAL,
+                          WHITE_BOLD=curses.A_BOLD,
+                          PROMPT=curses.A_BOLD)
 
-glyph = SimpleNamespace(
-    UPLOAD='<',
-    DOWNLOAD='>',
-    ARROW_UP='|',
-    ARROW_DOWN='|',
-    SELECTOR='>',
-    CONNECTION='=')
+glyph = SimpleNamespace(UPLOAD='<',
+                        DOWNLOAD='>',
+                        ARROW_UP='|',
+                        ARROW_DOWN='|',
+                        SELECTOR='>',
+                        CONNECTION='=')
 
 
 class GenericPlugin(BackgroundIntervalWorker):
@@ -106,7 +104,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.inputs = {}  # key - hot key, value - input value
         self.key_code = None  # last key pressed, for custom key event handling
         self.key_event = None  # last key event
-        self.injected = False # is plugin injected
+        self.injected = False  # is plugin injected
 
     def on_load(self):
         '''
@@ -270,8 +268,8 @@ class GenericPlugin(BackgroundIntervalWorker):
         title = self.title
         if self._error:
             color = palette.ERROR
-            title += ' [ERROR{}]'.format((
-                ': ' + str(self.msg)) if self.msg else '')
+            title += ' [ERROR{}]'.format((': ' +
+                                          str(self.msg)) if self.msg else '')
         elif self._paused:
             color = palette.GREY
             title += ' [PAUSED]'
@@ -425,10 +423,9 @@ class GenericPlugin(BackgroundIntervalWorker):
             else:
                 if not self.sorting_col:
                     self.sorting_col = list(dtd[0])[0]
-                for d in sorted(
-                        dtd,
-                        key=lambda k: k[self.sorting_col],
-                        reverse=self.sorting_rev):
+                for d in sorted(dtd,
+                                key=lambda k: k[self.sorting_col],
+                                reverse=self.sorting_rev):
                     yield d
 
     def format_dtd(self, dtd):
@@ -682,8 +679,8 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.handle_sorting_event()
         with self.data_lock:
             dtd = list(
-                self.filter_dtd(
-                    dtd=self.format_dtd(dtd=self.sort_dtd(dtd=self.data))))
+                self.filter_dtd(dtd=self.format_dtd(dtd=self.sort_dtd(
+                    dtd=self.data))))
         self.dtd = dtd
         if self.key_event:
             if not self.filter: self.print_message()
@@ -709,13 +706,13 @@ class GenericPlugin(BackgroundIntervalWorker):
         Renders plugin UI
         '''
         height, width = self.window.getmaxyx()
-        self.tabulate(
-            dtd[self.shift:self.shift + height - 1],
-            cursor=(self.cursor - self.shift) if self.cursor_enabled else None,
-            hshift=self.hshift,
-            sorting_col=self.sorting_col,
-            sorting_rev=self.sorting_rev,
-            print_selector=self.selectable)
+        self.tabulate(dtd[self.shift:self.shift + height - 1],
+                      cursor=(self.cursor -
+                              self.shift) if self.cursor_enabled else None,
+                      hshift=self.hshift,
+                      sorting_col=self.sorting_col,
+                      sorting_rev=self.sorting_rev,
+                      print_selector=self.selectable)
         if self.need_status_line:
             self.status_line.move(0, 0)
             self.render_status_line()
@@ -747,7 +744,8 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.window.clrtobot()
         height, width = self.window.getmaxyx()
         if table:
-            d = tabulate.tabulate(table, headers='keys').split('\n')
+            d = tabulate.tabulate(table, headers='keys',
+                                  tablefmt='simple').split('\n')
             header = d[0]
             if print_selector:
                 header = ' ' + header
@@ -769,9 +767,9 @@ class GenericPlugin(BackgroundIntervalWorker):
                     t = (glyph.SELECTOR if cursor == i else ' ') + t
                 self.window.addstr(
                     1 + i, 0,
-                    format_row(
-                        element=r, raw=t, max_width=width,
-                        hshift=hshift), palette.CURSOR if cursor == i else
+                    format_row(element=r, raw=t, max_width=width,
+                               hshift=hshift),
+                    palette.CURSOR if cursor == i else
                     (self.get_table_row_color(r, t) or palette.DEFAULT))
         else:
             self.print_empty_sep()
