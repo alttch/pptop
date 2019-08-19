@@ -106,7 +106,7 @@ class Plugin(GenericPlugin):
         elif element['state'] == 'FINISHED':
             return palette.OK
         elif element['state'] == 'CANCELLED':
-            return palette.WARNING
+            return palette.DEBUG
 
     def handle_key_event(self, event, key, dtd):
         if event == 'delete':
