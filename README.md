@@ -23,7 +23,7 @@ scanner for Python.
   all Linux distributions)
 * Only Linux systems are currently supported
 
-<img src="https://github.com/alttch/pptop/blob/master/doc/video/pptop.gif?raw=true" width="550" />
+<img src="https://github.com/alttch/pptop/blob/master/doc/video/pptop.gif?raw=true" width="750" />
 
 ## Features
 
