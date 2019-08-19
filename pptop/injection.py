@@ -220,7 +220,7 @@ def loop(cpid, protocol, runner_mode=False):
                                 3, 0) else 'print'
                             if p1 in [
                                     'import', 'def', 'class', 'for', 'while',
-                                    'raise', 'if', 'with'
+                                    'raise', 'if', 'with', 'from'
                             ]:
                                 src = ('def {}(*args):\n' +
                                        ' __resultl.append(\' \'.join(str(a) ' +
