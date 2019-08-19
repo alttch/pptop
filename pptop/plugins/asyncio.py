@@ -197,8 +197,6 @@ def injection(cmd=None, loop=None):
                         f, ln = fname.split(':')
                         cmd = linecache.getline(f, int(ln)).strip()
                     except:
-                        from pptop.logger import log_traceback
-                        log_traceback()
                         cmd = ''
                     result.append((loop_name, l._state, coro, fname, cmd))
             except:
