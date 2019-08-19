@@ -8,11 +8,10 @@ modifications.
 
 <img src="https://img.shields.io/pypi/v/pptop.svg" /> <img src="https://img.shields.io/badge/license-MIT-green" /> <img src="https://img.shields.io/badge/python-3.5%20%7C%203.6%20%7C%203.7-blue.svg" /> <img src="https://img.shields.io/badge/-alpha-red.svg" />
 
-
-<img src="https://github.com/alttch/pptop/blob/master/doc/video/pptop.gif?raw=true" width="700" />
-
 Say no to "prints" and garbage in debug logs - now you have ppTOP. A modern MRI
 scanner for Python.
+
+<img src="https://github.com/alttch/pptop/blob/master/doc/video/pptop.gif?raw=true" width="700" />
 
 ## Installation
 
