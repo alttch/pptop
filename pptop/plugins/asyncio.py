@@ -204,5 +204,4 @@ def injection(cmd=None, loop=None):
                 e = sys.exc_info()
                 coro = '{}: {}'.format(e[0].__name__, str(e[1]))
                 result.append((loop_name, '!ERROR', coro, '', ''))
-                result.append(r)
         return result
