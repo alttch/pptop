@@ -36,6 +36,7 @@ class Plugin(GenericPlugin):
         self.description = 'Run selected script from ~/.pptop/scripts'
         self.short_name = 'Script'
         self.sorting_rev = False
+        self.selectable = True
         if 'script_dir' in self.config:
             self.script_dir = os.path.expanduser(self.config['script_dir'])
         else:
