@@ -435,9 +435,17 @@ class ProcesSelector(GenericPlugin):
                 log_traceback()
 
     def render(self, dtd):
+        self.print_message()
         super().render(dtd)
         self.stdscr.move(self.stdscr.getmaxyx()[0] - 1, 0)
         self.stdscr.clrtoeol()
+
+    def render_empty(self):
+        if self.is_active():
+            self.window.clrtobot()
+            self.print_message(
+                'No Python processes found in system. Waiting... "q" to abort',
+                color=palette.WARNING)
 
     def get_table_col_color(self, element, key, value):
         if key == 'pid':
@@ -461,8 +469,8 @@ def select_process(stdscr):
     selector.finish_event = threading.Event()
     selector.lock = threading.Lock()
     selector.title = 'Select process'
-    selector.start()
     selector.show()
+    selector.start()
     while True:
         try:
             try:
@@ -485,10 +493,12 @@ def select_process(stdscr):
             elif event == 'filter':
                 apply_filter(stdscr, selector)
             elif event == 'select':
-                selector.stop(wait=False)
                 if not selector.dtd:
-                    return None
+                    continue
+                selector.stop(wait=False)
                 return psutil.Process(selector.dtd[selector.cursor]['pid'])
+            elif event == 'pause':
+                selector.toggle_pause()
             else:
                 with scr_lock:
                     selector.key_code = k

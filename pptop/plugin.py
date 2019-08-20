@@ -701,8 +701,8 @@ class GenericPlugin(BackgroundIntervalWorker):
         if dtd:
             self.render(dtd=dtd)
         else:
-            self.print_empty_sep()
-            self.window.clrtobot()
+            self.window.move(0, 0)
+            self.render_empty()
         self.window.refresh()
         if self.need_status_line:
             self.status_line.refresh()
@@ -736,6 +736,13 @@ class GenericPlugin(BackgroundIntervalWorker):
             self.status_line.move(0, 0)
             self.render_status_line()
             self.status_line.clrtoeol()
+
+    def render_empty(self):
+        '''
+        Renders plugin UI when there's no data to display
+        '''
+        self.print_empty_sep()
+        self.window.clrtobot()
 
     def render_status_line(self):
         '''
