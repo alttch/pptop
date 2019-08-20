@@ -8,7 +8,7 @@ https://github.com/alttch/pptop
 __author__ = 'Altertech, https://www.altertech.com/'
 __copyright__ = 'Copyright (C) 2019 Altertech'
 __license__ = 'MIT'
-__version__ = '0.3.7'
+__version__ = '0.3.8'
 
 try:
     __doc__ = __doc__.format(version=__version__, license=__license__)
@@ -253,6 +253,8 @@ def format_shortcut(k):
             if len(k) == 1:
                 if k.isalpha() and k.lower() != k:
                     sh = 'Sh-{}'.format(k.lower())
+                elif k == ' ':
+                    sh = 'Space'
                 else:
                     sh = k
             else:

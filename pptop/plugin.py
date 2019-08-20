@@ -1,7 +1,7 @@
 __author__ = 'Altertech, https://www.altertech.com/'
 __copyright__ = 'Copyright (C) 2019 Altertech'
 __license__ = 'MIT'
-__version__ = '0.3.7'
+__version__ = '0.3.8'
 
 import curses
 import tabulate
@@ -802,7 +802,6 @@ class GenericPlugin(BackgroundIntervalWorker):
                     col_starts.append(cols[i] + pos + spaces +
                                       (1 if print_selector else 0))
                     pos += cols[i] + spaces
-                log(col_starts)
             for i, (t, r) in enumerate(zip(d[2:], table)):
                 if print_selector:
                     t = (glyph.SELECTOR if cursor == i else ' ') + t
