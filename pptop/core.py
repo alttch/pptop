@@ -444,10 +444,13 @@ class ProcesSelector(GenericPlugin):
 
     def render_empty(self):
         if self.is_active():
-            self.window.clrtobot()
-            self.print_message(
-                'No Python processes found in system. Waiting... "q" to abort',
-                color=palette.WARNING)
+            if self.filter == '':
+                self.window.clrtobot()
+                self.print_message('No Python processes found in system. ' +
+                                   'Waiting... "q" to abort',
+                                   color=palette.WARNING)
+            else:
+                super().render_empty()
 
     def get_table_col_color(self, element, key, value):
         if key == 'pid':
