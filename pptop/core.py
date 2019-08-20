@@ -274,9 +274,8 @@ def format_key(k):
             k = 'ESC'
         elif z < 27:
             k = 'CTRL_' + chr(z + 64)
-    log('key pressed: {}'.format(
-        k if len(k) > 1 else ((
-            'ord=' + str(ord(k))) if ord(k) < 32 else '"{}"'.format(k))))
+    log('key pressed: {}'.format(k if len(k) > 1 else ((
+        'ord=' + str(ord(k))) if ord(k) < 32 else '"{}"'.format(k))))
     return k
 
 
@@ -311,8 +310,10 @@ def colored(text, color=None, on_color=None, attrs=None):
         if not config['display'].get('colors') or not sys.stdout.isatty():
             return str(text)
         else:
-            return termcolor.colored(
-                str(text), color=color, on_color=on_color, attrs=attrs)
+            return termcolor.colored(str(text),
+                                     color=color,
+                                     on_color=on_color,
+                                     attrs=attrs)
     except:
         return str(text)
 
@@ -344,13 +345,12 @@ def cli_mode():
 
     os.system('clear')
     print(
-        colored(
-            'Console mode, process {} connected'.format(_d.process.pid),
-            color='green',
-            attrs=['bold']))
+        colored('Console mode, process {} connected'.format(_d.process.pid),
+                color='green',
+                attrs=['bold']))
     print(
-        colored(
-            format_cmdline(_d.process, _d.need_inject_server), color='yellow'))
+        colored(format_cmdline(_d.process, _d.need_inject_server),
+                color='yellow'))
     print(
         colored(
             'Enter any Python command, press Ctrl-D or type "exit" to quit'))
@@ -358,10 +358,9 @@ def cli_mode():
     print(colored('To execute multiple commands from file, type "< filename"'))
     if _d.protocol < 3:
         print(
-            colored(
-                'For Python 2 use \'_print\' instead of \'print\'',
-                color='yellow',
-                attrs=['bold']))
+            colored('For Python 2 use \'_print\' instead of \'print\'',
+                    color='yellow',
+                    attrs=['bold']))
     print()
     readline.set_history_length(100)
     try:
@@ -560,8 +559,8 @@ def get_process_path():
 
 
 def bytes_to_iso(i):
-    numbers = [(1000, 'k'), (1000000, 'M'), (1000000000, 'G'), (1000000000000,
-                                                                'T')]
+    numbers = [(1000, 'k'), (1000000, 'M'), (1000000000, 'G'),
+               (1000000000000, 'T')]
     if i < 1000:
         return '{} B'.format(i)
     for n in numbers:
@@ -591,8 +590,8 @@ async def show_process_info(stdscr, p, **kwargs):
                 stdscr.addstr(cmdline[:width - 25], palette.YELLOW)
                 stdscr.addstr(' [')
                 stdscr.addstr(
-                    str(p.pid), palette.GREEN
-                    if status == 1 else palette.GREY_BOLD)
+                    str(p.pid),
+                    palette.GREEN if status == 1 else palette.GREY_BOLD)
                 stdscr.addstr(']')
                 if status == -1:
                     xst = 'WAIT'
@@ -615,21 +614,25 @@ async def show_process_info(stdscr, p, **kwargs):
                 stdscr.addstr(str(ct.system), palette.BOLD)
                 stdscr.addstr(', threads: ')
                 # always hide pptop thread
-                stdscr.addstr(str(p.num_threads() - 1), palette.MAGENTA_BOLD)
+                stdscr.addstr(str(p.num_threads() - 1), palette.MAGENTA)
                 stdscr.addstr('\nMemory')
                 memf = p.memory_full_info()
                 for k in ['uss', 'pss', 'swp']:
                     stdscr.addstr(' {}: '.format(k))
+                    if k == 'swp':
+                        color = palette.YELLOW if memf.swap > 1000000 else palette.GREY
+                    else:
+                        color = palette.CYAN
                     stdscr.addstr(
-                        bytes_to_iso(
-                            getattr(memf, 'swap'
-                                    if k == 'swp' else k)), palette.BLUE_BOLD)
+                        bytes_to_iso(getattr(memf,
+                                             'swap' if k == 'swp' else k)),
+                        color)
                 mem = p.memory_info()
                 for k in ['shared', 'text', 'data']:
                     stdscr.addstr(' {}: '.format(k[0]))
-                    stdscr.addstr(bytes_to_iso(getattr(mem, k)), palette.CYAN)
+                    stdscr.addstr(bytes_to_iso(getattr(mem, k)), palette.BOLD)
                 stdscr.addstr('\nFiles: ')
-                stdscr.addstr(str(len(p.open_files())), palette.BLUE_BOLD)
+                stdscr.addstr(str(len(p.open_files())), palette.CYAN)
                 ioc = p.io_counters()
                 stdscr.addstr(' {} {}'.format(glyph.UPLOAD, ioc.read_count),
                               palette.GREEN)
@@ -685,9 +688,10 @@ async def show_bottom_bar(stdscr, **kwargs):
                 i = 'I:' + str(i)
             except:
                 i = ''
-            stats = '{} P:{} {} {:03d}/{:03d} '.format(
-                i, _d.protocol, glyph.CONNECTION, _d.client_frame_id,
-                _d.last_frame_id)
+            stats = '{} P:{} {} {:03d}/{:03d} '.format(i, _d.protocol,
+                                                       glyph.CONNECTION,
+                                                       _d.client_frame_id,
+                                                       _d.last_frame_id)
             with ifoctets_lock:
                 bw = _d.ifbw
             if bw < 1000:
@@ -760,13 +764,12 @@ _d = SimpleNamespace(
     exec_code=None,
     output_as_json=False)
 
-_cursors = SimpleNamespace(
-    files_cursor=0,
-    files_shift=0,
-    threads_cursor=0,
-    threads_shift=0,
-    profiler_cursor=0,
-    profiler_shift=0)
+_cursors = SimpleNamespace(files_cursor=0,
+                           files_shift=0,
+                           threads_cursor=0,
+                           threads_shift=0,
+                           profiler_cursor=0,
+                           profiler_shift=0)
 
 
 def sigwinch_handler(signum=None, frame=None):
@@ -830,8 +833,8 @@ def inject_server(gdb, p):
             _d.inject_lib))
     if _d.inject_method == 'native':
         cmds.append('call (int)__pptop_start_injection("{}",{},{},"{}")'.format(
-            libpath, os.getpid(), _d.protocol, log_config.fname
-            if log_config.fname else ''))
+            libpath, os.getpid(), _d.protocol,
+            log_config.fname if log_config.fname else ''))
     else:
         cmds += [
             'call (PyGILState_STATE)PyGILState_Ensure()',
@@ -842,15 +845,17 @@ def inject_server(gdb, p):
              '{mypid},{protocol}{lg})")').format(
                  path=libpath,
                  mypid=os.getpid(),
-                 lg='' if not log_config.fname else
-                 ',lg=\\"{}\\"'.format(log_config.fname),
+                 lg='' if not log_config.fname else ',lg=\\"{}\\"'.format(
+                     log_config.fname),
                  protocol=_d.protocol), ' call (void)PyGILState_Release($1)'
         ]
     args = [gdb, '-p', str(pid), '--batch'
            ] + ['--eval-command={}'.format(c) for c in cmds]
     log(args)
-    p = subprocess.Popen(
-        args, shell=False, stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    p = subprocess.Popen(args,
+                         shell=False,
+                         stdout=subprocess.PIPE,
+                         stderr=subprocess.PIPE)
     out, err = p.communicate()
     log(out)
     log(err)
@@ -865,7 +870,7 @@ def init_color_palette():
     palette.CRITICAL = curses.color_pair(197) | curses.A_BOLD
     palette.HEADER = curses.color_pair(37) | curses.A_REVERSE
     palette.CURSOR = curses.color_pair(32) | curses.A_REVERSE
-    palette.BAR = curses.color_pair(7) | curses.A_REVERSE
+    palette.BAR = curses.color_pair(37) | curses.A_REVERSE
     palette.BAR_OK = curses.color_pair(29) | curses.A_REVERSE
     palette.BAR_WARNING = curses.color_pair(4) | curses.A_REVERSE
     palette.BAR_ERROR = curses.color_pair(198) | curses.A_REVERSE
@@ -874,8 +879,8 @@ def init_color_palette():
     palette.GREEN = curses.color_pair(41)
     palette.GREEN_BOLD = curses.color_pair(41) | curses.A_BOLD
     palette.OK = curses.color_pair(121) | curses.A_BOLD
-    palette.BLUE = curses.color_pair(28)
-    palette.BLUE_BOLD = curses.color_pair(28) | curses.A_BOLD
+    palette.BLUE = curses.color_pair(40)
+    palette.BLUE_BOLD = curses.color_pair(40) | curses.A_BOLD
     palette.RED = curses.color_pair(198)
     palette.RED_BOLD = curses.color_pair(198) | curses.A_BOLD
     palette.CYAN = curses.color_pair(51)
@@ -905,8 +910,9 @@ def inject_plugin(plugin):
             command('.inject', plugin['i'])
             return True
         except:
-            print_message(
-                stdscr, 'Plugin injection failed', color=palette.ERROR)
+            print_message(stdscr,
+                          'Plugin injection failed',
+                          color=palette.ERROR)
             return False
 
 
@@ -1064,11 +1070,13 @@ def run():
                         result = None
                     with scr_lock:
                         if result:
-                            print_message(
-                                stdscr, 'Ready event sent', color=palette.OK)
+                            print_message(stdscr,
+                                          'Ready event sent',
+                                          color=palette.OK)
                         else:
-                            print_message(
-                                stdscr, 'Command failed', color=palette.ERROR)
+                            print_message(stdscr,
+                                          'Command failed',
+                                          color=palette.ERROR)
                 elif event == 'reinject' and \
                         _d.current_plugin['p'].injected is not None:
                     try:
@@ -1077,13 +1085,13 @@ def run():
                         result = None
                     with scr_lock:
                         if result:
-                            print_message(
-                                stdscr, 'Plugin re-injected', color=palette.OK)
+                            print_message(stdscr,
+                                          'Plugin re-injected',
+                                          color=palette.OK)
                         else:
-                            print_message(
-                                stdscr,
-                                'Plugin re-injection failed',
-                                color=palette.ERROR)
+                            print_message(stdscr,
+                                          'Plugin re-injection failed',
+                                          color=palette.ERROR)
                 elif event == 'quit':
                     _d.current_plugin['p'].stop(wait=False)
                     show_process_info.stop(wait=False)
@@ -1152,35 +1160,38 @@ def start():
     _me = 'ppTOP version %s' % __version__
 
     ap = argparse.ArgumentParser(description=_me)
-    ap.add_argument(
-        '-V', '--version', help='Print version and exit', action='store_true')
-    ap.add_argument(
-        '-R',
-        '--raw',
-        help='Raw mode (disable colors and unicode glyphs)',
-        action='store_true')
-    ap.add_argument(
-        '--disable-glyphs', help='disable unicode glyphs', action='store_true')
-    ap.add_argument(
-        'file', nargs='?', help='File, PID file or PID', metavar='FILE/PID')
+    ap.add_argument('-V',
+                    '--version',
+                    help='Print version and exit',
+                    action='store_true')
+    ap.add_argument('-R',
+                    '--raw',
+                    help='Raw mode (disable colors and unicode glyphs)',
+                    action='store_true')
+    ap.add_argument('--disable-glyphs',
+                    help='disable unicode glyphs',
+                    action='store_true')
+    ap.add_argument('file',
+                    nargs='?',
+                    help='File, PID file or PID',
+                    metavar='FILE/PID')
     ap.add_argument('-a', '--args', metavar='ARGS', help='Child args (quoted)')
-    ap.add_argument(
-        '--python', metavar='FILE', help='Python interpreter to launch file')
+    ap.add_argument('--python',
+                    metavar='FILE',
+                    help='Python interpreter to launch file')
     ap.add_argument('--gdb', metavar='FILE', help='Path to gdb')
-    ap.add_argument(
-        '-p',
-        '--protocol',
-        metavar='VER',
-        type=int,
-        help=textwrap.dedent('''Pickle protocol, default is highest.
+    ap.add_argument('-p',
+                    '--protocol',
+                    metavar='VER',
+                    type=int,
+                    help=textwrap.dedent('''Pickle protocol, default is highest.
                 4: Python 3.4+,
                 3: Python 3.0+,
                 2: Python 2.3+,
                 1: vintage'''))
-    ap.add_argument(
-        '--inject-method',
-        choices=['auto', 'native', 'loadcffi', 'unsafe'],
-        help='Inject method')
+    ap.add_argument('--inject-method',
+                    choices=['auto', 'native', 'loadcffi', 'unsafe'],
+                    help='Inject method')
     ap.add_argument(
         '-w',
         '--wait',
@@ -1193,12 +1204,11 @@ def start():
         help='Alternative config file (default: ~/.pptop/pptop.yml)',
         metavar='CONFIG',
         dest='config')
-    ap.add_argument(
-        '-d',
-        '--default',
-        help='Default plugin to launch',
-        metavar='PLUGIN',
-        dest='plugin')
+    ap.add_argument('-d',
+                    '--default',
+                    help='Default plugin to launch',
+                    metavar='PLUGIN',
+                    dest='plugin')
     ap.add_argument(
         '-o',
         '--plugin-option',
@@ -1214,8 +1224,10 @@ def start():
                 ' (code may put result to "out" var)',
         metavar='FILE',
         dest='_exec')
-    ap.add_argument(
-        '-J', '--json', help='Output exec result as JSON', action='store_true')
+    ap.add_argument('-J',
+                    '--json',
+                    help='Output exec result as JSON',
+                    action='store_true')
 
     try:
         import argcomplete
@@ -1341,9 +1353,8 @@ def start():
                             'Please specify __version__ in plugin file')
                 plugin = {'m': mod}
                 plugins[i] = plugin
-                p = mod.Plugin(
-                    interval=float(
-                        v.get('interval', mod.Plugin.default_interval)))
+                p = mod.Plugin(interval=float(
+                    v.get('interval', mod.Plugin.default_interval)))
                 p.command = command
                 p.get_plugins = get_plugins
                 p.get_plugin = get_plugin
@@ -1406,8 +1417,9 @@ def start():
         except:
             log_traceback()
             raise
-    atasker.task_supervisor.set_thread_pool(
-        pool_size=100, reserve_normal=100, reserve_high=50)
+    atasker.task_supervisor.set_thread_pool(pool_size=100,
+                                            reserve_normal=100,
+                                            reserve_high=50)
     atasker.task_supervisor.start()
     try:
         if a.file and not _d.work_pid:
@@ -1431,11 +1443,10 @@ def start():
             if log_config.fname:
                 args += ('--log', log_config.fname)
             log('starting child process')
-            _d.child = subprocess.Popen(
-                args,
-                shell=False,
-                stdout=subprocess.PIPE,
-                stderr=subprocess.PIPE)
+            _d.child = subprocess.Popen(args,
+                                        shell=False,
+                                        stdout=subprocess.PIPE,
+                                        stderr=subprocess.PIPE)
             _d.work_pid = _d.child.pid
             _d.protocol = pickle.HIGHEST_PROTOCOL
         else:

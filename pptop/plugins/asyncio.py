@@ -121,11 +121,13 @@ class Plugin(GenericPlugin):
         elif element['state'] == 'CANCELLED':
             return palette.DEBUG
         elif key == 'loop':
-            return palette.BLUE_BOLD
+            return palette.YELLOW
         elif key == 'coro':
             return palette.BOLD
         elif key == 'cmd':
             return palette.YELLOW
+        elif key == 'state' and value == 'PENDING':
+            return palette.BLUE
 
     async def run(self, *args, **kwargs):
         super().run(*args, **kwargs)
