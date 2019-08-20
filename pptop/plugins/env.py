@@ -20,6 +20,7 @@ class Plugin(GenericPlugin):
         max_length = 350
         self.data.clear()
         for i, v in self.get_process().environ().items():
+            v = v.replace('\r',' ').replace('\n', ' ')
             if len(v) > max_length:
                 v = v[:max_length - 3] + '...'
             d = OrderedDict()
