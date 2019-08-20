@@ -12,6 +12,7 @@ import shutil
 import subprocess
 
 from types import SimpleNamespace
+from collections import OrderedDict
 
 from atasker import BackgroundIntervalWorker
 from atasker import background_task
@@ -743,6 +744,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.window.move(0, 0)
         self.window.clrtobot()
         height, width = self.window.getmaxyx()
+        tabulate_custom_col_colors = hasattr(self, 'get_table_col_color')
         if table:
             d = tabulate.tabulate(table, headers='keys',
                                   tablefmt='simple').split('\n')
@@ -762,15 +764,55 @@ class GenericPlugin(BackgroundIntervalWorker):
             self.window.addstr(
                 0, 0, format_row(raw=header, max_width=width, hshift=hshift),
                 palette.HEADER)
+            if tabulate_custom_col_colors:
+                cols = [
+                    len(x)
+                    for x in (('-' if print_selector else '') + d[1]).split()
+                ]
+                spaces = 0
+                if len(cols) > 1:
+                    for i in range(cols[0], len(d[1])):
+                        if d[1][i] == ' ': spaces += 1
+                        else: break
+                pos = 0
+                col_starts = [0]
+                for i in range(len(cols) - 1):
+                    col_starts.append(cols[i] + pos + spaces)
+                    pos += cols[i] + spaces
             for i, (t, r) in enumerate(zip(d[2:], table)):
                 if print_selector:
                     t = (glyph.SELECTOR if cursor == i else ' ') + t
-                self.window.addstr(
-                    1 + i, 0,
-                    format_row(element=r, raw=t, max_width=width,
-                               hshift=hshift),
-                    palette.CURSOR if cursor == i else
-                    (self.get_table_row_color(r, t) or palette.DEFAULT))
+                if tabulate_custom_col_colors and cursor != i:
+                    self.window.move(i + 1, 0)
+                    rraw = t[hshift:hshift + width - 1]
+                    limit = width - 1
+                    for z, c in enumerate(r):
+                        start = col_starts[z] - hshift
+                        end = start + cols[z]
+                        if end > 0:
+                            raw = rraw[start if start > 0 else 0:end]
+                            if raw:
+                                color = self.get_table_col_color(element=r,
+                                                                 key=c,
+                                                                 value=r.get(c))
+                                self.window.addstr(
+                                    raw, color if color else curses.A_NORMAL)
+                                limit -= len(raw)
+                                if z < len(cols) - 1 and limit > 0:
+                                    spc = spaces if limit > spaces else limit
+                                    self.window.addstr(' ' * spc)
+                                    limit -= spc
+                            else:
+                                break
+                else:
+                    self.window.addstr(
+                        1 + i, 0,
+                        format_row(element=r,
+                                   raw=t,
+                                   max_width=width,
+                                   hshift=hshift),
+                        palette.CURSOR if cursor == i else
+                        (self.get_table_row_color(r, t) or palette.DEFAULT))
         else:
             self.print_empty_sep()
 

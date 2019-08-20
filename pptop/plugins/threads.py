@@ -1,4 +1,4 @@
-from pptop.plugin import GenericPlugin
+from pptop.plugin import GenericPlugin, palette
 
 
 class Plugin(GenericPlugin):
@@ -35,6 +35,18 @@ class Plugin(GenericPlugin):
             z = t.copy()
             z['ttot'] = '{:.3f}'.format(z['ttot'])
             yield z
+
+    def get_table_col_color(self, element, key, value):
+        if key == 'ident':
+            return palette.YELLOW if not element['daemon'] else None
+        elif key == 'daemon':
+            return
+        elif key == 'name':
+            return palette.YELLOW if not element['daemon'] else None
+        elif key == 'target':
+            return palette.BOLD
+        else:
+            return palette.CYAN
 
     async def run(self, *args, **kwargs):
         super().run(*args, **kwargs)

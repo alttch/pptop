@@ -115,6 +115,10 @@ class Plugin(GenericPlugin):
     def toggle_pause(self):
         pass
 
+    def get_table_col_color(self, element, key, value):
+        if key == 'shortcut':
+            return palette.CYAN_BOLD
+
 
 def injection(src, **kwargs):
     d = {}

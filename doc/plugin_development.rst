@@ -200,10 +200,14 @@ to display anything more complex, e.g. a tree, you should completely override
 it.
 
 Otherwise, it would be probably enough to override methods
-*self.render_status_line()*, *self.get_table_row_color(element, raw)* (colorize
+*render_status_line()*, *get_table_row_color(self, element, raw)* (colorize
 specified row according to element values) and/or
-*self.format_table_row(element=None, raw=None)* (add additional formatting to
+*format_table_row(self, element=None, raw=None)* (add additional formatting to
 raw table row).
+
+You may also define function *self.get_table_col_color(self, element, key,
+value)*. In this case, row colors are ignored and each column is colorized
+independently.
 
 Input values
 ------------

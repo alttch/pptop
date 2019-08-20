@@ -48,7 +48,7 @@ class Plugin(GenericPlugin):
             v['state'] = d[1]
             v['coro'] = d[2]
             v['cmd'] = d[4]
-            v['fname'] = d[3]
+            v['file'] = d[3]
             result.append(v)
         return result
 
@@ -100,14 +100,6 @@ class Plugin(GenericPlugin):
         }
         return ps.get(var)
 
-    def get_table_row_color(self, element=None, raw=None):
-        if element['state'] == '!ERROR':
-            return palette.ERROR
-        elif element['state'] == 'FINISHED':
-            return palette.OK
-        elif element['state'] == 'CANCELLED':
-            return palette.DEBUG
-
     def handle_key_event(self, event, key, dtd):
         if event == 'delete':
             el = self.get_selected_row()
@@ -121,10 +113,19 @@ class Plugin(GenericPlugin):
             self.injection_command(cmd='clear')
             self.print_message('Loop list cleared', color=palette.WARNING)
 
-    # def get_table_row_color(self, element=None, raw=None):
-    # if isinstance(element['info'],
-    # str) and element['value'].startswith('!ERROR'):
-    # return palette.RED
+    def get_table_col_color(self, element, key, value):
+        if element['state'] == '!ERROR':
+            return palette.ERROR
+        elif element['state'] == 'FINISHED':
+            return palette.OK
+        elif element['state'] == 'CANCELLED':
+            return palette.DEBUG
+        elif key == 'loop':
+            return palette.BLUE_BOLD
+        elif key == 'coro':
+            return palette.BOLD
+        elif key == 'cmd':
+            return palette.YELLOW
 
     async def run(self, *args, **kwargs):
         super().run(*args, **kwargs)
@@ -176,8 +177,7 @@ def injection(cmd=None, loop=None):
                 ge = {}
                 src = ('import {mod}; import asyncio;' +
                        'out=list(asyncio.Task.all_tasks(loop={mod}.{loop}))'
-                      ).format(
-                          mod=mod, loop=loop)
+                      ).format(mod=mod, loop=loop)
                 exec(src, ge)
                 for l in ge['out']:
                     coro = ''
@@ -188,9 +188,8 @@ def injection(cmd=None, loop=None):
                         if z.startswith('coro='):
                             coro = z.split('=', 1)[-1].strip()
                             if coro.startswith('<'): coro = coro[1:]
-                        elif z == 'at' and isl[i -
-                                               1] == 'running' and i + 1 < len(
-                                                   isl):
+                        elif z == 'at' and isl[
+                                i - 1] == 'running' and i + 1 < len(isl):
                             fname = isl[i + 1].strip()
                             if fname.endswith('>'): fname = fname[:-1]
                     try:

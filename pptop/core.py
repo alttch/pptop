@@ -439,6 +439,10 @@ class ProcesSelector(GenericPlugin):
         self.stdscr.move(self.stdscr.getmaxyx()[0] - 1, 0)
         self.stdscr.clrtoeol()
 
+    def get_table_col_color(self, element, key, value):
+        if key == 'pid':
+            return palette.GREEN
+
     async def run(self, *args, **kwargs):
         super().run(*args, **kwargs)
 

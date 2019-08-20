@@ -133,13 +133,17 @@ class Plugin(GenericPlugin):
             self.injection_command(cmd='clear')
             self.print_message('Variable list cleared', color=palette.WARNING)
 
-    def get_table_row_color(self, element=None, raw=None):
+    async def run(self, *args, **kwargs):
+        super().run(*args, **kwargs)
+
+    def get_table_col_color(self, element, key, value):
         if isinstance(element['value'],
                       str) and element['value'].startswith('!ERROR'):
             return palette.RED
-
-    async def run(self, *args, **kwargs):
-        super().run(*args, **kwargs)
+        elif key == 'name':
+            return palette.BOLD
+        elif key == 'value':
+            return palette.YELLOW
 
 
 def injection_load(v=None, **kwargs):

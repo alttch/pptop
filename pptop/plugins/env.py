@@ -1,4 +1,4 @@
-from pptop.plugin import GenericPlugin
+from pptop.plugin import GenericPlugin, palette
 
 from collections import OrderedDict
 
@@ -26,6 +26,12 @@ class Plugin(GenericPlugin):
             d['var'] = i
             d['value'] = v
             self.data.append(d)
+
+    def get_table_col_color(self, element, key, value):
+        if key == 'var':
+            return palette.BOLD
+        else:
+            return palette.YELLOW
 
     async def run(self, *args, **kwargs):
         super().run(*args, **kwargs)

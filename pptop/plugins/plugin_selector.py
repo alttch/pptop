@@ -1,4 +1,4 @@
-from pptop.plugin import GenericPlugin
+from pptop.plugin import GenericPlugin, palette
 
 from pptop.core import format_shortcut
 
@@ -37,6 +37,14 @@ class Plugin(GenericPlugin):
         if event == 'select':
             background_task(self.switch_plugin)(
                 self.stdscr, self.get_plugin(self.get_selected_row()['id']))
+
+    def get_table_col_color(self, element, key, value):
+        if key == 'id':
+            return palette.BOLD
+        elif key == 'name':
+            return palette.YELLOW
+        elif key == 'shortcut':
+            return palette.CYAN_BOLD
 
     async def run(self, *args, **kwargs):
         super().run(*args, **kwargs)

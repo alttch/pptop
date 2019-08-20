@@ -21,8 +21,8 @@ class Plugin(GenericPlugin):
     def handle_key_event(self, event, key, dtd, **kwargs):
         if event == 'reset':
             self.injection_command(cmd='reset')
-            self.print_message(
-                'Profiler stats were reset', color=palette.WARNING)
+            self.print_message('Profiler stats were reset',
+                               color=palette.WARNING)
 
     def process_data(self, data):
         sess = []
@@ -32,14 +32,14 @@ class Plugin(GenericPlugin):
                     not mod.startswith('pptopcontrib-') and \
                         mod.find('_pptop_injection') == -1:
                 d = OrderedDict()
-                d['function']= '{}.{}'.format(mod, s[0])
-                d['ncall']= s[3]
-                d['nacall']= s[4]
-                d['ttot']= s[6]
-                d['tsub']= s[7]
-                d['tavg']= s[11]
-                d['file']= '{}:{}'.format(os.path.abspath(s[1]), s[2])
-                d['builtin']= 'builtin' if s[5] else ''
+                d['function'] = '{}.{}'.format(mod, s[0])
+                d['ncall'] = s[3]
+                d['nacall'] = s[4]
+                d['ttot'] = s[6]
+                d['tsub'] = s[7]
+                d['tavg'] = s[11]
+                d['file'] = '{}:{}'.format(os.path.abspath(s[1]), s[2])
+                d['builtin'] = 'builtin' if s[5] else ''
                 sess.append(d)
         return sess
 
@@ -50,6 +50,16 @@ class Plugin(GenericPlugin):
             for k in ks:
                 z[k] = '{:.3f}'.format(z[k])
             yield z
+
+    def get_table_col_color(self, element, key, value):
+        if key == 'function':
+            return palette.BOLD
+        elif key in ['ncall', 'nacall']:
+            return palette.CYAN
+        elif key == 'file':
+            return
+        else:
+            return palette.GREEN_BOLD
 
     async def run(self, *args, **kwargs):
         super().run(*args, **kwargs)
