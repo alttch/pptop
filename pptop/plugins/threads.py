@@ -86,16 +86,18 @@ def injection(**kwargs):
         pass
     for t in threading.enumerate():
         try:
-            target = '{}.{}'.format(t._target.__module__, t._target.__name__)
+            target = '{}.{}'.format(
+                t._target.__module__, t._target.__qualname__ if hasattr(
+                    t._target, '__qualname__') else t._target.__name__)
         except:
             target = None
         y = yi.get(t.ident)
         r = OrderedDict()
-        r['ident']= t.ident
-        r['daemon']= t.daemon
-        r['name']= t.getName()
-        r['target']= target if target else ''
-        r['ttot']= y[0] if y else 0
-        r['scnt']= y[1] if y else 0
+        r['ident'] = t.ident
+        r['daemon'] = t.daemon
+        r['name'] = t.getName()
+        r['target'] = target if target else ''
+        r['ttot'] = y[0] if y else 0
+        r['scnt'] = y[1] if y else 0
         result.append(r)
     return result
