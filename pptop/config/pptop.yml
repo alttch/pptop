@@ -10,7 +10,7 @@ keys:
     - "/"
   select: ENTER
   ready: CTRL_L
-  reinject: CTRL_I
+  reinject: J
   interval: I
   console: "`"
   delete:
