@@ -8,7 +8,7 @@ https://github.com/alttch/pptop
 __author__ = 'Altertech, https://www.altertech.com/'
 __copyright__ = 'Copyright (C) 2019 Altertech'
 __license__ = 'MIT'
-__version__ = '0.3.8'
+__version__ = '0.3.9'
 
 try:
     __doc__ = __doc__.format(version=__version__, license=__license__)
@@ -792,8 +792,8 @@ def sigwinch_handler(signum=None, frame=None):
 
 
 def resize_handler(stdscr):
-    # shutil works in 100% cases
-    width, height = shutil.get_terminal_size()
+    # works in 100% cases
+    width, height = os.get_terminal_size(0)
     with scr_lock:
         curses.resizeterm(height, width)
         stdscr.resize(height, width)
