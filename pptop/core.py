@@ -904,7 +904,7 @@ def init_glyphs():
     glyph.CONNECTION = '⇄'
 
 
-def inject_plugin(plugin):
+def inject_plugin(stdscr, plugin):
     if plugin['p'].injected is False:
         log('injecting plugin {}'.format(plugin['p'].name))
         plugin['p'].injected = True
@@ -932,7 +932,7 @@ def switch_plugin(stdscr, new_plugin):
     p._previous_plugin = _d.current_plugin
     p.key_event = None
     p.key_code = None
-    inject_plugin(new_plugin)
+    inject_plugin(stdscr, new_plugin)
     if not p.is_active(): p.start()
     p.show()
     with plugin_lock:
@@ -946,7 +946,7 @@ def run():
         for plugin in plugins_autostart:
             if plugin['p'] is not _d.current_plugin.get('p'):
                 log('autostarting {}'.format(plugin['m']))
-                inject_plugin(plugin)
+                inject_plugin(stdscr, plugin)
                 p = plugin['p']
                 if p.background:
                     p.stdscr = stdscr
@@ -1061,7 +1061,7 @@ def run():
                         _d.current_plugin['p'].resize()
                         show_process_info.trigger()
                     continue
-                if not show_process_info.is_active():
+                if show_process_info.is_stopped():
                     return
                 elif k in plugin_shortcuts:
                     switch_plugin(stdscr, plugin_shortcuts[k])
@@ -1368,7 +1368,7 @@ def start():
                 p.global_config = config
                 plugin['p'] = p
                 plugin['id'] = i
-                p.inject = partial(inject_plugin, plugin)
+                p._inject = partial(inject_plugin, plugin=plugin)
                 injection = {'id': i}
                 need_inject = False
                 try:

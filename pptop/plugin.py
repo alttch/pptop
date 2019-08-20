@@ -311,7 +311,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         Returns:
             True if plugin was injected, False if failed
         '''
-        return
+        return self._inject(stdscr=self.stdscr)
 
     def injection_command(self, **kwargs):
         '''
@@ -730,7 +730,8 @@ class GenericPlugin(BackgroundIntervalWorker):
                       hshift=self.hshift,
                       sorting_col=self.sorting_col,
                       sorting_rev=self.sorting_rev,
-                      print_selector=self.selectable and self.is_cursor_enabled())
+                      print_selector=self.selectable and
+                      self.is_cursor_enabled())
         if self.need_status_line:
             self.status_line.move(0, 0)
             self.render_status_line()
@@ -782,25 +783,26 @@ class GenericPlugin(BackgroundIntervalWorker):
                 0, 0, format_row(raw=header, max_width=width, hshift=hshift),
                 palette.HEADER)
             if tabulate_custom_col_colors:
-                cols = [
-                    len(x)
-                    for x in (('-' if print_selector else '') + d[1]).split()
-                ]
+                cols = [len(x) for x in d[1].split()]
                 spaces = 0
                 if len(cols) > 1:
                     for i in range(cols[0], len(d[1])):
                         if d[1][i] == ' ': spaces += 1
                         else: break
                 pos = 0
-                col_starts = [0]
+                col_starts = [1 if print_selector else 0]
                 for i in range(len(cols) - 1):
-                    col_starts.append(cols[i] + pos + spaces)
+                    col_starts.append(cols[i] + pos + spaces +
+                                      (1 if print_selector else 0))
                     pos += cols[i] + spaces
+                log(col_starts)
             for i, (t, r) in enumerate(zip(d[2:], table)):
                 if print_selector:
                     t = (glyph.SELECTOR if cursor == i else ' ') + t
                 if tabulate_custom_col_colors and cursor != i:
                     self.window.move(i + 1, 0)
+                    if print_selector:
+                        self.window.addstr(' ')
                     rraw = t[hshift:hshift + width - 1]
                     limit = width - 1
                     for z, c in enumerate(r):
