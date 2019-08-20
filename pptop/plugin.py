@@ -74,6 +74,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         self._paused = False
         self._error = False
         self._loader_active = False
+        self._cursor_enabled_by_user = True
         mod = sys.modules[self.__module__]
         self.name = mod.__name__.rsplit('.', 1)[-1]  # plugin name(id)
         if self.name.startswith('pptopcontrib-'):
@@ -119,6 +120,9 @@ class GenericPlugin(BackgroundIntervalWorker):
         Executed on plugin unload (on pptop shutdown)
         '''
         pass
+
+    def _on_load(self):
+        self._cursor_enabled_by_user = self.cursor_enabled
 
     def get_process(self):
         '''
@@ -199,7 +203,9 @@ class GenericPlugin(BackgroundIntervalWorker):
         max_pos = len(dtd) - 1
         if max_pos < 0: max_pos = 0
         if self.key_event:
-            if self.key_event == 'left':
+            if self.key_event == 'cursor-toggle':
+                self.toggle_cursor()
+            elif self.key_event == 'left':
                 self.hshift -= 1
                 if self.hshift < 0:
                     self.hshift = 0
@@ -212,7 +218,7 @@ class GenericPlugin(BackgroundIntervalWorker):
             elif self.key_event == 'hshift-right':
                 self.hshift += 20
             if self.key_event == 'down':
-                if self.cursor_enabled:
+                if self.is_cursor_enabled():
                     self.cursor += 1
                     if self.cursor > max_pos:
                         self.cursor = max_pos
@@ -222,7 +228,7 @@ class GenericPlugin(BackgroundIntervalWorker):
                     self.cursor += 1
                     self.shift += 1
             elif self.key_event == 'up':
-                if self.cursor_enabled:
+                if self.is_cursor_enabled():
                     self.cursor -= 1
                 else:
                     self.cursor -= 1
@@ -703,6 +709,16 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.stdscr.refresh()
         return True
 
+    def is_cursor_enabled(self):
+        return self.cursor_enabled and self._cursor_enabled_by_user
+
+    def toggle_cursor(self):
+        '''
+        Toggle plugin cursor
+        '''
+        if not self.selectable:
+            self._cursor_enabled_by_user = not self._cursor_enabled_by_user
+
     def render(self, dtd):
         '''
         Renders plugin UI
@@ -710,11 +726,11 @@ class GenericPlugin(BackgroundIntervalWorker):
         height, width = self.window.getmaxyx()
         self.tabulate(dtd[self.shift:self.shift + height - 1],
                       cursor=(self.cursor -
-                              self.shift) if self.cursor_enabled else None,
+                              self.shift) if self.is_cursor_enabled() else None,
                       hshift=self.hshift,
                       sorting_col=self.sorting_col,
                       sorting_rev=self.sorting_rev,
-                      print_selector=self.selectable)
+                      print_selector=self.selectable and self.is_cursor_enabled())
         if self.need_status_line:
             self.status_line.move(0, 0)
             self.render_status_line()

@@ -14,6 +14,7 @@ class Plugin(GenericPlugin):
         self.title = 'Select plugin'
         self.short_name = 'Plugns'
         self.sorting_rev = False
+        self.selectable = True
 
     def load_data(self):
         self.data.clear()

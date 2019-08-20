@@ -17,6 +17,7 @@ keys:
     - KEY_BACKSPACE
     - KEY_DC
   pause: p
+  cursor-toggle: Z
   sort-col-next: kRIT3
   sort-col-prev: kLFT3
   sort-normal: kDN3
@@ -54,19 +55,23 @@ plugins:
   yappi:
     shortcut: KEY_F(5)
     #filter: lib/python
+    cursor: false
   help:
     shortcut: KEY_F(1)
   open_files:
     shortcut: KEY_F(6)
   threads:
     shortcut: KEY_F(7)
+    cursor: false
   asyncio:
     shortcut: KEY_F(8)
     config:
       list: ~/.pptop/asyncio_loops.list
+    cursor: false
   log:
     shortcut: KEY_F(9)
     autostart: true
+    cursor: false
   env:
     shortcut: KEY_F(33) # C-F9
   last_exception:

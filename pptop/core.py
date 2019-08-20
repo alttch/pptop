@@ -99,7 +99,8 @@ events_by_key = {
     'KEY_END': 'end',
     'KEY_F(10)': 'quit',
     ' ': 'reload',
-    'CTRL_X': 'reset'
+    'CTRL_X': 'reset',
+    'Z': 'cursor-toggle'
 }
 
 plugins_autostart = []
@@ -620,7 +621,8 @@ async def show_process_info(stdscr, p, **kwargs):
                 for k in ['uss', 'pss', 'swp']:
                     stdscr.addstr(' {}: '.format(k))
                     if k == 'swp':
-                        color = palette.YELLOW if memf.swap > 1000000 else palette.GREY
+                        color = palette.YELLOW if \
+                                memf.swap > 1000000 else palette.GREY
                     else:
                         color = palette.CYAN
                     stdscr.addstr(
@@ -1395,6 +1397,7 @@ def start():
                 p_cfg = v.get('config')
                 p.config = {} if p_cfg is None else p_cfg
                 p.on_load()
+                p._on_load()
                 if 'l' in injection:
                     injection['lkw'] = p.get_injection_load_params()
                 if 'shortcut' in v:
@@ -1412,6 +1415,8 @@ def start():
                     plugin['shortcut'] = ''
                 if 'filter' in v:
                     p.filter = str(v['filter'])
+                if 'cursor' in v:
+                    p._cursor_enabled_by_user = v['cursor']
                 if v.get('autostart'):
                     plugins_autostart.append(plugin)
         except:
@@ -1420,6 +1425,7 @@ def start():
     atasker.task_supervisor.set_thread_pool(pool_size=100,
                                             reserve_normal=100,
                                             reserve_high=50)
+    atasker.task_supervisor.daemon = True
     atasker.task_supervisor.start()
     try:
         if a.file and not _d.work_pid:
