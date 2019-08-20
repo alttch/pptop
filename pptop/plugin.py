@@ -53,7 +53,8 @@ palette = SimpleNamespace(DEFAULT=curses.A_NORMAL,
                           YELLOW_BOLD=curses.A_BOLD,
                           WHITE=curses.A_NORMAL,
                           WHITE_BOLD=curses.A_BOLD,
-                          PROMPT=curses.A_BOLD)
+                          PROMPT=curses.A_BOLD,
+                          color=curses.color_pair)
 
 glyph = SimpleNamespace(UPLOAD='<',
                         DOWNLOAD='>',
@@ -454,7 +455,7 @@ class GenericPlugin(BackgroundIntervalWorker):
                 yield d
         else:
             self.stdscr.addstr(top_lines + 1, 0, ' f="')
-            self.stdscr.addstr(self.filter, palette.BLUE_BOLD)
+            self.stdscr.addstr(self.filter, palette.YELLOW_BOLD)
             self.stdscr.addstr('"')
             self.stdscr.clrtoeol()
             self.stdscr.refresh()

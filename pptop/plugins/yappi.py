@@ -59,7 +59,7 @@ class Plugin(GenericPlugin):
         elif key == 'file':
             return
         else:
-            return palette.GREEN_BOLD
+            return palette.GREEN
 
     async def run(self, *args, **kwargs):
         super().run(*args, **kwargs)

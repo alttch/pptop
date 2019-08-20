@@ -48,7 +48,7 @@ class Plugin(GenericPlugin):
             'DEBUG': palette.DEBUG,
             'WARNING': palette.WARNING,
             'ERROR': palette.ERROR,
-            'CRITICAL': palette.ERROR
+            'CRITICAL': palette.CRITICAL
         }
         super().start(*args, **kwargs)
 

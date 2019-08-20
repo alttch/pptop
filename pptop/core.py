@@ -859,32 +859,33 @@ def inject_server(gdb, p):
 
 
 def init_color_palette():
-    palette.DEBUG = curses.color_pair(1) | curses.A_BOLD
-    palette.WARNING = curses.color_pair(4) | curses.A_BOLD
-    palette.ERROR = curses.color_pair(2) | curses.A_BOLD
-    palette.HEADER = curses.color_pair(3) | curses.A_REVERSE
-    palette.CURSOR = curses.color_pair(7) | curses.A_REVERSE
+    palette.DEBUG = curses.color_pair(244)
+    palette.WARNING = curses.color_pair(187) | curses.A_BOLD
+    palette.ERROR = curses.color_pair(198) | curses.A_BOLD
+    palette.CRITICAL = curses.color_pair(197) | curses.A_BOLD
+    palette.HEADER = curses.color_pair(37) | curses.A_REVERSE
+    palette.CURSOR = curses.color_pair(32) | curses.A_REVERSE
     palette.BAR = curses.color_pair(7) | curses.A_REVERSE
-    palette.BAR_OK = curses.color_pair(3) | curses.A_REVERSE
+    palette.BAR_OK = curses.color_pair(29) | curses.A_REVERSE
     palette.BAR_WARNING = curses.color_pair(4) | curses.A_REVERSE
-    palette.BAR_ERROR = curses.color_pair(2) | curses.A_REVERSE
-    palette.GREY = curses.color_pair(1)
-    palette.GREY_BOLD = curses.color_pair(1) | curses.A_BOLD
-    palette.GREEN = curses.color_pair(3)
-    palette.GREEN_BOLD = curses.color_pair(3) | curses.A_BOLD
-    palette.OK = curses.color_pair(3) | curses.A_BOLD
-    palette.BLUE = curses.color_pair(5)
-    palette.BLUE_BOLD = curses.color_pair(5) | curses.A_BOLD
-    palette.RED = curses.color_pair(2)
-    palette.RED_BOLD = curses.color_pair(2) | curses.A_BOLD
-    palette.CYAN = curses.color_pair(7)
-    palette.CYAN_BOLD = curses.color_pair(7) | curses.A_BOLD
-    palette.MAGENTA = curses.color_pair(6)
-    palette.MAGENTA_BOLD = curses.color_pair(6) | curses.A_BOLD
-    palette.YELLOW = curses.color_pair(4)
-    palette.YELLOW_BOLD = curses.color_pair(4) | curses.A_BOLD
-    palette.WHITE_BOLD = curses.color_pair(8) | curses.A_BOLD
-    palette.PROMPT = curses.color_pair(3) | curses.A_BOLD
+    palette.BAR_ERROR = curses.color_pair(198) | curses.A_REVERSE
+    palette.GREY = curses.color_pair(244)
+    palette.GREY_BOLD = curses.color_pair(244) | curses.A_BOLD
+    palette.GREEN = curses.color_pair(41)
+    palette.GREEN_BOLD = curses.color_pair(41) | curses.A_BOLD
+    palette.OK = curses.color_pair(121) | curses.A_BOLD
+    palette.BLUE = curses.color_pair(28)
+    palette.BLUE_BOLD = curses.color_pair(28) | curses.A_BOLD
+    palette.RED = curses.color_pair(198)
+    palette.RED_BOLD = curses.color_pair(198) | curses.A_BOLD
+    palette.CYAN = curses.color_pair(51)
+    palette.CYAN_BOLD = curses.color_pair(51) | curses.A_BOLD
+    palette.MAGENTA = curses.color_pair(208)
+    palette.MAGENTA_BOLD = curses.color_pair(208) | curses.A_BOLD
+    palette.YELLOW = curses.color_pair(187)
+    palette.YELLOW_BOLD = curses.color_pair(187) | curses.A_BOLD
+    palette.WHITE_BOLD = curses.color_pair(231) | curses.A_BOLD
+    palette.PROMPT = curses.color_pair(76) | curses.A_BOLD
 
 
 def init_glyphs():
