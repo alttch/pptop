@@ -27,7 +27,7 @@ class Plugin(GenericPlugin):
             r['level'] = record.levelno
             r['module'] = record.module
             r['thread'] = record.threadName
-            r['file'] = '{}]={}'.format(
+            r['file'] = '{}:{}'.format(
                 os.path.abspath(record.pathname), record.lineno)
             r['message'] = record.getMessage().replace('\n', ' ')
             result.append(r)
