@@ -123,8 +123,8 @@ def get_plugins():
 
 def init_curses(initial=False):
     stdscr = curses.initscr()
-    resize_handler.start(stdscr=stdscr)
     if initial:
+        resize_handler.start(stdscr=stdscr)
         if curses.has_colors():
             if config['display'].get('colors'):
                 curses.start_color()
@@ -142,7 +142,6 @@ def init_curses(initial=False):
 
 def end_curses(stdscr):
     if stdscr:
-        resize_handler.stop(wait=False)
         curses.nocbreak()
         stdscr.keypad(False)
         curses.echo()
