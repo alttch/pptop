@@ -47,3 +47,16 @@ def log_traceback(msg=None):
 
     args += (traceback.format_exc(),)
     log(*args)
+
+
+def init_logging():
+
+    import logging
+
+    class LogHandler(logging.Handler):
+
+        def emit(self, record):
+            log('{} {} {} {}'.format(record.levelname, record.module,
+                                     record.funcName, record.getMessage()))
+
+    logging.getLogger().addHandler(LogHandler())
