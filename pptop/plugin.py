@@ -1,7 +1,7 @@
 __author__ = 'Altertech, https://www.altertech.com/'
 __copyright__ = 'Copyright (C) 2019 Altertech'
 __license__ = 'MIT'
-__version__ = '0.3.12'
+__version__ = '0.3.13'
 
 import curses
 import tabulate
@@ -536,11 +536,10 @@ class GenericPlugin(BackgroundIntervalWorker):
         '''
         Automatically called on screen resize
         '''
-        with self.scr_lock:
-            self.init_render_window()
-            self.print_title()
-            self.key_event = 'KEY_RESIZE'
-            self._display()
+        self.init_render_window()
+        self.print_title()
+        self.key_event = 'KEY_RESIZE'
+        self._display()
 
     def handle_key_event(self, event, key, dtd):
         '''
@@ -823,9 +822,9 @@ class GenericPlugin(BackgroundIntervalWorker):
                                     raw, color if color else curses.A_NORMAL)
                                 limit -= len(raw)
                                 # if z < len(cols) - 1 and limit > 0:
-                                    # spc = spaces if limit > spaces else limit
-                                    # self.window.addstr(' ' * spc)
-                                    # limit -= spc
+                                # spc = spaces if limit > spaces else limit
+                                # self.window.addstr(' ' * spc)
+                                # limit -= spc
                             else:
                                 break
                 else:

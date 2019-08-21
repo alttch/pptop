@@ -8,7 +8,7 @@ https://github.com/alttch/pptop
 __author__ = 'Altertech, https://www.altertech.com/'
 __copyright__ = 'Copyright (C) 2019 Altertech'
 __license__ = 'MIT'
-__version__ = '0.3.12'
+__version__ = '0.3.13'
 
 try:
     __doc__ = __doc__.format(version=__version__, license=__license__)
@@ -59,7 +59,7 @@ from pptop.plugin import print_debug
 
 from pptop.logger import config as log_config, log, log_traceback
 
-from pptop.exceptions import CriticalException, ResizeException
+from pptop.exceptions import CriticalException
 
 logging.getLogger('asyncio').setLevel(logging.CRITICAL)
 logging.getLogger('atasker/supervisor').setLevel(100)
@@ -108,9 +108,6 @@ plugins_autostart = []
 bottom_bar_help = {10: 'Quit'}
 plugin_shortcuts = {}
 
-resize_lock = threading.Lock()
-resize_event = threading.Event()
-
 plugin_lock = threading.Lock()
 
 socket_timeout = 15
@@ -126,6 +123,7 @@ def get_plugins():
 
 def init_curses(initial=False):
     stdscr = curses.initscr()
+    resize_handler.start(stdscr=stdscr)
     if initial:
         if curses.has_colors():
             if config['display'].get('colors'):
@@ -144,6 +142,7 @@ def init_curses(initial=False):
 
 def end_curses(stdscr):
     if stdscr:
+        resize_handler.stop(wait=False)
         curses.nocbreak()
         stdscr.keypad(False)
         curses.echo()
@@ -476,21 +475,16 @@ def select_process(stdscr):
     selector.title = 'Select process'
     selector.show()
     selector.start()
+    _d.current_plugin = {'p': selector}
     while True:
         try:
             try:
-                if resize_event.is_set():
-                    raise ResizeException
                 k = format_key(stdscr.getkey())
                 event = get_key_event(k)
             except KeyboardInterrupt:
                 return
-            except (ResizeException, curses.error):
-                log('resize event')
-                with resize_lock:
-                    resize_event.clear()
-                    resize_handler(stdscr)
-                    selector.resize()
+            except curses.error:
+                resize_handler.trigger(force=True)
                 continue
             if k == 'q' or event == 'quit':
                 selector.stop(wait=False)
@@ -790,18 +784,20 @@ _cursors = SimpleNamespace(files_cursor=0,
 
 
 def sigwinch_handler(signum=None, frame=None):
-    with resize_lock:
-        resize_event.set()
+    resize_handler.trigger(force=True)
 
 
-def resize_handler(stdscr):
+@atasker.background_worker(event=True, daemon=True)
+async def resize_handler(stdscr, **kwargs):
+    log('resize event')
     # works in 100% cases
     width, height = os.get_terminal_size(0)
     with scr_lock:
         curses.resizeterm(height, width)
         stdscr.resize(height, width)
         stdscr.clear()
-        stdscr.refresh()
+        _d.current_plugin['p'].resize()
+        show_process_info.trigger()
 
 
 def find_lib(name):
@@ -1091,19 +1087,12 @@ def run():
         while True:
             try:
                 try:
-                    if resize_event.is_set():
-                        raise ResizeException
                     k = format_key(stdscr.getkey())
                     event = get_key_event(k)
                 except KeyboardInterrupt:
                     return
-                except (ResizeException, curses.error):
-                    log('resize event')
-                    with resize_lock:
-                        resize_event.clear()
-                        resize_handler(stdscr)
-                        _d.current_plugin['p'].resize()
-                        show_process_info.trigger()
+                except curses.error:
+                    resize_handler.trigger(force=True)
                     continue
                 if show_process_info.is_stopped():
                     return
