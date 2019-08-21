@@ -777,6 +777,7 @@ class GenericPlugin(BackgroundIntervalWorker):
             header = d[0]
             if print_selector:
                 header = ' ' + header
+                d[1] = '-' + d[1]
             if sorting_col:
                 if sorting_rev:
                     s = glyph.ARROW_UP
@@ -798,23 +799,20 @@ class GenericPlugin(BackgroundIntervalWorker):
                         if d[1][i] == ' ': spaces += 1
                         else: break
                 pos = 0
-                col_starts = [1 if print_selector else 0]
+                col_starts = [0]
                 for i in range(len(cols) - 1):
-                    col_starts.append(cols[i] + pos + spaces +
-                                      (1 if print_selector else 0))
+                    col_starts.append(cols[i] + pos + spaces)
                     pos += cols[i] + spaces
             for i, (t, r) in enumerate(zip(d[2:], table)):
                 if print_selector:
                     t = (glyph.SELECTOR if cursor == i else ' ') + t
                 if tabulate_custom_col_colors and cursor != i:
                     self.window.move(i + 1, 0)
-                    if print_selector:
-                        self.window.addstr(' ')
                     rraw = t[hshift:hshift + width - 1]
                     limit = width - 1
                     for z, c in enumerate(r):
                         start = col_starts[z] - hshift
-                        end = start + cols[z]
+                        end = start + cols[z] + spaces
                         if end > 0:
                             raw = rraw[start if start > 0 else 0:end]
                             if raw:
@@ -824,10 +822,10 @@ class GenericPlugin(BackgroundIntervalWorker):
                                 self.window.addstr(
                                     raw, color if color else curses.A_NORMAL)
                                 limit -= len(raw)
-                                if z < len(cols) - 1 and limit > 0:
-                                    spc = spaces if limit > spaces else limit
-                                    self.window.addstr(' ' * spc)
-                                    limit -= spc
+                                # if z < len(cols) - 1 and limit > 0:
+                                    # spc = spaces if limit > spaces else limit
+                                    # self.window.addstr(' ' * spc)
+                                    # limit -= spc
                             else:
                                 break
                 else:
