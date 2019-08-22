@@ -292,7 +292,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         else:
             color = palette.CAPTION
         height, width = self.stdscr.getmaxyx()
-        self.stdscr.addstr(top_lines, 0, title[:width-1], color)
+        self.stdscr.addstr(top_lines, 0, title[:width - 1], color)
         self.stdscr.clrtoeol()
 
     def print_empty_sep(self):
@@ -472,7 +472,8 @@ class GenericPlugin(BackgroundIntervalWorker):
                 yield d
         else:
             self.stdscr.addstr(top_lines + 1, 0, ' f="')
-            self.stdscr.addstr(self.filter, palette.YELLOW_BOLD)
+            self.stdscr.addstr(self.filter[:self.stdscr.getmaxyx()[1] - 6],
+                               palette.YELLOW_BOLD)
             self.stdscr.addstr('"')
             self.stdscr.clrtoeol()
             self.stdscr.refresh()
