@@ -85,12 +85,11 @@ class SimpleNamespace:
 
 # don't use threading.Event to hide presence
 
-g = SimpleNamespace(
-    clients=0,
-    _runner_status=-1,
-    _runner_ready=False,
-    _server_finished=False,
-    _last_exception=())
+g = SimpleNamespace(clients=0,
+                    _runner_status=-1,
+                    _runner_ready=False,
+                    _server_finished=False,
+                    _last_exception=())
 
 _g_lock = threading.Lock()
 
@@ -196,8 +195,8 @@ def loop(cpid, protocol, runner_mode=False):
                     elif cmd == '.bye':
                         break
                     elif cmd == '.status':
-                        send_serialized(connection, frame_id, g._runner_status
-                                        if runner_mode else 1)
+                        send_serialized(connection, frame_id,
+                                        g._runner_status if runner_mode else 1)
                     elif cmd == '.path':
                         send_serialized(connection, frame_id, sys.path)
                     elif cmd == '.x':
@@ -220,7 +219,7 @@ def loop(cpid, protocol, runner_mode=False):
                                 3, 0) else 'print'
                             if p1 in [
                                     'import', 'def', 'class', 'for', 'while',
-                                    'raise', 'if', 'with', 'from'
+                                    'raise', 'if', 'with', 'from', 'try'
                             ]:
                                 src = ('def {}(*args):\n' +
                                        ' __resultl.append(\' \'.join(str(a) ' +
@@ -236,13 +235,12 @@ def loop(cpid, protocol, runner_mode=False):
                             exec(src, exec_globals)
                             result = exec_globals.get('__result')
                             try:
-                                data = pickle.dumps(
-                                    (0, safe_serialize(result)),
-                                    protocol=protocol)
+                                data = pickle.dumps((0, safe_serialize(result)),
+                                                    protocol=protocol)
                             except:
                                 log_traceback()
-                                data = pickle.dumps(
-                                    (0, str(result)), protocol=protocol)
+                                data = pickle.dumps((0, str(result)),
+                                                    protocol=protocol)
                             send_frame(connection, frame_id, b'\x00' + data)
                         except:
                             log_traceback()
@@ -349,10 +347,9 @@ def start(cpid, protocol=None, lg=None, runner_mode=False):
         protocol = protocol
     else:
         protocol = PICKLE_PROTOCOL
-    t = threading.Thread(
-        name='__pptop_injection_{}'.format(cpid),
-        target=loop,
-        args=(cpid, protocol, runner_mode))
+    t = threading.Thread(name='__pptop_injection_{}'.format(cpid),
+                         target=loop,
+                         args=(cpid, protocol, runner_mode))
     t.setDaemon(True)
     t.start()
 
@@ -377,14 +374,16 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument('file', metavar='FILE', help='File to launch')
     ap.add_argument('cpid', metavar='PID', type=int, help='Client PID')
-    ap.add_argument(
-        '-w',
-        '--wait',
-        metavar='SEC',
-        type=float,
-        help='Wait seconds till start')
-    ap.add_argument(
-        '-p', '--protocol', metavar='VER', type=int, help='Pickle protocol')
+    ap.add_argument('-w',
+                    '--wait',
+                    metavar='SEC',
+                    type=float,
+                    help='Wait seconds till start')
+    ap.add_argument('-p',
+                    '--protocol',
+                    metavar='VER',
+                    type=int,
+                    help='Pickle protocol')
     ap.add_argument('-a', '--args', metavar='ARGS', help='Child args (quoted)')
     ap.add_argument('--log', metavar='FILE', help='Send debug log to file')
     a = ap.parse_args()
@@ -412,8 +411,8 @@ def main():
         log_traceback('exception in main code')
         e = sys.exc_info()
         with _g_lock:
-            g._last_exception = (e[0].__name__, str(
-                e[1]), [''])  # TODO: correct tb traceback.format_tb(e[2]))
+            g._last_exception = (e[0].__name__, str(e[1]), ['']
+                                )  # TODO: correct tb traceback.format_tb(e[2]))
     while not g._server_finished:
         time.sleep(0.2)
     # usually not executed as server kills process
