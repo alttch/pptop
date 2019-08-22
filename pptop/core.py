@@ -81,6 +81,8 @@ events_by_key = {
     'KEY_BACKSPACE': 'delete',
     'KEY_DC': 'delete',
     'p': 'pause',
+    'q': 'back',
+    'ESC': 'back',
     'kRIT3': 'sort-col-next',
     'kLFT3': 'sort-col-prev',
     'kDN3': 'sort-normal',
@@ -269,11 +271,7 @@ def format_shortcut(k):
 def format_key(k):
     if len(k) == 1:
         z = ord(k)
-        if z == 6:
-            k = 'KEY_NPAGE'
-        elif z == 2:
-            k = 'KEY_PPAGE'
-        elif z == 10:
+        if z == 10:
             k = 'ENTER'
         elif z == 27:
             k = 'ESC'
@@ -363,25 +361,30 @@ def cli_mode():
         except IndexError:
             return None
 
-    os.system('clear')
-    print(
-        colored('Console mode, process {} connected'.format(_d.process.pid),
-                color='green',
-                attrs=['bold']))
-    print(
-        colored(format_cmdline(_d.process, _d.need_inject_server),
-                color='yellow'))
-    print(
-        colored(
-            'Enter any Python command, press Ctrl-D or type "exit" to quit'))
-    print(colored('To toggle between JSON and normal mode, type ".j"'))
-    print(colored('To execute multiple commands from file, type "< filename"'))
-    if _d.protocol < 3:
+    if _d.cli_first_time:
+        os.system('clear')
         print(
-            colored('For Python 2 use \'_print\' instead of \'print\'',
-                    color='yellow',
+            colored('Console mode, process {} connected'.format(_d.process.pid),
+                    color='green',
                     attrs=['bold']))
-    print()
+        print(
+            colored(format_cmdline(_d.process, _d.need_inject_server),
+                    color='yellow'))
+        print(
+            colored(
+                'Enter any Python command, press Ctrl-D or type "exit" to quit')
+        )
+        print(colored('To toggle between JSON and normal mode, type ".j"'))
+        print(
+            colored(
+                'To execute multiple commands from file, type "< filename"'))
+        if _d.protocol < 3:
+            print(
+                colored('For Python 2 use \'_print\' instead of \'print\'',
+                        color='yellow',
+                        attrs=['bold']))
+        print()
+        _d.cli_first_time = False
     readline.set_history_length(100)
     readline.set_completer_delims('')
     readline.set_completer(compl)
@@ -509,7 +512,7 @@ def select_process(stdscr):
             except curses.error:
                 resize_handler.trigger(force=True)
                 continue
-            if k == 'q' or event == 'quit':
+            if event == 'back':
                 selector.stop(wait=False)
                 return
             elif event == 'filter':
@@ -772,6 +775,7 @@ async def calc_bw(**kwargs):
 
 
 _d = SimpleNamespace(
+    cli_first_time=True,
     current_plugin=None,
     process_path=[],
     default_plugin=None,

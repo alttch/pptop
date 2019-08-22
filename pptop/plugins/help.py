@@ -42,7 +42,7 @@ class Plugin(GenericPlugin):
             self.data.append({'help': x})
 
     def handle_key_event(self, event, key, dtd):
-        if event == 'ESC' and self._previous_plugin:
+        if event == 'back' and self._previous_plugin:
             background_task(self.switch_plugin)(self.stdscr,
                                                 self._previous_plugin)
 

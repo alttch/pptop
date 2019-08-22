@@ -9,6 +9,9 @@ keys:
     - f
     - "/"
   select: ENTER
+  back:
+    - ESC
+    - q
   ready: CTRL_L
   reinject: J
   interval: I
