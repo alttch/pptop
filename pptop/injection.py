@@ -214,24 +214,30 @@ def loop(cpid, protocol, runner_mode=False):
                             if params.startswith('help'):
                                 raise RuntimeError(
                                     'Help on remote is not supported')
-                            p1 = params.split(' ', 1)[0]
-                            prfunc = '_print' if sys.version_info < (
-                                3, 0) else 'print'
-                            if p1 in [
-                                    'import', 'def', 'class', 'for', 'while',
-                                    'raise', 'if', 'with', 'from', 'try'
-                            ]:
-                                src = ('def {}(*args):\n' +
-                                       ' __resultl.append(\' \'.join(str(a) ' +
-                                       'for a in args))\n__resultl=[]\n{}' +
-                                       '\n__result = \'\\n\'.join(__resultl) ' +
-                                       'if __resultl else None').format(
-                                           prfunc, params)
+                            if params.startswith('try: __result '):
+                                src = params
                             else:
-                                src = (
-                                    'def {}(*args): ' +
-                                    'return \' \'.join(str(a) for a in args)\n'
-                                    + '__result = {}').format(prfunc, params)
+                                p1 = params.split(' ', 1)[0]
+                                prfunc = '_print' if sys.version_info < (
+                                    3, 0) else 'print'
+                                if p1 in [
+                                        'import', 'def', 'class', 'for',
+                                        'while', 'raise', 'if', 'with', 'from',
+                                        'try:'
+                                ]:
+                                    src = (
+                                        'def {}(*args):\n' +
+                                        ' __resultl.append(\' \'.join(str(a) ' +
+                                        'for a in args))\n__resultl=[]\n{}' +
+                                        '\n__result = \'\\n\'.join(__resultl) '
+                                        + 'if __resultl else None').format(
+                                            prfunc, params)
+                                else:
+                                    src = ('def {}(*args): ' +
+                                           'return \' \'.join(str(a) ' +
+                                           'for a in args)\n' +
+                                           '__result = {}').format(
+                                               prfunc, params)
                             exec(src, exec_globals)
                             result = exec_globals.get('__result')
                             try:

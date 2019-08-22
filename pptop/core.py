@@ -348,6 +348,22 @@ def print_json(obj):
 
 def cli_mode():
 
+    def compl(text, state):
+        if not text or text.find('.') == -1:
+            return None
+        o = text.rsplit('.', 1)[0]
+        src = 'try: __result = dir({})\nexcept: pass'.format(o)
+        result = command('.exec', src)
+        if not result or result[0]: return None
+        matches = [
+            s for s in result[1]
+            if ('{}.{}'.format(o, s)).startswith(text)
+        ]
+        try:
+            return '{}.{}'.format(o, matches[state])
+        except IndexError:
+            return None
+
     os.system('clear')
     print(
         colored('Console mode, process {} connected'.format(_d.process.pid),
@@ -368,6 +384,9 @@ def cli_mode():
                     attrs=['bold']))
     print()
     readline.set_history_length(100)
+    readline.set_completer_delims('')
+    readline.set_completer(compl)
+    readline.parse_and_bind('tab: complete')
     try:
         readline.read_history_file('{}/console.history'.format(_d.pptop_dir))
     except:
@@ -375,7 +394,6 @@ def cli_mode():
     try:
         while True:
             try:
-                # TODO: tab autocomplete
                 cmd = input('>>> ').strip()
                 if cmd == '': continue
                 elif cmd == 'exit':
