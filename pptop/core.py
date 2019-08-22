@@ -492,6 +492,7 @@ def select_process(stdscr):
         hide_cursor()
     selector = ProcesSelector(interval=1)
     selector.events = 0
+    selector.name='process_selector'
     selector.stdscr = stdscr
     selector.sorting_rev = False
     selector.selectable = True

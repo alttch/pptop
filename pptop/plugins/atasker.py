@@ -58,6 +58,8 @@ class Plugin(GenericPlugin):
             return palette.DEBUG
         elif key == 'loop':
             return palette.YELLOW
+        elif key == 'worker':
+            return palette.CYAN
         elif key == 'coro':
             return palette.BOLD
         elif key == 'cmd':
@@ -119,10 +121,15 @@ def injection(cmd=None):
                     except:
                         cmd = ''
                     try:
-                        n = l._coro.cr_frame.f_locals['self'].name
-                        if not n.startswith('_background_worker_'):
+                        try:
+                            w = l._coro.cr_frame.f_locals['scheduler']
+                        except:
+                            w = l._coro.cr_frame.f_locals['self']
+                        if not w._is_worker:
                             raise ValueError
-                        worker = n[19:]
+                        n = w.name
+                        worker = n[19:] if n.startswith(
+                            '_background_worker_') else n
                     except:
                         worker = ''
                     result.append(
