@@ -1013,7 +1013,7 @@ def switch_plugin(stdscr, new_plugin):
 def run():
 
     @atasker.background_task
-    def autostart_plugins(stdscr):
+    async def autostart_plugins(stdscr):
         for plugin in plugins_autostart:
             if plugin['p'] is not _d.current_plugin.get('p'):
                 log('autostarting {}'.format(plugin['m']))
@@ -1111,8 +1111,8 @@ def run():
         stdscr.refresh()
         hide_cursor()
         switch_plugin(stdscr, _d.default_plugin)
-        atasker.background_task(show_process_info.start)(stdscr=stdscr, p=p)
-        atasker.background_task(show_bottom_bar.start)(stdscr=stdscr)
+        show_process_info.start(stdscr=stdscr, p=p)
+        show_bottom_bar.start(stdscr=stdscr)
         autostart_plugins(stdscr)
         log('main loop started')
         while True:
