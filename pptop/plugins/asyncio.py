@@ -193,7 +193,8 @@ def injection(cmd=None, loop=None):
                         elif z == 'at' and isl[
                                 i - 1] == 'running' and i + 1 < len(isl):
                             fname = isl[i + 1].strip()
-                            if fname.endswith('>'): fname = fname[:-1]
+                            while fname.endswith('>'):
+                                fname = fname[:-1]
                     try:
                         f, ln = fname.split(':')
                         cmd = linecache.getline(f, int(ln)).strip()
