@@ -1,4 +1,5 @@
 from pptop.plugin import GenericPlugin, palette
+from collections import OrderedDict
 
 
 class Plugin(GenericPlugin):
@@ -25,9 +26,16 @@ class Plugin(GenericPlugin):
     def process_data(self, data):
         result = []
         for d in data:
-            if not d['name'].startswith('__pptop_injection'):
-                d['daemon'] = 'daemon' if d['daemon'] else ''
-                result.append(d)
+            r = OrderedDict()
+            r['ident'] = d[0]
+            r['daemon'] = 'daemon' if d[1] else ''
+            r['name'] = d[2]
+            r['target'] = d[3]
+            r['ttot'] = d[4]
+            r['scnt'] = d[5]
+            r['cmd'] = d[6] if d[6] else ''
+            r['file'] = d[7] if d[7] else ''
+            result.append(r)
         return result
 
     def format_dtd(self, dtd):
@@ -45,6 +53,10 @@ class Plugin(GenericPlugin):
             return palette.YELLOW if not element['daemon'] else None
         elif key == 'target':
             return palette.BOLD
+        elif key == 'cmd':
+            return palette.YELLOW
+        elif key == 'file':
+            return
         else:
             return palette.CYAN
 
@@ -73,7 +85,8 @@ def injection_unload(**kwargs):
 
 def injection(**kwargs):
     import threading
-    from collections import OrderedDict
+    import sys
+    import linecache
     result = []
     yi = {}
     try:
@@ -85,19 +98,23 @@ def injection(**kwargs):
     except:
         pass
     for t in threading.enumerate():
-        try:
-            target = '{}.{}'.format(
-                t._target.__module__, t._target.__qualname__ if hasattr(
-                    t._target, '__qualname__') else t._target.__name__)
-        except:
-            target = None
-        y = yi.get(t.ident)
-        r = OrderedDict()
-        r['ident'] = t.ident
-        r['daemon'] = t.daemon
-        r['name'] = t.getName()
-        r['target'] = target if target else ''
-        r['ttot'] = y[0] if y else 0
-        r['scnt'] = y[1] if y else 0
-        result.append(r)
+        if not t.name.startswith('__pptop_injection'):
+            try:
+                target = '{}.{}'.format(
+                    t._target.__module__, t._target.__qualname__ if hasattr(
+                        t._target, '__qualname__') else t._target.__name__)
+            except:
+                target = None
+            y = yi.get(t.ident)
+            r = (t.ident, t.daemon, t.name, target, y[0] if y else 0,
+                 y[1] if y else 0)
+            try:
+                frame = sys._current_frames()[t.ident]
+                f = frame.f_code.co_filename
+                ln = frame.f_lineno
+                r += (linecache.getline(f, ln).strip(), '{}:{}'.format(f, ln))
+            except:
+                log_traceback()
+                r += (None, None)
+            result.append(r)
     return result
