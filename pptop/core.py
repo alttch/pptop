@@ -404,6 +404,9 @@ def cli_mode():
                                     print(r[1])
             except EOFError:
                 return
+            except KeyboardInterrupt:
+                print()
+                continue
             except Exception as e:
                 log_traceback()
                 print(err(e))
