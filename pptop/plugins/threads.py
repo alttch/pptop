@@ -36,6 +36,7 @@ class Plugin(GenericPlugin):
         else:
             self.sorting_enabled = False
             self.selectable = False
+            self.disable_cursor()
             self.title = 'Thread {name} [{ident}] stack trace'.format(
                 ident=self.thread_stack_info[0], name=self.thread_stack_info[1])
             return self.injection_command(
@@ -102,8 +103,8 @@ class Plugin(GenericPlugin):
     def render_table_col(self, raw, color, element, key, value):
         r = raw.find('`-')
         if r > -1:
-            self.window.addstr(raw[0:r+2], palette.GREY)
-            self.window.addstr(raw[r+2:], color)
+            self.window.addstr(raw[0:r + 2], palette.GREY)
+            self.window.addstr(raw[r + 2:], color)
         elif raw.startswith('-'):
             self.window.addstr('-', palette.GREY)
             self.window.addstr(raw[1:], color)

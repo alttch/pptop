@@ -732,6 +732,12 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.cursor_enabled = True
         self._cursor_enabled_by_user = True
 
+    def disable_cursor(self):
+        '''
+        Forcibly disable plugin cursor
+        '''
+        self.cursor_enabled = False
+
     def render(self, dtd):
         '''
         Renders plugin UI
