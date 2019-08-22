@@ -36,7 +36,7 @@ class Plugin(GenericPlugin):
         else:
             self.sorting_enabled = False
             self.selectable = False
-            self.title = 'Thread {name}[{ident}] stack trace'.format(
+            self.title = 'Thread {name} [{ident}] stack trace'.format(
                 ident=self.thread_stack_info[0], name=self.thread_stack_info[1])
             return self.injection_command(
                 thread_stack_info=self.thread_stack_info[0])
