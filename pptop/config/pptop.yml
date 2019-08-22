@@ -83,6 +83,8 @@ plugins:
     shortcut: KEY_F(9)
     autostart: true
     cursor: false
+  atasker:
+    shortcut: KEY_F(12)
   env:
     shortcut: KEY_F(33) # C-F9
   last_exception:
