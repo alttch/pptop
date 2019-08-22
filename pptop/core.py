@@ -15,18 +15,18 @@ try:
 except:
     pass
 
+import sys
 import curses
 import atasker
-import logging
 import socket
 import struct
 import yaml
+import logging
 import inspect
 import threading
 import psutil
 import os
 import getpass
-import sys
 import subprocess
 import importlib
 import signal
@@ -57,7 +57,7 @@ from pptop.plugin import hide_cursor, show_cursor
 # DEBUG
 from pptop.plugin import print_debug
 
-from pptop.logger import config as log_config, log, log_traceback
+from pptop.logger import config as log_config, log, log_traceback, init_logging
 
 from pptop.exceptions import CriticalException
 
@@ -123,8 +123,10 @@ def get_plugins():
 
 def init_curses(initial=False):
     stdscr = curses.initscr()
+    log('curses reinit')
+    resize_handler.start(stdscr=stdscr)
+    log('ui reinit completed')
     if initial:
-        resize_handler.start(stdscr=stdscr)
         if curses.has_colors():
             if config['display'].get('colors'):
                 curses.start_color()
@@ -142,6 +144,7 @@ def init_curses(initial=False):
 
 def end_curses(stdscr):
     if stdscr:
+        resize_handler.stop()
         curses.nocbreak()
         stdscr.keypad(False)
         curses.echo()
@@ -231,6 +234,7 @@ key_names = {
 
 
 def format_shortcut(k):
+    k = str(k)
     sh = k
     try:
         if k in key_names:
@@ -1274,6 +1278,13 @@ def start():
     if a.log:
         log_config.fname = a.log
         log_config.name = 'client:{}'.format(os.getpid())
+        logging.getLogger('asyncio').setLevel(logging.DEBUG)
+        logging.getLogger('atasker/supervisor').setLevel(logging.DEBUG)
+        logging.getLogger('atasker/workers').setLevel(logging.DEBUG)
+        logging.basicConfig(level=logging.DEBUG)
+        le = logging.getLogger()
+        list(map(le.removeHandler, le.handlers))
+        init_logging()
 
     if a.version:
         print(_me)
@@ -1459,6 +1470,7 @@ def start():
                                             reserve_high=50)
     atasker.task_supervisor.daemon = True
     atasker.task_supervisor.start()
+    atasker.task_supervisor.create_aloop('pptop', default=True, daemon=True)
     try:
         if a.file and not _d.work_pid:
             # launch file
