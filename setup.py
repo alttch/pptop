@@ -1,12 +1,12 @@
-__version__ = '0.3.15'
+__version__ = '0.3.16'
 
 import setuptools
 
 with open('README.md', 'r') as fh:
     long_description = fh.read()
 
-pptop_injector = setuptools.Extension(
-    '__pptop_injector', sources=['src/__pptop_injector.c'])
+pptop_injector = setuptools.Extension('__pptop_injector',
+                                      sources=['src/__pptop_injector.c'])
 
 setuptools.setup(
     name='pptop',
@@ -23,8 +23,8 @@ setuptools.setup(
     include_package_data=True,
     ext_modules=[pptop_injector],
     install_requires=[
-        'wheel', 'unipath', 'psutil', 'tabulate', 'atasker', 'pyyaml', 'yappi',
-        'termcolor', 'pygments'
+        'wheel', 'unipath', 'psutil', 'tabulate', 'atasker>=0.3.0', 'pyyaml',
+        'yappi', 'termcolor', 'pygments'
     ],
     classifiers=('Programming Language :: Python :: 3',
                  'License :: OSI Approved :: MIT License',
