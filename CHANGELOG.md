@@ -4,7 +4,7 @@
 
 First change log entry
 
-### Fixes, stability improvements
+### Common
 
 * own injector library
 * support for Python 2
