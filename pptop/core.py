@@ -492,7 +492,7 @@ def select_process(stdscr):
         hide_cursor()
     selector = ProcesSelector(interval=1)
     selector.events = 0
-    selector.name='process_selector'
+    selector.name = 'process_selector'
     selector.stdscr = stdscr
     selector.sorting_rev = False
     selector.selectable = True
@@ -816,17 +816,22 @@ def sigwinch_handler(signum=None, frame=None):
     resize_handler.trigger(force=True)
 
 
+def resize_term(stdscr):
+    # works in 100% cases
+    width, height = os.get_terminal_size(0)
+    curses.resizeterm(height, width)
+    stdscr.resize(height, width)
+    stdscr.clear()
+    _d.current_plugin['p'].stdscr = stdscr
+    _d.current_plugin['p'].resize()
+    show_process_info.trigger()
+
+
 @atasker.background_worker(event=True, daemon=True)
 async def resize_handler(stdscr, **kwargs):
     log('resize event')
-    # works in 100% cases
-    width, height = os.get_terminal_size(0)
     with scr_lock:
-        curses.resizeterm(height, width)
-        stdscr.resize(height, width)
-        stdscr.clear()
-        _d.current_plugin['p'].resize()
-        show_process_info.trigger()
+        resize_term(stdscr)
 
 
 def find_lib(name):
@@ -1170,9 +1175,9 @@ def run():
                         end_curses(stdscr)
                         cli_mode()
                         stdscr = init_curses()
+                        stdscr.clear()
                         hide_cursor()
-                        _d.current_plugin['p'].stdscr = stdscr
-                        resize_handler.trigger(force=True)
+                        resize_term(stdscr)
                 elif event == 'filter':
                     apply_filter(stdscr, _d.current_plugin['p'])
                 elif event == 'interval':
