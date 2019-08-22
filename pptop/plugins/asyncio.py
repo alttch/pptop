@@ -27,6 +27,7 @@ class Plugin(GenericPlugin):
         self.short_name = 'AIO'
         self.sorting_rev = False
         self.config_loops = []
+        self.background_loader = True
         try:
             default_config_file = self.config['list']
             with open(os.path.expanduser(default_config_file)) as fh:
@@ -168,7 +169,6 @@ def injection(cmd=None, loop=None):
         for v in loop:
             g.loops.append(parse_loop(v))
     else:
-        import importlib
         import linecache
         result = []
         for v in g.loops:
