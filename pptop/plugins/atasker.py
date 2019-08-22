@@ -10,7 +10,7 @@ class Plugin(GenericPlugin):
     atasker plugin: monitor atasker supervisor (alpha)
 
     config.task_supervisor: task supervisor object (default:
-    atasker.task_supervisor)
+    atasker::task_supervisor)
 
     requires: Python 3.5+
 
