@@ -29,8 +29,8 @@ class Plugin(GenericPlugin):
             r = OrderedDict()
             r['ident'] = d[0]
             r['daemon'] = 'daemon' if d[1] else ''
-            r['name'] = d[2]
-            r['target'] = d[3]
+            r['name'] = d[2] if d[2] else ''
+            r['target'] = d[3] if d[3] else ''
             r['ttot'] = d[4]
             r['scnt'] = d[5]
             r['cmd'] = d[6] if d[6] else ''
