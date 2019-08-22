@@ -18,16 +18,25 @@ keys:
     - KEY_DC
   pause: p
   cursor-toggle: Z
-  sort-col-next: kRIT3
-  sort-col-prev: kLFT3
+  sort-col-next:
+    - kRIT3
+    - "}"
+  sort-col-prev:
+    - kLFT3
+    - "{"
   sort-normal: kDN3
   sort-reverse: kUP3
+  sort-toggle: "|"
   left: KEY_LEFT
   right: KEY_RIGHT
   up: KEY_UP
   down: KEY_DOWN
-  hshift-left: kLFT5
-  hshift-right: kRIT5
+  hshift-left:
+    - kLFT5
+    - "["
+  hshift-right:
+    - kRIT5
+    - "]"
   page-up:
     - KEY_PPAGE
     - CTRL_B
