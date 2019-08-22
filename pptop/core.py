@@ -354,10 +354,9 @@ def cli_mode():
         o = text.rsplit('.', 1)[0]
         src = 'try: __result = dir({})\nexcept: pass'.format(o)
         result = command('.exec', src)
-        if not result or result[0]: return None
+        if not result or result[0] or not result[1]: return None
         matches = [
-            s for s in result[1]
-            if ('{}.{}'.format(o, s)).startswith(text)
+            s for s in result[1] if ('{}.{}'.format(o, s)).startswith(text)
         ]
         try:
             return '{}.{}'.format(o, matches[state])
