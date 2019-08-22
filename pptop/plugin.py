@@ -62,7 +62,11 @@ glyph = SimpleNamespace(UPLOAD='<',
                         ARROW_UP='|',
                         ARROW_DOWN='|',
                         SELECTOR='>',
-                        CONNECTION='=')
+                        CONNECTION='=',
+                        DOWNWARDS_LEFT_ARROW='-\'',
+                        DOWNWARDS_RIGHT_ARROW='`-',
+                        UPWARDS_LEFT_ARROW='-,',
+                        UPWARDS_RIGHT_ARROW='.-')
 
 
 class GenericPlugin(BackgroundIntervalWorker):

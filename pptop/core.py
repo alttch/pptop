@@ -969,6 +969,10 @@ def init_glyphs():
     glyph.ARROW_DOWN = '↓'
     glyph.SELECTOR = '→'
     glyph.CONNECTION = '⇄'
+    glyph.DOWNWARDS_LEFT_ARROW = '↲ '
+    glyph.DOWNWARDS_RIGHT_ARROW = ' ↳'
+    glyph.UPWARDS_LEFT_ARROW = '↰ '
+    glyph.UPWARDS_RIGHT_ARROW = ' ↱'
 
 
 def inject_plugin(stdscr, plugin):

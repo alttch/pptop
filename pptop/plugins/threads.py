@@ -1,4 +1,4 @@
-from pptop.plugin import GenericPlugin, palette
+from pptop.plugin import GenericPlugin, palette, glyph
 from collections import OrderedDict
 
 
@@ -36,7 +36,7 @@ class Plugin(GenericPlugin):
         else:
             self.sorting_enabled = False
             self.selectable = False
-            self.disable_cursor()
+            # self.disable_cursor()
             self.title = 'Thread {name} [{ident}] stack trace'.format(
                 ident=self.thread_stack_info[0], name=self.thread_stack_info[1])
             return self.injection_command(
@@ -47,7 +47,9 @@ class Plugin(GenericPlugin):
         if self.thread_stack_info:
             for i, d in enumerate(data):
                 r = OrderedDict()
-                r['cmd'] = (('  ' * (i - 1) + '`- ') if i else '') + d[0]
+                r['cmd'] = (
+                    ('   ' *
+                     (i - 1) + glyph.DOWNWARDS_RIGHT_ARROW + ' ') if i else '') + d[0]
                 r['file'] = d[1]
                 result.append(r)
         else:
@@ -101,11 +103,11 @@ class Plugin(GenericPlugin):
             return palette.CYAN
 
     def render_table_col(self, raw, color, element, key, value):
-        r = raw.find('`-')
+        r = raw.find(glyph.DOWNWARDS_RIGHT_ARROW)
         if r > -1:
             self.window.addstr(raw[0:r + 2], palette.GREY)
             self.window.addstr(raw[r + 2:], color)
-        elif raw.startswith('-'):
+        elif raw.startswith(glyph.DOWNWARDS_RIGHT_ARROW[-1]):
             self.window.addstr('-', palette.GREY)
             self.window.addstr(raw[1:], color)
         else:
