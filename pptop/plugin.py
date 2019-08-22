@@ -364,9 +364,15 @@ class GenericPlugin(BackgroundIntervalWorker):
         finally:
             self._loader_active = False
 
-    def load_data(self):
+    def load_remote_data(self):
         '''
         Load data from connected process
+        '''
+        return self.injection_command()
+
+    def load_data(self):
+        '''
+        Load plugin data
 
         Default method sends command cmd=<plugin_name>
 
@@ -375,7 +381,7 @@ class GenericPlugin(BackgroundIntervalWorker):
             self.background_loader=True)
         '''
         try:
-            result = self.injection_command()
+            result = self.load_remote_data()
             processed = self.process_data(result)
             if isinstance(processed, list):
                 result = processed
@@ -719,6 +725,13 @@ class GenericPlugin(BackgroundIntervalWorker):
         if not self.selectable:
             self._cursor_enabled_by_user = not self._cursor_enabled_by_user
 
+    def enable_cursor(self):
+        '''
+        Forcibly enable plugin cursor
+        '''
+        self.cursor_enabled = True
+        self._cursor_enabled_by_user = True
+
     def render(self, dtd):
         '''
         Renders plugin UI
@@ -813,18 +826,19 @@ class GenericPlugin(BackgroundIntervalWorker):
                         start = col_starts[z] - hshift
                         end = start + cols[z] + spaces
                         if end > 0:
+                            val = r.get(c)
                             raw = rraw[start if start > 0 else 0:end]
                             if raw:
                                 color = self.get_table_col_color(element=r,
                                                                  key=c,
-                                                                 value=r.get(c))
-                                self.window.addstr(
-                                    raw, color if color else curses.A_NORMAL)
+                                                                 value=val)
+                                self.render_table_col(
+                                    raw,
+                                    color if color else curses.A_NORMAL,
+                                    element=r,
+                                    key=c,
+                                    value=val)
                                 limit -= len(raw)
-                                # if z < len(cols) - 1 and limit > 0:
-                                # spc = spaces if limit > spaces else limit
-                                # self.window.addstr(' ' * spc)
-                                # limit -= spc
                             else:
                                 break
                 else:
@@ -838,6 +852,12 @@ class GenericPlugin(BackgroundIntervalWorker):
                         (self.get_table_row_color(r, t) or palette.DEFAULT))
         else:
             self.print_empty_sep()
+
+    def render_table_col(self, raw, color, element, key, value):
+        '''
+        Render table column if custom colors uses
+        '''
+        self.window.addstr(raw, color if color else curses.A_NORMAL)
 
     def get_table_row_color(self, element=None, raw=None):
         '''
