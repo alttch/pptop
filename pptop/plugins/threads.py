@@ -33,7 +33,7 @@ class Plugin(GenericPlugin):
             r['target'] = d[3] if d[3] else ''
             r['ttot'] = d[4]
             r['scnt'] = d[5]
-            r['cmd'] = d[6] if d[6] else ''
+            r['cmd'] = d[6].replace('\n', ' ') if d[6] else ''
             r['file'] = d[7] if d[7] else ''
             result.append(r)
         return result
@@ -86,7 +86,7 @@ def injection_unload(**kwargs):
 def injection(**kwargs):
     import threading
     import sys
-    import linecache
+    import inspect
     result = []
     yi = {}
     try:
@@ -109,12 +109,12 @@ def injection(**kwargs):
             r = (t.ident, t.daemon, t.name, target, y[0] if y else 0,
                  y[1] if y else 0)
             try:
-                frame = sys._current_frames()[t.ident]
-                f = frame.f_code.co_filename
-                ln = frame.f_lineno
-                r += (linecache.getline(f, ln).strip(), '{}:{}'.format(f, ln))
+                x = inspect.getframeinfo(sys._current_frames()[t.ident])
+                r += (' '.join(x.code_context).strip(),
+                      '{}:{}'.format(x.filename, x.lineno))
             except:
-                log_traceback()
+                # from pptop.logger import log_traceback
+                # log_traceback()
                 r += (None, None)
             result.append(r)
     return result

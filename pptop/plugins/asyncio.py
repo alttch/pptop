@@ -185,7 +185,8 @@ def injection(cmd=None, loop=None):
                     coro = ''
                     fname = ''
                     isl = str(l).split()
-                    # will parse Task repr until official interface appear
+                    # will parse Task repr until official interface for frames
+                    # appear
                     for i, z in enumerate(isl):
                         if z.startswith('coro='):
                             coro = z.split('=', 1)[-1].strip()
