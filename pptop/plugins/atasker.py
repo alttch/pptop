@@ -87,19 +87,28 @@ class Plugin(GenericPlugin):
                     v['state'] = 'stopped'
                 else:
                     v['state'] = ''
-                v['priority'] = self.worker_priorities.get(d[5], '')
-                v['int'] = str(d[3]) if d[3] else ''
-                v['daemon'] = 'daemon' if d[4] else ''
-                v['executor'] = self.task_types.get(d[7], '')
-                if d[6] is False:
+                v['priority'] = self.worker_priorities.get(d[6], '')
+                v['int'] = d[3]
+                v['inf'] = d[4] if d[4] else ''
+                v['executor'] = self.task_types.get(d[8], '')
+                if d[7] is False:
                     v['aloop'] = '__supervisor__'
-                elif d[6]:
-                    v['aloop'] = d[6]
+                elif d[7]:
+                    v['aloop'] = d[7]
                 else:
                     v['aloop'] = ''
-
+                v['daemon'] = 'daemon' if d[5] and d[8] == 1 else ''
             result.append(v)
         return result
+
+    def format_dtd(self, dtd):
+        for d in dtd:
+            z = d.copy()
+            if z.get('int') == 0:
+                z['int'] = ''
+            else:
+                z['int'] = str(z.get('int'))
+            yield z
 
     def get_injection_load_params(self):
         return {'task_supervisor': self.config.get('task_supervisor')}
@@ -133,6 +142,8 @@ class Plugin(GenericPlugin):
                 return palette.BLUE
             elif key == 'int':
                 return palette.CYAN
+            elif key == 'inf':
+                return palette.BOLD
             elif key == 'daemon':
                 return
             elif key == 'priority':
@@ -182,7 +193,7 @@ def injection(cmd=None):
         import linecache
         import asyncio
         loops = {('__supervisor__', g.task_supervisor.event_loop)}
-        for i, v in g.task_supervisor.get_info(-1).aloops.items():
+        for i, v in g.task_supervisor.get_aloops().items():
             l = v.get_loop()
             if l:
                 loops.add((i, l))
@@ -231,7 +242,7 @@ def injection(cmd=None):
                 result.append((loop_name, '!ERROR', coro, '', '', ''))
     elif cmd == 'workers':
         import asyncio
-        for worker in g.task_supervisor.get_info(-1).schedulers:
+        for worker in g.task_supervisor.get_schedulers():
             try:
                 name = worker.name[19:] if worker.name.startswith(
                     '_background_worker_') else worker.name
@@ -249,16 +260,16 @@ def injection(cmd=None):
             except:
                 active = None
             try:
-                if worker.delay_before:
-                    interval = str(worker.delay_before) + ' >'
-                    if worker.delay:
-                        interval += ' ' + str(worker.delay)
-                elif worker.keep_interval:
-                    interval = worker.delay
+                interval = worker.delay
+                if worker.keep_interval:
+                    iflags = 'I'
                 else:
-                    interval = '> ' + str(worker.delay)
+                    iflags = 'D'
+                if worker.delay_before:
+                    iflags += ',B=' + str(worker.delay_before)
             except:
-                interval = None
+                interval = 0
+                iflags = None
             try:
                 daemon = worker.daemon
             except:
@@ -285,6 +296,6 @@ def injection(cmd=None):
                     aloop = '<' + worker.executor_loop.__class__.__name__ + '>'
             except:
                 aloop = None
-            result.append(
-                (name, wc, active, interval, daemon, priority, aloop, etype))
+            result.append((name, wc, active, interval, iflags, daemon, priority,
+                           aloop, etype))
     return result
