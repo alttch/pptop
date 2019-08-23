@@ -121,9 +121,8 @@ socket_buf = 8192
 
 
 def after_resize():
-    log('after resize')
     _d.current_plugin['p'].resize()
-    show_process_info.trigger()
+    show_process_info.trigger(force=True)
 
 
 def get_plugins():

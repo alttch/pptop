@@ -504,7 +504,8 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.init_render_window()
         self.print_title()
         self.key_event = 'KEY_RESIZE'
-        self._display()
+        if self._visible:
+            self._display()
 
     def handle_key_event(self, event, key, dtd):
         '''

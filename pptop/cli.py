@@ -53,7 +53,8 @@ glyph = SimpleNamespace(UPLOAD='<',
                         UPWARDS_LEFT_ARROW='-,',
                         UPWARDS_RIGHT_ARROW='.-')
 
-scr = SimpleNamespace(stdscr=None, active=False,
+scr = SimpleNamespace(stdscr=None,
+                      active=False,
                       before_resize=None,
                       after_resize=None,
                       lock=threading.Lock(),
@@ -146,9 +147,7 @@ def init_curses(initial=False,
         scr.active = True
         scr.before_resize = before_resize
         scr.after_resize = after_resize
-        log('curses reinit')
         resize_handler.start()
-        log('ui reinit completed')
         if initial:
             if curses.has_colors():
                 if colors:
