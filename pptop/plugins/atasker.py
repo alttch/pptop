@@ -123,13 +123,15 @@ def injection(cmd=None):
                     try:
                         try:
                             w = l._coro.cr_frame.f_locals['scheduler']
+                            pfx = '__'
                         except:
                             w = l._coro.cr_frame.f_locals['self']
+                            pfx = ''
                         if not w._is_worker:
                             raise ValueError
                         n = w.name
-                        worker = n[19:] if n.startswith(
-                            '_background_worker_') else n
+                        worker = pfx + (n[19:] if n.startswith(
+                            '_background_worker_') else n)
                     except:
                         worker = ''
                     result.append(
