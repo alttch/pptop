@@ -304,17 +304,15 @@ class GenericPlugin(BackgroundIntervalWorker):
 
         Override to disable pause
         '''
-        with scr.lock:
-            self._paused = True
-            self.print_title()
+        self._paused = True
+        self.print_title()
 
     def resume(self):
         '''
         Resume plugin
         '''
-        with scr.lock:
-            self._paused = False
-            self.print_title()
+        self._paused = False
+        self.print_title()
 
     def _load_data(self):
         try:

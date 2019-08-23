@@ -74,7 +74,7 @@ class Plugin(GenericPlugin):
             self.thread_stack_info = None
         else:
             return
-        self._paused = False
+        self.resume()
         self.trigger(force=True)
 
     def format_dtd(self, dtd):

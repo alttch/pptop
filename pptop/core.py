@@ -500,7 +500,8 @@ def select_process():
                 selector.stop(wait=False)
                 return psutil.Process(selector.dtd[selector.cursor]['pid'])
             elif event == 'pause':
-                selector.toggle_pause()
+                with scr.lock:
+                    selector.toggle_pause()
             else:
                 with scr.lock:
                     selector.key_code = k
@@ -1052,7 +1053,8 @@ def run():
                 elif event == 'interval':
                     apply_interval(_d.current_plugin['p'])
                 elif event == 'pause':
-                    _d.current_plugin['p'].toggle_pause()
+                    with scr.lock:
+                        _d.current_plugin['p'].toggle_pause()
                 elif event in _d.current_plugin['p'].inputs:
                     with scr.lock:
                         try:
