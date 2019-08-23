@@ -66,7 +66,7 @@ class Plugin(GenericPlugin):
         return result
 
     def handle_key_event(self, event, key, dtd):
-        if event == 'select':
+        if event == 'select' and not self.thread_stack_info:
             row = self.get_selected_row()
             if row:
                 self.thread_stack_info = (row['ident'], row['name'])
