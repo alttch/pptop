@@ -975,7 +975,10 @@ def run():
                 print(err('{}: {}'.format(result[1], result[2])))
             return
 
-        init_curses(initial=True, after_resize=after_resize)
+        init_curses(initial=True,
+                    after_resize=after_resize,
+                    colors=config['display'].get('colors'),
+                    glyphs=config['display'].get('glyphs'))
 
         signal.signal(signal.SIGWINCH, sigwinch_handler)
 
@@ -1040,8 +1043,6 @@ def run():
                         end_curses()
                         cli_mode()
                         init_curses(after_resize=after_resize)
-                        cls()
-                        hide_cursor()
                         resize_term()
                 elif event == 'filter':
                     apply_filter(_d.current_plugin['p'])
