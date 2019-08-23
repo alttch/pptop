@@ -70,10 +70,12 @@ class Plugin(GenericPlugin):
             row = self.get_selected_row()
             if row:
                 self.thread_stack_info = (row['ident'], row['name'])
-                self.trigger(force=True)
         elif event == 'back':
             self.thread_stack_info = None
-            self.trigger(force=True)
+        else:
+            return
+        self._paused = False
+        self.trigger(force=True)
 
     def format_dtd(self, dtd):
         if self.thread_stack_info is None:
