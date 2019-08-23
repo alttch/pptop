@@ -17,8 +17,8 @@ class Plugin(GenericPlugin):
     Shortcuts:
 
         a      : async loops
-        (TODO)
         w      : schedulers(workers)
+        (TODO)
         t      : thread pool stats
         m      : multiprocessing pool stats
 
@@ -26,23 +26,78 @@ class Plugin(GenericPlugin):
     '''
 
     def on_load(self):
-        self.title = 'atasker monitor'
+        self.orig_title = 'atasker monitor'
         self.short_name = 'ATaskr'
         self.sorting_rev = False
+        self.mode = 'loops'
+        self.mode_shortcuts = {
+            'a': 'loops',
+            'w': 'workers',
+            't': 'thread_pool',
+            'm': 'mp_pool',
+        }
+        self.mode_sorting = {}
+        self.set_title()
+        self.worker_priorities = {
+            0: 'CRITICAL',
+            50: 'HIGH',
+            100: 'NORMAL',
+            200: 'LOW'
+        }
+        self.task_types = {
+            0: 'CORO',
+            1: 'THREAD',
+            2: 'MP',
+        }
+
+    def set_title(self):
+        self.title = '{} ({})'.format(self.orig_title,
+                                      self.mode.replace('_', ' '))
 
     def load_remote_data(self):
-        return self.injection_command(cmd='loops')
+        self.set_title()
+        return self.injection_command(cmd=self.mode)
+
+    def handle_key_event(self, event, key, dtd):
+        if event in self.mode_shortcuts:
+            self.mode_sorting[self.mode] = (self.sorting_col, self.sorting_rev)
+            self.mode = self.mode_shortcuts[event]
+            self.sorting_col, self.sorting_rev = self.mode_sorting.get(
+                self.mode, (None, False))
+            self.resume()
+            self.trigger(force=True)
 
     def process_data(self, data):
         result = []
         for d in data:
             v = OrderedDict()
-            v['loop'] = d[0]
-            v['state'] = d[1]
-            v['worker'] = d[5]
-            v['coro'] = d[2]
-            v['cmd'] = d[4]
-            v['file'] = d[3]
+            if self.mode == 'loops':
+                v['loop'] = d[0]
+                v['state'] = d[1]
+                v['worker'] = d[5]
+                v['coro'] = d[2]
+                v['cmd'] = d[4]
+                v['file'] = d[3]
+            elif self.mode == 'workers':
+                v['name'] = d[0]
+                v['class'] = d[1] if d[1] else ''
+                if d[2] is True:
+                    v['state'] = 'active'
+                elif d[2] is False:
+                    v['state'] = 'stopped'
+                else:
+                    v['state'] = ''
+                v['priority'] = self.worker_priorities.get(d[5], '')
+                v['int'] = str(d[3]) if d[3] else ''
+                v['daemon'] = 'daemon' if d[4] else ''
+                v['executor'] = self.task_types.get(d[7], '')
+                if d[6] is False:
+                    v['aloop'] = '__supervisor__'
+                elif d[6]:
+                    v['aloop'] = d[6]
+                else:
+                    v['aloop'] = ''
+
             result.append(v)
         return result
 
@@ -50,22 +105,55 @@ class Plugin(GenericPlugin):
         return {'task_supervisor': self.config.get('task_supervisor')}
 
     def get_table_col_color(self, element, key, value):
-        if element['state'] == '!ERROR':
-            return palette.ERROR
-        elif element['state'] == 'FINISHED':
-            return palette.OK
-        elif element['state'] == 'CANCELLED':
-            return palette.DEBUG
-        elif key == 'loop':
-            return palette.YELLOW
-        elif key == 'worker':
-            return palette.CYAN
-        elif key == 'coro':
-            return palette.BOLD
-        elif key == 'cmd':
-            return palette.YELLOW
-        elif key == 'state' and value == 'PENDING':
-            return palette.BLUE
+        if self.mode == 'loops':
+            if element['state'] == '!ERROR':
+                return palette.ERROR
+            elif element['state'] == 'FINISHED':
+                return palette.OK
+            elif element['state'] == 'CANCELLED':
+                return palette.DEBUG
+            elif key == 'loop':
+                return palette.YELLOW
+            elif key == 'worker':
+                return palette.CYAN
+            elif key == 'coro':
+                return palette.BOLD
+            elif key == 'cmd':
+                return palette.YELLOW
+            elif key == 'state' and value == 'PENDING':
+                return palette.BLUE
+        elif self.mode == 'workers':
+            if element['state'] != 'active':
+                return palette.GREY_BOLD
+            if key == 'name':
+                return palette.CYAN
+            elif key == 'class':
+                return palette.BOLD
+            elif key == 'state':
+                return palette.BLUE
+            elif key == 'int':
+                return palette.CYAN
+            elif key == 'daemon':
+                return
+            elif key == 'priority':
+                if value == 'CRITICAL':
+                    return palette.RED_BOLD
+                elif value == 'HIGH':
+                    return palette.YELLOW
+                elif value == 'LOW':
+                    return palette.GREY_BOLD
+                else:
+                    return
+            elif key == 'executor':
+                if value == 'CORO':
+                    return palette.GREEN
+                elif value == 'THREAD':
+                    return palette.MAGENTA
+                else:
+                    return palette.BLUE_BOLD
+            elif key == 'aloop':
+                return palette.YELLOW if \
+                        value != '__supervisor__' else palette.RED_BOLD
 
     async def run(self, *args, **kwargs):
         super().run(*args, **kwargs)
@@ -89,10 +177,10 @@ def injection_load(task_supervisor=None, **kwargs):
 
 
 def injection(cmd=None):
+    result = []
     if cmd == 'loops':
         import linecache
         import asyncio
-        result = []
         loops = {('__supervisor__', g.task_supervisor.event_loop)}
         for i, v in g.task_supervisor.get_info(-1).aloops.items():
             l = v.get_loop()
@@ -141,4 +229,62 @@ def injection(cmd=None):
                 e = sys.exc_info()
                 coro = '{}: {}'.format(e[0].__name__, str(e[1]))
                 result.append((loop_name, '!ERROR', coro, '', '', ''))
-        return result
+    elif cmd == 'workers':
+        import asyncio
+        for worker in g.task_supervisor.get_info(-1).schedulers:
+            try:
+                name = worker.name[19:] if worker.name.startswith(
+                    '_background_worker_') else worker.name
+            except:
+                name = ''
+            try:
+                wc = '{}{}'.format(
+                    (worker.__module__ +
+                     '.') if worker.__module__ != 'atasker.workers' else '',
+                    worker.__class__.__name__)
+            except:
+                wc = None
+            try:
+                active = worker.is_active()
+            except:
+                active = None
+            try:
+                if worker.delay_before:
+                    interval = str(worker.delay_before) + ' >'
+                    if worker.delay:
+                        interval += ' ' + str(worker.delay)
+                elif worker.keep_interval:
+                    interval = worker.delay
+                else:
+                    interval = '> ' + str(worker.delay)
+            except:
+                interval = None
+            try:
+                daemon = worker.daemon
+            except:
+                daemon = False
+            try:
+                priority = worker.priority
+            except:
+                priority = None
+            try:
+                if asyncio.iscoroutinefunction(worker.run):
+                    etype = 0
+                elif worker._run_in_mp:
+                    etype = 2
+                else:
+                    etype = 1
+            except:
+                etype = None
+            try:
+                if not worker.executor_loop:
+                    aloop = False
+                elif worker.aloop:
+                    aloop = worker.aloop.name
+                else:
+                    aloop = '<' + worker.executor_loop.__class__.__name__ + '>'
+            except:
+                aloop = None
+            result.append(
+                (name, wc, active, interval, daemon, priority, aloop, etype))
+    return result
