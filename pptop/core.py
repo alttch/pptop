@@ -8,7 +8,7 @@ https://github.com/alttch/pptop
 __author__ = 'Altertech, https://www.altertech.com/'
 __copyright__ = 'Copyright (C) 2019 Altertech'
 __license__ = 'MIT'
-__version__ = '0.3.28'
+__version__ = '0.3.29'
 
 try:
     __doc__ = __doc__.format(version=__version__, license=__license__)
@@ -1194,6 +1194,8 @@ def start():
         logging.basicConfig(level=logging.DEBUG)
         le = logging.getLogger()
         list(map(le.removeHandler, le.handlers))
+        from atasker import set_debug
+        set_debug()
         init_logging()
 
     if a.version:
