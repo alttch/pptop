@@ -356,6 +356,9 @@ def cli_mode():
         print(
             colored(
                 'To execute multiple commands from file, type "< filename"'))
+        print(
+            colored(
+                'To explore object, type "obj?" (transformed to "dir(obj)")'))
         if _d.protocol < 3:
             print(
                 colored('For Python 2 use \'_print\' instead of \'print\'',
@@ -386,6 +389,8 @@ def cli_mode():
                     if cmd.startswith('<'):
                         with open(os.path.expanduser(cmd[1:].strip())) as fh:
                             cmds = [x.strip() for x in fh.readlines()]
+                    elif cmd.endswith('?'):
+                        cmds = ['dir({})'.format(cmd[:-1]).strip()]
                     else:
                         cmds = [cmd]
                     for cmd in cmds:
