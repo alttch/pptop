@@ -149,7 +149,7 @@ class Plugin(GenericPlugin):
                     return palette.GREEN
                 elif value == 'THREAD':
                     return palette.MAGENTA
-                else:
+                elif value == 'MP':
                     return palette.BLUE_BOLD
             elif key == 'aloop':
                 return palette.YELLOW if \
