@@ -1,4 +1,4 @@
-__version__ = '0.3.25'
+__version__ = '0.3.27'
 
 import setuptools
 
