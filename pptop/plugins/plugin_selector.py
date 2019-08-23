@@ -38,8 +38,8 @@ class Plugin(GenericPlugin):
         if event == 'select':
             row = self.get_selected_row()
             if row:
-                background_task(self.switch_plugin)(
-                    self.stdscr, self.get_plugin(self.get_selected_row()['id']))
+                background_task(self.switch_plugin)(self.get_plugin(
+                    self.get_selected_row()['id']))
 
     def get_table_col_color(self, element, key, value):
         if key == 'id':

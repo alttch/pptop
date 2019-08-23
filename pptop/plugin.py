@@ -19,54 +19,9 @@ from atasker import background_task
 
 from pptop.logger import log, log_traceback
 
-top_lines = 5
-
 tabulate.PRESERVE_WHITESPACE = True
 
-palette = SimpleNamespace(DEFAULT=curses.A_NORMAL,
-                          BOLD=curses.A_BOLD,
-                          REVERSE=curses.A_REVERSE,
-                          DEBUG=curses.A_NORMAL,
-                          WARNING=curses.A_BOLD,
-                          ERROR=curses.A_BOLD,
-                          CRITICAL=curses.A_BOLD,
-                          CAPTION=curses.A_BOLD,
-                          HEADER=curses.A_REVERSE,
-                          CURSOR=curses.A_REVERSE,
-                          BAR=curses.A_REVERSE,
-                          BAR_OK=curses.A_REVERSE,
-                          BAR_WARNING=curses.A_REVERSE | curses.A_BOLD,
-                          BAR_ERROR=curses.A_REVERSE | curses.A_BOLD,
-                          GREY=curses.A_NORMAL,
-                          GREY_BOLD=curses.A_BOLD,
-                          GREEN=curses.A_NORMAL,
-                          GREEN_BOLD=curses.A_BOLD,
-                          OK=curses.A_BOLD,
-                          BLUE=curses.A_NORMAL,
-                          BLUE_BOLD=curses.A_BOLD,
-                          RED=curses.A_NORMAL,
-                          RED_BOLD=curses.A_BOLD,
-                          CYAN=curses.A_NORMAL,
-                          CYAN_BOLD=curses.A_BOLD,
-                          MAGENTA=curses.A_NORMAL,
-                          MAGENTA_BOLD=curses.A_BOLD,
-                          YELLOW=curses.A_NORMAL,
-                          YELLOW_BOLD=curses.A_BOLD,
-                          WHITE=curses.A_NORMAL,
-                          WHITE_BOLD=curses.A_BOLD,
-                          PROMPT=curses.A_BOLD,
-                          color=curses.color_pair)
-
-glyph = SimpleNamespace(UPLOAD='<',
-                        DOWNLOAD='>',
-                        ARROW_UP='|',
-                        ARROW_DOWN='|',
-                        SELECTOR='>',
-                        CONNECTION='=',
-                        DOWNWARDS_LEFT_ARROW='-\'',
-                        DOWNWARDS_RIGHT_ARROW='`-',
-                        UPWARDS_LEFT_ARROW='-,',
-                        UPWARDS_RIGHT_ARROW='.-')
+from pptop.cli import palette, glyph, print_message, scr
 
 
 class GenericPlugin(BackgroundIntervalWorker):
@@ -87,7 +42,6 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.title = self.name.capitalize().replace('_', ' ')  # title
         self.short_name = self.name[:6].capitalize()  # short name (bottom bar)
         self.description = ''  # plugin description
-        self.stdscr = None  # curses stdscr object
         self.window = None  # working window
         self.status_line = None  # status line, if requested
         self.shift = 0  # current vertical shifting
@@ -291,9 +245,9 @@ class GenericPlugin(BackgroundIntervalWorker):
             title += ' [STOPPED]'
         else:
             color = palette.CAPTION
-        height, width = self.stdscr.getmaxyx()
-        self.stdscr.addstr(top_lines, 0, title[:width - 1], color)
-        self.stdscr.clrtoeol()
+        height, width = scr.stdscr.getmaxyx()
+        scr.stdscr.addstr(scr.top_lines, 0, title[:width - 1], color)
+        scr.stdscr.clrtoeol()
 
     def print_empty_sep(self):
         '''
@@ -316,7 +270,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         Returns:
             True if plugin was injected, False if failed
         '''
-        return self._inject(stdscr=self.stdscr)
+        return self._inject()
 
     def injection_command(self, **kwargs):
         '''
@@ -350,7 +304,7 @@ class GenericPlugin(BackgroundIntervalWorker):
 
         Override to disable pause
         '''
-        with self.scr_lock:
+        with scr.lock:
             self._paused = True
             self.print_title()
 
@@ -358,7 +312,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         '''
         Resume plugin
         '''
-        with self.scr_lock:
+        with scr.lock:
             self._paused = False
             self.print_title()
 
@@ -410,7 +364,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         except Exception as e:
             log_traceback()
             self.data = []
-            with self.scr_lock:
+            with scr.lock:
                 self._error = True
                 self.msg = e
                 if self._visible:
@@ -471,12 +425,12 @@ class GenericPlugin(BackgroundIntervalWorker):
             for d in dtd:
                 yield d
         else:
-            self.stdscr.addstr(top_lines + 1, 0, ' f="')
-            self.stdscr.addstr(self.filter[:self.stdscr.getmaxyx()[1] - 6],
-                               palette.YELLOW_BOLD)
-            self.stdscr.addstr('"')
-            self.stdscr.clrtoeol()
-            self.stdscr.refresh()
+            scr.stdscr.addstr(scr.top_lines + 1, 0, ' f="')
+            scr.stdscr.addstr(self.filter[:scr.stdscr.getmaxyx()[1] - 6],
+                              palette.YELLOW_BOLD)
+            scr.stdscr.addstr('"')
+            scr.stdscr.clrtoeol()
+            scr.stdscr.refresh()
             for d in dtd:
                 for k, v in d.items():
                     if str(v).lower().find(self.filter) > -1:
@@ -487,10 +441,10 @@ class GenericPlugin(BackgroundIntervalWorker):
         '''
         Init plugin working window
         '''
-        height, width = self.stdscr.getmaxyx()
+        height, width = scr.stdscr.getmaxyx()
         self.window = curses.newwin(
-            height - top_lines - 3 - (1 if self.need_status_line else 0), width,
-            top_lines + 2, 0)
+            height - scr.top_lines - 3 - (1 if self.need_status_line else 0),
+            width, scr.top_lines + 2, 0)
         if self.need_status_line:
             self.status_line = curses.newwin(1, width, height - 2, 0)
 
@@ -505,7 +459,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         '''
         Show plugin UI
         '''
-        with self.scr_lock:
+        with scr.lock:
             self._visible = True
             self.init_render_window()
             self.print_title()
@@ -516,12 +470,12 @@ class GenericPlugin(BackgroundIntervalWorker):
         '''
         Hide plugin UI
         '''
-        with self.scr_lock:
+        with scr.lock:
             if self.window:
                 self.window.move(0, 0)
                 self.window.clrtoeol()
                 self._visible = False
-                self.stdscr.refresh()
+                scr.stdscr.refresh()
 
     def stop(self, *args, **kwargs):
         '''
@@ -572,7 +526,7 @@ class GenericPlugin(BackgroundIntervalWorker):
 
         Called even if plugin is stopped/unfocused/invisible. As plugin may be
         invisible, it should carefully output data if required and always use
-        self.scr_lock
+        self.scr.lock
 
         Args:
             event: key event
@@ -644,7 +598,7 @@ class GenericPlugin(BackgroundIntervalWorker):
             msg: message to print
             color: message color
         '''
-        return print_message(self.stdscr, msg=msg, color=color)
+        return print_message(msg=msg, color=color)
 
     def run(self, **kwargs):
         '''
@@ -664,7 +618,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         except Exception as e:
             log_traceback()
             if self._visible:
-                with self.scr_lock:
+                with scr.lock:
                     self._error = True
                     self.msg = str(e)
                     self.print_title()
@@ -688,13 +642,13 @@ class GenericPlugin(BackgroundIntervalWorker):
     def _display_ui(self):
         with self.start_stop_lock:
             if self.is_active():
-                with self.scr_lock:
+                with scr.lock:
                     if self._visible:
                         return self._display()
 
     def _display(self):
         self.print_title()
-        self.stdscr.refresh()
+        scr.stdscr.refresh()
         self.handle_sorting_event()
         with self.data_lock:
             dtd = list(
@@ -717,7 +671,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.window.refresh()
         if self.need_status_line:
             self.status_line.refresh()
-        self.stdscr.refresh()
+        scr.stdscr.refresh()
         return True
 
     def is_cursor_enabled(self):
@@ -918,72 +872,3 @@ def format_mod_name(f, path):
     for i in range(len(mod)):
         if mod[i] != '.': break
     return mod[i:]
-
-
-tput = shutil.which('tput')
-term = os.getenv('TERM')
-if not term: term = ''
-
-
-def set_cursor(mode):
-    if term.startswith('screen') and tput:
-        try:
-            code = os.system('tput ' + ('civis' if not mode else 'cnorm'))
-            if code:
-                raise RuntimeError('tput error code: {}'.format(code))
-            return
-        except:
-            log_traceback()
-    try:
-        curses.curs_set(mode)
-    except:
-        pass
-
-
-def hide_cursor():
-    return set_cursor(0)
-
-
-def show_cursor():
-    return set_cursor(2)
-
-
-def prompt(stdscr, ps=None, value=''):
-    if ps is None:
-        ps = ': '
-    height, width = stdscr.getmaxyx()
-    stdscr.addstr(top_lines + 1, 0, ' ' + ps, palette.PROMPT)
-    editwin = curses.newwin(1, width - len(ps) - 1, top_lines + 1, len(ps) + 1)
-    from curses.textpad import Textbox
-    show_cursor()
-    editwin.addstr(0, 0, str(value))
-    box = Textbox(editwin, insert_mode=True)
-    stdscr.refresh()
-    box.edit(enter_is_terminate)
-    result = box.gather().rstrip()
-    hide_cursor()
-    stdscr.move(top_lines + 1, 0)
-    stdscr.clrtoeol()
-    stdscr.refresh()
-    return result
-
-
-def print_debug(stdscr, msg):
-    stdscr.addstr(top_lines + 1, 0, '"{}"'.format(msg))
-    stdscr.clrtoeol()
-    stdscr.refresh()
-
-
-def enter_is_terminate(x):
-    if x == 10:
-        x = 7
-    return x
-
-
-def print_message(stdscr, msg='', color=None):
-    if stdscr:
-        height, width = stdscr.getmaxyx()
-        stdscr.addstr(top_lines + 1, 0,
-                      str(msg)[:width - 1], color if color else palette.DEFAULT)
-        stdscr.clrtoeol()
-        stdscr.refresh()

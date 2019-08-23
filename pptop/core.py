@@ -51,11 +51,12 @@ except:
 
 from types import SimpleNamespace
 
-from pptop.plugin import GenericPlugin, palette, glyph, term
-from pptop.plugin import prompt, print_message
-from pptop.plugin import hide_cursor, show_cursor
-# DEBUG
-from pptop.plugin import print_debug
+from pptop.plugin import GenericPlugin
+
+from pptop.cli import init_curses, end_curses, cls
+from pptop.cli import resize_term, resize_handler
+from pptop.cli import prompt, print_message, scr, palette, glyph
+from pptop.cli import hide_cursor, show_cursor
 
 from pptop.logger import config as log_config, log, log_traceback, init_logging
 
@@ -119,39 +120,14 @@ injection_timeout = 3
 socket_buf = 8192
 
 
+def after_resize():
+    log('after resize')
+    _d.current_plugin['p'].resize()
+    show_process_info.trigger()
+
+
 def get_plugins():
     return plugins
-
-
-def init_curses(initial=False):
-    stdscr = curses.initscr()
-    log('curses reinit')
-    resize_handler.start(stdscr=stdscr)
-    log('ui reinit completed')
-    if initial:
-        if curses.has_colors():
-            if config['display'].get('colors'):
-                curses.start_color()
-                curses.use_default_colors()
-                for i in range(0, curses.COLORS):
-                    curses.init_pair(i + 1, i, -1)
-                init_color_palette()
-        if config['display'].get('glyphs'):
-            init_glyphs()
-    curses.noecho()
-    curses.cbreak()
-    stdscr.keypad(True)
-    return stdscr
-
-
-def end_curses(stdscr):
-    if stdscr:
-        resize_handler.stop()
-        curses.nocbreak()
-        stdscr.keypad(False)
-        curses.echo()
-        show_cursor()
-        curses.endwin()
 
 
 def get_config_dir():
@@ -166,30 +142,30 @@ def get_child_info():
     return {'c': _d.child_cmd, 'a': _d.child_args} if _d.child else None
 
 
-def apply_filter(stdscr, plugin):
-    with scr_lock:
-        plugin.filter = prompt(stdscr, ps='f: ', value=plugin.filter).lower()
+def apply_filter(plugin):
+    with scr.lock:
+        plugin.filter = prompt(ps='f: ', value=plugin.filter).lower()
         plugin.trigger()
 
 
-def apply_interval(stdscr, plugin):
-    with scr_lock:
+def apply_interval(plugin):
+    with scr.lock:
         i = plugin.delay
         if int(i) == i:
             i = int(i)
-        new_interval = prompt(stdscr, ps='intreval: ', value=i)
+        new_interval = prompt(ps='intreval: ', value=i)
         try:
             new_interval = float(new_interval)
             if new_interval <= 0:
                 raise ValueError
         except:
-            print_message(stdscr, 'Invalid interval', color=palette.ERROR)
+            print_message('Invalid interval', color=palette.ERROR)
             return
     plugin.stop()
     plugin.start(_interval=new_interval)
     plugin.show()
-    with scr_lock:
-        print_message(stdscr, 'Interval changed', color=palette.OK)
+    with scr.lock:
+        print_message('Interval changed', color=palette.OK)
         return
 
 
@@ -462,10 +438,10 @@ class ProcesSelector(GenericPlugin):
                 log_traceback()
 
     def render(self, dtd):
-        self.print_message()
+        if not self.filter: self.print_message()
         super().render(dtd)
-        self.stdscr.move(self.stdscr.getmaxyx()[0] - 1, 0)
-        self.stdscr.clrtoeol()
+        scr.stdscr.move(scr.stdscr.getmaxyx()[0] - 1, 0)
+        scr.stdscr.clrtoeol()
 
     def render_empty(self):
         if self.is_active():
@@ -485,18 +461,16 @@ class ProcesSelector(GenericPlugin):
         super().run(*args, **kwargs)
 
 
-def select_process(stdscr):
+def select_process():
 
-    with scr_lock:
-        stdscr.clear()
+    with scr.lock:
+        cls()
         hide_cursor()
     selector = ProcesSelector(interval=1)
     selector.events = 0
     selector.name = 'process_selector'
-    selector.stdscr = stdscr
     selector.sorting_rev = False
     selector.selectable = True
-    selector.scr_lock = scr_lock
     selector.finish_event = threading.Event()
     selector.lock = threading.Lock()
     selector.title = 'Select process'
@@ -506,7 +480,7 @@ def select_process(stdscr):
     while True:
         try:
             try:
-                k = format_key(stdscr.getkey())
+                k = format_key(scr.stdscr.getkey())
                 event = get_key_event(k)
             except KeyboardInterrupt:
                 return
@@ -517,7 +491,7 @@ def select_process(stdscr):
                 selector.stop(wait=False)
                 return
             elif event == 'filter':
-                apply_filter(stdscr, selector)
+                apply_filter(selector)
             elif event == 'select':
                 if not selector.dtd:
                     continue
@@ -526,7 +500,7 @@ def select_process(stdscr):
             elif event == 'pause':
                 selector.toggle_pause()
             else:
-                with scr_lock:
+                with scr.lock:
                     selector.key_code = k
                     selector.key_event = event
                     selector.trigger()
@@ -537,7 +511,6 @@ def select_process(stdscr):
 
 
 ifoctets_lock = threading.Lock()
-scr_lock = threading.Lock()
 client_lock = threading.Lock()
 
 client = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
@@ -607,29 +580,29 @@ def bytes_to_iso(i):
 
 
 @atasker.background_worker(delay=1, daemon=True)
-async def show_process_info(stdscr, p, **kwargs):
+async def show_process_info(p, **kwargs):
 
     def error(txt):
-        stdscr.clear()
-        stdscr.addstr(0, 0, str(txt), palette.ERROR)
-        stdscr.refresh()
+        cls()
+        scr.stdscr.addstr(0, 0, str(txt), palette.ERROR)
+        scr.stdscr.refresh()
         return False
 
-    height, width = stdscr.getmaxyx()
     try:
-        with scr_lock:
+        with scr.lock:
+            height, width = scr.stdscr.getmaxyx()
             status = _d.status
             with p.oneshot():
                 ct = p.cpu_times()
-                stdscr.move(0, 0)
-                stdscr.addstr('Process: ')
+                scr.stdscr.move(0, 0)
+                scr.stdscr.addstr('Process: ')
                 cmdline = format_cmdline(p, _d.need_inject_server)
-                stdscr.addstr(cmdline[:width - 25], palette.YELLOW)
-                stdscr.addstr(' [')
-                stdscr.addstr(
+                scr.stdscr.addstr(cmdline[:width - 25], palette.YELLOW)
+                scr.stdscr.addstr(' [')
+                scr.stdscr.addstr(
                     str(p.pid),
                     palette.GREEN if status == 1 else palette.GREY_BOLD)
-                stdscr.addstr(']')
+                scr.stdscr.addstr(']')
                 if status == -1:
                     xst = 'WAIT'
                     xstc = palette.GREY_BOLD
@@ -642,49 +615,52 @@ async def show_process_info(stdscr, p, **kwargs):
                 else:
                     xst = None
                 if xst:
-                    stdscr.addstr(' ' + xst, xstc)
-                stdscr.addstr('\nCPU: ')
-                stdscr.addstr('{}%'.format(p.cpu_percent()), palette.BLUE_BOLD)
-                stdscr.addstr(' user ')
-                stdscr.addstr(str(ct.user), palette.BOLD)
-                stdscr.addstr(' system ')
-                stdscr.addstr(str(ct.system), palette.BOLD)
-                stdscr.addstr(', threads: ')
+                    scr.stdscr.addstr(' ' + xst, xstc)
+                scr.stdscr.addstr('\nCPU: ')
+                scr.stdscr.addstr('{}%'.format(p.cpu_percent()),
+                                  palette.BLUE_BOLD)
+                scr.stdscr.addstr(' user ')
+                scr.stdscr.addstr(str(ct.user), palette.BOLD)
+                scr.stdscr.addstr(' system ')
+                scr.stdscr.addstr(str(ct.system), palette.BOLD)
+                scr.stdscr.addstr(', threads: ')
                 # always hide pptop thread
-                stdscr.addstr(str(p.num_threads() - 1), palette.MAGENTA)
-                stdscr.addstr('\nMemory')
+                scr.stdscr.addstr(str(p.num_threads() - 1), palette.MAGENTA)
+                scr.stdscr.addstr('\nMemory')
                 memf = p.memory_full_info()
                 for k in ['uss', 'pss', 'swp']:
-                    stdscr.addstr(' {}: '.format(k))
+                    scr.stdscr.addstr(' {}: '.format(k))
                     if k == 'swp':
                         color = palette.YELLOW if \
                                 memf.swap > 1000000 else palette.GREY
                     else:
                         color = palette.CYAN
-                    stdscr.addstr(
+                    scr.stdscr.addstr(
                         bytes_to_iso(getattr(memf,
                                              'swap' if k == 'swp' else k)),
                         color)
                 mem = p.memory_info()
                 for k in ['shared', 'text', 'data']:
-                    stdscr.addstr(' {}: '.format(k[0]))
-                    stdscr.addstr(bytes_to_iso(getattr(mem, k)), palette.BOLD)
-                stdscr.addstr('\nFiles: ')
-                stdscr.addstr(str(len(p.open_files())), palette.CYAN)
+                    scr.stdscr.addstr(' {}: '.format(k[0]))
+                    scr.stdscr.addstr(bytes_to_iso(getattr(mem, k)),
+                                      palette.BOLD)
+                scr.stdscr.addstr('\nFiles: ')
+                scr.stdscr.addstr(str(len(p.open_files())), palette.CYAN)
                 ioc = p.io_counters()
-                stdscr.addstr(', I/O:')
-                stdscr.addstr(' {} {}'.format(glyph.UPLOAD, ioc.read_count),
-                              palette.GREEN)
-                stdscr.addstr(' (')
-                stdscr.addstr(bytes_to_iso(ioc.read_chars), palette.GREEN)
-                stdscr.addstr(')')
-                stdscr.addstr(' {} {}'.format(glyph.DOWNLOAD, ioc.write_count),
-                              palette.BLUE)
-                stdscr.addstr(' (')
-                stdscr.addstr(bytes_to_iso(ioc.write_chars), palette.BLUE)
-                stdscr.addstr(')')
-            stdscr.clrtoeol()
-            stdscr.refresh()
+                scr.stdscr.addstr(', I/O:')
+                scr.stdscr.addstr(' {} {}'.format(glyph.UPLOAD, ioc.read_count),
+                                  palette.GREEN)
+                scr.stdscr.addstr(' (')
+                scr.stdscr.addstr(bytes_to_iso(ioc.read_chars), palette.GREEN)
+                scr.stdscr.addstr(')')
+                scr.stdscr.addstr(
+                    ' {} {}'.format(glyph.DOWNLOAD, ioc.write_count),
+                    palette.BLUE)
+                scr.stdscr.addstr(' (')
+                scr.stdscr.addstr(bytes_to_iso(ioc.write_chars), palette.BLUE)
+                scr.stdscr.addstr(')')
+            scr.stdscr.clrtoeol()
+            scr.stdscr.refresh()
     except psutil.AccessDenied:
         log_traceback()
         return error('Access denied')
@@ -698,9 +674,9 @@ async def show_process_info(stdscr, p, **kwargs):
         log_traceback()
         try:
             for i in range(2):
-                stdscr.move(i, 0)
-                stdscr.clrtoeol()
-            stdscr.refresh()
+                scr.stdscr.move(i, 0)
+                scr.stdscr.clrtoeol()
+            scr.stdscr.refresh()
         except:
             pass
     except Exception as e:
@@ -708,17 +684,17 @@ async def show_process_info(stdscr, p, **kwargs):
 
 
 @atasker.background_worker(delay=0.1, daemon=True)
-async def show_bottom_bar(stdscr, **kwargs):
+async def show_bottom_bar(**kwargs):
     try:
-        with scr_lock:
-            height, width = stdscr.getmaxyx()
-            stdscr.move(height - 1, 0)
-            stdscr.addstr(' ' * (width - 1), palette.BAR)
-            stdscr.move(height - 1, 0)
+        with scr.lock:
+            height, width = scr.stdscr.getmaxyx()
+            scr.stdscr.move(height - 1, 0)
+            scr.stdscr.addstr(' ' * (width - 1), palette.BAR)
+            scr.stdscr.move(height - 1, 0)
             color = palette.BAR
             for h in sorted(bottom_bar_help):
-                stdscr.addstr('F{}'.format(h))
-                stdscr.addstr(bottom_bar_help[h].ljust(6), color)
+                scr.stdscr.addstr('F{}'.format(h))
+                scr.stdscr.addstr(bottom_bar_help[h].ljust(6), color)
             try:
                 with plugin_lock:
                     i = _d.current_plugin['p'].delay
@@ -746,10 +722,10 @@ async def show_bottom_bar(stdscr, **kwargs):
                 bwc = palette.BAR_WARNING
             else:
                 bwc = palette.BAR_OK
-            stdscr.addstr(height - 1, width - len(stats) - len(bws) - 1, stats,
-                          color)
-            stdscr.addstr(bws, bwc)
-            stdscr.refresh()
+            scr.stdscr.addstr(height - 1, width - len(stats) - len(bws) - 1,
+                              stats, color)
+            scr.stdscr.addstr(bws, bwc)
+            scr.stdscr.refresh()
     except:
         pass
 
@@ -784,7 +760,6 @@ _d = SimpleNamespace(
     process=None,
     protocol=None,
     force_protocol=None,
-    stdscr=None,
     client_frame_id=0,
     last_frame_id=0,
     ifoctets=0,
@@ -814,24 +789,6 @@ _cursors = SimpleNamespace(files_cursor=0,
 
 def sigwinch_handler(signum=None, frame=None):
     resize_handler.trigger(force=True)
-
-
-def resize_term(stdscr):
-    # works in 100% cases
-    width, height = os.get_terminal_size(0)
-    curses.resizeterm(height, width)
-    stdscr.resize(height, width)
-    stdscr.clear()
-    _d.current_plugin['p'].stdscr = stdscr
-    _d.current_plugin['p'].resize()
-    show_process_info.trigger()
-
-
-@atasker.background_worker(event=True, daemon=True)
-async def resize_handler(stdscr, **kwargs):
-    log('resize event')
-    with scr_lock:
-        resize_term(stdscr)
 
 
 def find_lib(name):
@@ -910,79 +867,7 @@ def inject_server(gdb, p):
         raise RuntimeError(err)
 
 
-def init_color_palette():
-    if term.endswith('256color'):
-        palette.DEBUG = curses.color_pair(244)
-        palette.WARNING = curses.color_pair(187) | curses.A_BOLD
-        palette.ERROR = curses.color_pair(198) | curses.A_BOLD
-        palette.CRITICAL = curses.color_pair(197) | curses.A_BOLD
-        palette.HEADER = curses.color_pair(37) | curses.A_REVERSE
-        palette.CURSOR = curses.color_pair(32) | curses.A_REVERSE
-        palette.BAR = curses.color_pair(37) | curses.A_REVERSE
-        palette.BAR_OK = curses.color_pair(29) | curses.A_REVERSE
-        palette.BAR_WARNING = curses.color_pair(4) | curses.A_REVERSE
-        palette.BAR_ERROR = curses.color_pair(198) | curses.A_REVERSE
-        palette.GREY = curses.color_pair(244)
-        palette.GREY_BOLD = curses.color_pair(244) | curses.A_BOLD
-        palette.GREEN = curses.color_pair(41)
-        palette.GREEN_BOLD = curses.color_pair(41) | curses.A_BOLD
-        palette.OK = curses.color_pair(121) | curses.A_BOLD
-        palette.BLUE = curses.color_pair(40)
-        palette.BLUE_BOLD = curses.color_pair(40) | curses.A_BOLD
-        palette.RED = curses.color_pair(198)
-        palette.RED_BOLD = curses.color_pair(198) | curses.A_BOLD
-        palette.CYAN = curses.color_pair(51)
-        palette.CYAN_BOLD = curses.color_pair(51) | curses.A_BOLD
-        palette.MAGENTA = curses.color_pair(208)
-        palette.MAGENTA_BOLD = curses.color_pair(208) | curses.A_BOLD
-        palette.YELLOW = curses.color_pair(187)
-        palette.YELLOW_BOLD = curses.color_pair(187) | curses.A_BOLD
-        palette.WHITE_BOLD = curses.color_pair(231) | curses.A_BOLD
-        palette.PROMPT = curses.color_pair(76) | curses.A_BOLD
-    else:
-        palette.DEBUG = curses.color_pair(1) | curses.A_BOLD
-        palette.WARNING = curses.color_pair(4) | curses.A_BOLD
-        palette.ERROR = curses.color_pair(2) | curses.A_BOLD
-        palette.CRITICAL = curses.color_pair(2) | curses.A_BOLD
-        palette.HEADER = curses.color_pair(3) | curses.A_REVERSE
-        palette.CURSOR = curses.color_pair(7) | curses.A_REVERSE
-        palette.BAR = curses.color_pair(7) | curses.A_REVERSE
-        palette.BAR_OK = curses.color_pair(3) | curses.A_REVERSE
-        palette.BAR_WARNING = curses.color_pair(4) | curses.A_REVERSE
-        palette.BAR_ERROR = curses.color_pair(2) | curses.A_REVERSE
-        palette.GREY = curses.color_pair(1)
-        palette.GREY_BOLD = curses.color_pair(1) | curses.A_BOLD
-        palette.GREEN = curses.color_pair(3)
-        palette.GREEN_BOLD = curses.color_pair(3) | curses.A_BOLD
-        palette.OK = curses.color_pair(3) | curses.A_BOLD
-        palette.BLUE = curses.color_pair(5)
-        palette.BLUE_BOLD = curses.color_pair(5) | curses.A_BOLD
-        palette.RED = curses.color_pair(2)
-        palette.RED_BOLD = curses.color_pair(2) | curses.A_BOLD
-        palette.CYAN = curses.color_pair(7)
-        palette.CYAN_BOLD = curses.color_pair(7) | curses.A_BOLD
-        palette.MAGENTA = curses.color_pair(6)
-        palette.MAGENTA_BOLD = curses.color_pair(6) | curses.A_BOLD
-        palette.YELLOW = curses.color_pair(4)
-        palette.YELLOW_BOLD = curses.color_pair(4) | curses.A_BOLD
-        palette.WHITE_BOLD = curses.color_pair(8) | curses.A_BOLD
-        palette.PROMPT = curses.color_pair(3) | curses.A_BOLD
-
-
-def init_glyphs():
-    glyph.UPLOAD = '⇈'
-    glyph.DOWNLOAD = '⇊'
-    glyph.ARROW_UP = '↑'
-    glyph.ARROW_DOWN = '↓'
-    glyph.SELECTOR = '→'
-    glyph.CONNECTION = '⇄'
-    glyph.DOWNWARDS_LEFT_ARROW = '↲ '
-    glyph.DOWNWARDS_RIGHT_ARROW = ' ↳'
-    glyph.UPWARDS_LEFT_ARROW = '↰ '
-    glyph.UPWARDS_RIGHT_ARROW = ' ↱'
-
-
-def inject_plugin(stdscr, plugin):
+def inject_plugin(plugin):
     if plugin['p'].injected is False:
         log('injecting plugin {}'.format(plugin['p'].name))
         plugin['p'].injected = True
@@ -990,13 +875,11 @@ def inject_plugin(stdscr, plugin):
             command('.inject', plugin['i'])
             return True
         except:
-            print_message(stdscr,
-                          'Plugin injection failed',
-                          color=palette.ERROR)
+            print_message('Plugin injection failed', color=palette.ERROR)
             return False
 
 
-def switch_plugin(stdscr, new_plugin):
+def switch_plugin(new_plugin):
     if _d.current_plugin:
         if _d.current_plugin is new_plugin:
             return
@@ -1005,12 +888,10 @@ def switch_plugin(stdscr, new_plugin):
         else:
             _d.current_plugin['p'].hide()
     p = new_plugin['p']
-    with scr_lock:
-        p.stdscr = stdscr
     p._previous_plugin = _d.current_plugin
     p.key_event = None
     p.key_code = None
-    inject_plugin(stdscr, new_plugin)
+    inject_plugin(new_plugin)
     if not p.is_active(): p.start()
     p.show()
     with plugin_lock:
@@ -1020,23 +901,23 @@ def switch_plugin(stdscr, new_plugin):
 def run():
 
     @atasker.background_task
-    async def autostart_plugins(stdscr):
+    async def autostart_plugins():
         for plugin in plugins_autostart:
             if plugin['p'] is not _d.current_plugin.get('p'):
                 log('autostarting {}'.format(plugin['m']))
-                inject_plugin(stdscr, plugin)
+                inject_plugin(plugin)
                 p = plugin['p']
                 if p.background:
-                    p.stdscr = stdscr
                     p.start()
-
-    stdscr = None
 
     try:
 
         if not _d.work_pid:
-            stdscr = init_curses(initial=True)
-            p = select_process(stdscr)
+            init_curses(initial=True,
+                        after_resize=after_resize,
+                        colors=config['display'].get('colors'),
+                        glyphs=config['display'].get('glyphs'))
+            p = select_process()
         else:
             p = psutil.Process(_d.work_pid)
 
@@ -1084,10 +965,8 @@ def run():
                 log('Falling back to protocol {}'.format(_d.protocol))
 
         if _d.exec_code:
-            end_curses(stdscr)
+            end_curses()
             result = command('.x', _d.exec_code)
-            if stdscr:
-                os.system('clear')
             if result[0] == 0:
                 if _d.output_as_json:
                     print_json(result[1])
@@ -1097,11 +976,9 @@ def run():
                 print(err('{}: {}'.format(result[1], result[2])))
             return
 
-        if not stdscr:
-            stdscr = init_curses(initial=True)
+        init_curses(initial=True, after_resize=after_resize)
 
         signal.signal(signal.SIGWINCH, sigwinch_handler)
-        _d.stdscr = stdscr
 
         calc_bw.start()
         update_status.start()
@@ -1112,20 +989,15 @@ def run():
             ppath.append(os.path.abspath(i))
         _d.process_path.extend(sorted(ppath, reverse=True))
         log('process path: {}'.format(_d.process_path))
-
-        height, width = stdscr.getmaxyx()
-        stdscr.clear()
-        stdscr.refresh()
-        hide_cursor()
-        switch_plugin(stdscr, _d.default_plugin)
-        show_process_info.start(stdscr=stdscr, p=p)
-        show_bottom_bar.start(stdscr=stdscr)
-        autostart_plugins(stdscr)
+        switch_plugin(_d.default_plugin)
+        show_process_info.start(p=p)
+        show_bottom_bar.start()
+        autostart_plugins()
         log('main loop started')
         while True:
             try:
                 try:
-                    k = format_key(stdscr.getkey())
+                    k = format_key(scr.stdscr.getkey())
                     event = get_key_event(k)
                 except KeyboardInterrupt:
                     return
@@ -1135,35 +1007,29 @@ def run():
                 if show_process_info.is_stopped():
                     return
                 elif k in plugin_shortcuts:
-                    switch_plugin(stdscr, plugin_shortcuts[k])
+                    switch_plugin(plugin_shortcuts[k])
                 elif event == 'ready':
                     try:
                         result = command('.ready')
                     except:
                         result = None
-                    with scr_lock:
+                    with scr.lock:
                         if result:
-                            print_message(stdscr,
-                                          'Ready event sent',
-                                          color=palette.OK)
+                            print_message('Ready event sent', color=palette.OK)
                         else:
-                            print_message(stdscr,
-                                          'Command failed',
-                                          color=palette.ERROR)
+                            print_message('Command failed', color=palette.ERROR)
                 elif event == 'reinject' and \
                         _d.current_plugin['p'].injected is not None:
                     try:
                         result = command('.inject', _d.current_plugin['i'])
                     except:
                         result = None
-                    with scr_lock:
+                    with scr.lock:
                         if result:
-                            print_message(stdscr,
-                                          'Plugin re-injected',
+                            print_message('Plugin re-injected',
                                           color=palette.OK)
                         else:
-                            print_message(stdscr,
-                                          'Plugin re-injection failed',
+                            print_message('Plugin re-injection failed',
                                           color=palette.ERROR)
                 elif event == 'quit':
                     _d.current_plugin['p'].stop(wait=False)
@@ -1171,27 +1037,26 @@ def run():
                     show_bottom_bar.stop(wait=False)
                     return
                 elif event == 'console':
-                    with scr_lock:
-                        end_curses(stdscr)
+                    with scr.lock:
+                        end_curses()
                         cli_mode()
-                        stdscr = init_curses()
-                        stdscr.clear()
+                        init_curses(after_resize=after_resize)
+                        cls()
                         hide_cursor()
-                        resize_term(stdscr)
+                        resize_term()
                 elif event == 'filter':
-                    apply_filter(stdscr, _d.current_plugin['p'])
+                    apply_filter(_d.current_plugin['p'])
                 elif event == 'interval':
-                    apply_interval(stdscr, _d.current_plugin['p'])
+                    apply_interval(_d.current_plugin['p'])
                 elif event == 'pause':
                     _d.current_plugin['p'].toggle_pause()
                 elif event in _d.current_plugin['p'].inputs:
-                    with scr_lock:
+                    with scr.lock:
                         try:
                             prev_value = _d.current_plugin['p'].get_input(event)
                         except ValueError:
                             continue
                         value = prompt(
-                            stdscr,
                             ps=_d.current_plugin['p'].get_input_prompt(event),
                             value=prev_value if prev_value is not None else '')
                         _d.current_plugin['p'].inputs[event] = value
@@ -1206,7 +1071,7 @@ def run():
                             plugin['p'].handle_key_global_event(event, k)
                         except:
                             log_traceback()
-                    with scr_lock:
+                    with scr.lock:
                         _d.current_plugin['p'].key_code = k
                         _d.current_plugin['p'].key_event = event
                         _d.current_plugin['p'].trigger()
@@ -1217,7 +1082,7 @@ def run():
         log_traceback()
         raise
     finally:
-        end_curses(stdscr)
+        end_curses()
 
 
 def start():
@@ -1441,7 +1306,6 @@ def start():
                     p.get_plugin = get_plugin
                     p.get_config_dir = get_config_dir
                     p.switch_plugin = switch_plugin
-                    p.scr_lock = scr_lock
                     p.get_process = get_process
                     p.get_process_path = get_process_path
                     p.global_config = config

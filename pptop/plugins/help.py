@@ -1,4 +1,5 @@
 from pptop.plugin import GenericPlugin
+from pptop.cli import scr
 from atasker import background_task
 import pptop.core as core
 import textwrap
@@ -23,7 +24,7 @@ class Plugin(GenericPlugin):
             for x in pdoc.strip().split('\n'):
                 self.data.append({'help': x})
             self.data.append({'help': ''})
-            self.data.append({'help': '-' * self.stdscr.getmaxyx()[1]})
+            self.data.append({'help': '-' * scr.stdscr.getmaxyx()[1]})
         # global shortcuts
         keyhelp = {}
         for k, e in core.events_by_key.items():
@@ -43,8 +44,7 @@ class Plugin(GenericPlugin):
 
     def handle_key_event(self, event, key, dtd):
         if event == 'back' and self._previous_plugin:
-            background_task(self.switch_plugin)(self.stdscr,
-                                                self._previous_plugin)
+            background_task(self.switch_plugin)(self._previous_plugin)
 
     async def run(self, *args, **kwargs):
         super().run(*args, **kwargs)

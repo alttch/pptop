@@ -102,7 +102,6 @@ Class variables
     self.short_name = self.name[:6].capitalize()  # short name (bottom bar)
     self.description = ''  # plugin description
 
-    self.stdscr = None  # curses stdscr object
     self.window = None  # working window
     self.status_line = None  # status line, if requested (curses object)
 
