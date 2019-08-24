@@ -29,6 +29,7 @@ class Plugin(GenericPlugin):
         self.orig_title = 'atasker monitor'
         self.short_name = 'ATaskr'
         self.sorting_rev = False
+        self.background_loader = True
         self.mode = 'loops'
         self.mode_shortcuts = {
             'a': 'loops',
@@ -103,12 +104,15 @@ class Plugin(GenericPlugin):
 
     def format_dtd(self, dtd):
         for d in dtd:
-            z = d.copy()
-            if z.get('int') == 0:
-                z['int'] = ''
-            else:
-                z['int'] = str(z.get('int'))
-            yield z
+            if self.mode == 'loops':
+                yield d
+            elif self.mode == 'workers':
+                z = d.copy()
+                if z.get('int') == 0:
+                    z['int'] = ''
+                else:
+                    z['int'] = str(z.get('int'))
+                yield z
 
     def get_injection_load_params(self):
         return {'task_supervisor': self.config.get('task_supervisor')}
