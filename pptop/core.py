@@ -56,10 +56,10 @@ from types import SimpleNamespace
 
 from pptop.plugin import GenericPlugin
 
-from pptop.cli import init_curses, end_curses, cls
-from pptop.cli import resize_term, resize_handler
-from pptop.cli import prompt, print_message, scr, palette, glyph
-from pptop.cli import hide_cursor, show_cursor
+from pptop.ui.console import init_curses, end_curses, cls
+from pptop.ui.console import resize_term, resize_handler
+from pptop.ui.console import prompt, print_message, scr, palette, glyph
+from pptop.ui.console import hide_cursor, show_cursor
 
 from pptop.logger import config as log_config, log, log_traceback, init_logging
 

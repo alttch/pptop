@@ -21,7 +21,7 @@ from pptop.logger import log, log_traceback
 
 tabulate.PRESERVE_WHITESPACE = True
 
-from pptop.cli import palette, glyph, print_message, scr
+from pptop.ui.console import palette, glyph, print_message, scr
 
 
 class GenericPlugin(BackgroundIntervalWorker):

@@ -1,5 +1,5 @@
 from pptop.plugin import GenericPlugin
-from pptop.cli import scr
+from pptop.ui.console import scr
 from atasker import background_task
 import pptop.core as core
 import textwrap
