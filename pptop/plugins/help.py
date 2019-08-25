@@ -3,7 +3,7 @@ from pptop.ui.console import scr
 from atasker import background_task
 import pptop.core as core
 import textwrap
-import tabulate
+import rapidtables
 
 
 class Plugin(GenericPlugin):
@@ -34,8 +34,13 @@ class Plugin(GenericPlugin):
             result.append({'e': e, 'k': ', '.join(sorted(keyhelp[e]))})
         self.data.append({'help': ''})
         self.data.append({'help': 'Global shorcuts'})
-        self.data.append({'help': '-' * 15})
-        for d in tabulate.tabulate(result, tablefmt='plain').split('\n'):
+        keys_table = rapidtables.format_table(result,
+                                              fmt=1,
+                                              generate_header=False)
+        self.data.append({'help': '-' *
+                (len(keys_table[0]) + 4)
+                })
+        for d in keys_table:
             self.data.append({'help': ' ' * 4 + d})
         # end global shortcuts
         self.data.append({'help': ''})

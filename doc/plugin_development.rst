@@ -194,8 +194,9 @@ list object itself.
 Displaying data
 ---------------
 
-Method *self.render(dtd)* calls *self.tabulate* to display a table. If you need
-to display anything more complex, e.g. a tree, you should completely override
+Method *self.render(dtd)* calls *self.render_table* to display a table. If you
+need to display anything more complex, e.g. a tree, you should completely
+override
 it.
 
 Otherwise, it would be probably enough to override methods

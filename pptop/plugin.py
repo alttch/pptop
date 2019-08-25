@@ -4,8 +4,8 @@ __license__ = 'MIT'
 __version__ = '0.3.29'
 
 import curses
-import tabulate
 import sys
+import rapidtables
 import os
 import threading
 import shutil
@@ -18,8 +18,6 @@ from atasker import BackgroundIntervalWorker
 from atasker import background_task
 
 from pptop.logger import log, log_traceback
-
-tabulate.PRESERVE_WHITESPACE = True
 
 from pptop.ui.console import palette, glyph, print_message, scr
 
@@ -701,7 +699,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         Renders plugin UI
         '''
         height, width = self.window.getmaxyx()
-        self.tabulate(dtd[self.shift:self.shift + height - 1],
+        self.render_table(dtd[self.shift:self.shift + height - 1],
                       cursor=(self.cursor -
                               self.shift) if self.is_cursor_enabled() else None,
                       hshift=self.hshift,
@@ -727,7 +725,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         '''
         return
 
-    def tabulate(self,
+    def render_table(self,
                  table,
                  cursor=None,
                  hshift=0,
@@ -746,19 +744,16 @@ class GenericPlugin(BackgroundIntervalWorker):
         self.window.move(0, 0)
         self.window.clrtobot()
         height, width = self.window.getmaxyx()
-        tabulate_custom_col_colors = hasattr(self, 'get_table_col_color')
+        table_custom_col_colors = hasattr(self, 'get_table_col_color')
         if table:
-            d = tabulate.tabulate(table, headers='keys',
-                                  tablefmt='simple').split('\n')
-            header = d[0]
-            if print_selector:
-                header = ' ' + header
-                d[1] = '-' + d[1]
+            h, tbl = rapidtables.format_table(table, fmt=2)
+            header = (' ' if print_selector else '') + '  '.join(h)
             if sorting_col:
                 if sorting_rev:
                     s = glyph.ARROW_UP
                 else:
                     s = glyph.ARROW_DOWN
+                # TODO - without str.replace
                 if header.startswith(sorting_col + ' '):
                     header = header.replace(sorting_col + ' ', s + sorting_col,
                                             1)
@@ -767,22 +762,21 @@ class GenericPlugin(BackgroundIntervalWorker):
             self.window.addstr(
                 0, 0, format_row(raw=header, max_width=width, hshift=hshift),
                 palette.HEADER)
-            if tabulate_custom_col_colors:
-                cols = [len(x) for x in d[1].split()]
-                spaces = 0
-                if len(cols) > 1:
-                    for i in range(cols[0], len(d[1])):
-                        if d[1][i] == ' ': spaces += 1
-                        else: break
+            if table_custom_col_colors:
+                cols = [len(x) for x in tbl[1]]
+                spaces = 2
                 pos = 0
                 col_starts = [0]
                 for i in range(len(cols) - 1):
                     col_starts.append(cols[i] + pos + spaces)
                     pos += cols[i] + spaces
-            for i, (t, r) in enumerate(zip(d[2:], table)):
+            for i, (t, r) in enumerate(zip(tbl, table)):
+                spacer = '  '
                 if print_selector:
-                    t = (glyph.SELECTOR if cursor == i else ' ') + t
-                if tabulate_custom_col_colors and cursor != i:
+                    t = (glyph.SELECTOR if cursor == i else ' ') + spacer.join(t)
+                else:
+                    t = spacer.join(t)
+                if table_custom_col_colors and cursor != i:
                     self.window.move(i + 1, 0)
                     rraw = t[hshift:hshift + width - 1]
                     limit = width - 1
