@@ -1,7 +1,7 @@
 __author__ = 'Altertech, https://www.altertech.com/'
 __copyright__ = 'Copyright (C) 2019 Altertech'
 __license__ = 'MIT'
-__version__ = '0.3.30'
+__version__ = '0.3.32'
 
 import curses
 import sys
@@ -763,7 +763,7 @@ class GenericPlugin(BackgroundIntervalWorker):
                 0, 0, format_row(raw=header, max_width=width, hshift=hshift),
                 palette.HEADER)
             if table_custom_col_colors:
-                cols = [len(x) for x in tbl[1]]
+                cols = [len(x) for x in h]
                 spaces = 2
                 pos = 0
                 col_starts = [0]
