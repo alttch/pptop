@@ -699,14 +699,14 @@ class GenericPlugin(BackgroundIntervalWorker):
         Renders plugin UI
         '''
         height, width = self.window.getmaxyx()
-        self.render_table(dtd[self.shift:self.shift + height - 1],
-                      cursor=(self.cursor -
-                              self.shift) if self.is_cursor_enabled() else None,
-                      hshift=self.hshift,
-                      sorting_col=self.sorting_col,
-                      sorting_rev=self.sorting_rev,
-                      print_selector=self.selectable and
-                      self.is_cursor_enabled())
+        self.render_table(
+            dtd[self.shift:self.shift + height - 1],
+            cursor=(self.cursor -
+                    self.shift) if self.is_cursor_enabled() else None,
+            hshift=self.hshift,
+            sorting_col=self.sorting_col,
+            sorting_rev=self.sorting_rev,
+            print_selector=self.selectable and self.is_cursor_enabled())
         if self.need_status_line:
             self.status_line.move(0, 0)
             self.render_status_line()
@@ -726,12 +726,12 @@ class GenericPlugin(BackgroundIntervalWorker):
         return
 
     def render_table(self,
-                 table,
-                 cursor=None,
-                 hshift=0,
-                 sorting_col=None,
-                 sorting_rev=False,
-                 print_selector=False):
+                     table,
+                     cursor=None,
+                     hshift=0,
+                     sorting_col=None,
+                     sorting_rev=False,
+                     print_selector=False):
         '''
         Used by table-like plugins
         '''
@@ -773,7 +773,8 @@ class GenericPlugin(BackgroundIntervalWorker):
             for i, (t, r) in enumerate(zip(tbl, table)):
                 spacer = '  '
                 if print_selector:
-                    t = (glyph.SELECTOR if cursor == i else ' ') + spacer.join(t)
+                    t = (glyph.SELECTOR
+                         if cursor == i else ' ') + spacer.join(t)
                 else:
                     t = spacer.join(t)
                 if table_custom_col_colors and cursor != i:

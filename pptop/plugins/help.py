@@ -37,9 +37,7 @@ class Plugin(GenericPlugin):
         keys_table = rapidtables.format_table(result,
                                               fmt=1,
                                               generate_header=False)
-        self.data.append({'help': '-' *
-                (len(keys_table[0]) + 4)
-                })
+        self.data.append({'help': '-' * (len(keys_table[0]) + 4)})
         for d in keys_table:
             self.data.append({'help': ' ' * 4 + d})
         # end global shortcuts
