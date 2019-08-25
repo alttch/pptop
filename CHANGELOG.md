@@ -7,7 +7,7 @@ First change log entry
 ### Common
 
 * own injector library
-* support for Python 2
+* support for Python 2 (injection only)
 * more invisible for profiling and connected process
 * plugin re-injection
 
