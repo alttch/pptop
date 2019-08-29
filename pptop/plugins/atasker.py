@@ -1,6 +1,7 @@
 from pptop.plugin import GenericPlugin, palette
 
 import os
+import time
 
 from collections import OrderedDict
 
@@ -18,9 +19,7 @@ class Plugin(GenericPlugin):
 
         a      : async loops
         w      : schedulers(workers)
-        (TODO)
-        t      : thread pool stats
-        m      : multiprocessing pool stats
+        t      : tasks
 
     https://github.com/alttch/atasker
     '''
@@ -34,12 +33,11 @@ class Plugin(GenericPlugin):
         self.mode_shortcuts = {
             'a': 'loops',
             'w': 'workers',
-            't': 'thread_pool',
-            'm': 'mp_pool',
+            't': 'tasks',
         }
         self.mode_sorting = {}
         self.set_title()
-        self.worker_priorities = {
+        self.task_priorities = {
             0: 'CRITICAL',
             50: 'HIGH',
             100: 'NORMAL',
@@ -49,6 +47,12 @@ class Plugin(GenericPlugin):
             0: 'CORO',
             1: 'THREAD',
             2: 'MP',
+        }
+        self.task_status = {
+            0: 'QUEUED',
+            100: 'STARTED',
+            2: 'DELAYED',
+            -1: 'CANCELED'
         }
 
     def set_title(self):
@@ -88,10 +92,10 @@ class Plugin(GenericPlugin):
                     v['state'] = 'stopped'
                 else:
                     v['state'] = ''
-                v['priority'] = self.worker_priorities.get(d[6], '')
+                v['priority'] = d[6]
                 v['int'] = d[3]
                 v['inf'] = d[4] if d[4] else ''
-                v['executor'] = self.task_types.get(d[8], '')
+                v['executor'] = d[8]
                 if d[7] is False:
                     v['aloop'] = '__supervisor__'
                 elif d[7]:
@@ -99,6 +103,18 @@ class Plugin(GenericPlugin):
                 else:
                     v['aloop'] = ''
                 v['daemon'] = 'daemon' if d[5] and d[8] == 1 else ''
+            elif self.mode == 'tasks':
+                v['id'] = d[0]
+                v['type'] = d[6]
+                v['priority'] = d[1]
+                v['status'] = d[2]
+                v['worker'] = d[7] if d[7] else ''
+                v['wclass'] = d[8] if d[8] else ''
+                v['task'] = d[3]
+                v['queued'] = d[4] if d[4] else 0
+                v['started'] = d[5] if d[5] else 0
+                v['qtime'] = (time.time() -
+                              v['queued']) if not d[5] else (d[5] - d[4])
             result.append(v)
         return result
 
@@ -108,10 +124,26 @@ class Plugin(GenericPlugin):
                 yield d
             elif self.mode == 'workers':
                 z = d.copy()
+                z['priority'] = self.task_priorities.get(z['priority'])
+                z['executor'] = self.task_types.get(z['executor'])
                 if z.get('int') == 0:
                     z['int'] = ''
                 else:
                     z['int'] = str(z.get('int'))
+                yield z
+            elif self.mode == 'tasks':
+                from datetime import datetime
+                z = d.copy()
+                z['type'] = self.task_types.get(z['type'])
+                z['priority'] = self.task_priorities.get(z['priority'])
+                z['status'] = self.task_status.get(z['status'])
+                z['queued'] = None if not z[
+                    'queued'] else datetime.fromtimestamp(
+                        z['queued']).strftime('%Y-%m-%d %H:%M:%S,%f')[:-3]
+                z['started'] = None if not z[
+                    'started'] else datetime.fromtimestamp(
+                        z['started']).strftime('%Y-%m-%d %H:%M:%S,%f')[:-3]
+                z['qtime'] = '{:.3f}'.format(z['qtime'])
                 yield z
 
     def get_injection_load_params(self):
@@ -169,6 +201,41 @@ class Plugin(GenericPlugin):
             elif key == 'aloop':
                 return palette.YELLOW if \
                         value != '__supervisor__' else palette.RED_BOLD
+        elif self.mode == 'tasks':
+            if element['status'] == 'QUEUED':
+                return palette.GREY_BOLD
+            elif element['status'] == 'CANCELED':
+                return palette.GREY
+            elif key == 'id':
+                return palette.YELLOW
+            elif key == 'type':
+                if value == 'CORO':
+                    return palette.GREEN
+                elif value == 'THREAD':
+                    return palette.MAGENTA
+                elif value == 'MP':
+                    return palette.BLUE_BOLD
+            elif key == 'priority':
+                if value == 'CRITICAL':
+                    return palette.RED_BOLD
+                elif value == 'HIGH':
+                    return palette.YELLOW
+                elif value == 'LOW':
+                    return palette.GREY_BOLD
+                else:
+                    return
+            elif key == 'status':
+                return palette.OK
+            elif key == 'worker':
+                return palette.CYAN
+            elif key == 'wclass':
+                return palette.BOLD
+            elif key == 'queued':
+                return palette.GREY_BOLD
+            elif key == 'started':
+                return palette.GREEN
+            elif key == 'qtime':
+                return palette.GREY_BOLD
 
     async def run(self, *args, **kwargs):
         super().run(*args, **kwargs)
@@ -302,4 +369,19 @@ def injection(cmd=None):
                 aloop = None
             result.append((name, wc, active, interval, iflags, daemon, priority,
                            aloop, etype))
+    elif cmd == 'tasks':
+        for task_id, task in g.task_supervisor.get_tasks().items():
+            if task.worker:
+                wc = '{}{}'.format(
+                    (task.worker.__module__ + '.')
+                    if task.worker.__module__ != 'atasker.workers' else '',
+                    task.worker.__class__.__name__)
+                wname = task.worker.name[19:] if task.worker.name.startswith(
+                    '_background_worker_') else task.worker.name
+            else:
+                wc = None
+                wname = None
+            result.append(
+                (task_id, task.priority, task.status, str(task.task),
+                 task.time_queued, task.time_started, task.tt, wname, wc))
     return result
