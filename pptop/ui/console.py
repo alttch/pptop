@@ -54,11 +54,12 @@ glyph = SimpleNamespace(UPLOAD='<',
                         UPWARDS_RIGHT_ARROW='.-')
 
 scr = SimpleNamespace(stdscr=None,
+                      infowin=None,
                       active=False,
                       before_resize=None,
                       after_resize=None,
                       lock=threading.Lock(),
-                      top_lines=5)
+                      top_lines=6)
 
 tput = shutil.which('tput')
 term = os.getenv('TERM')
@@ -144,6 +145,7 @@ def init_curses(initial=False,
                 glyphs=False):
     if not scr.active:
         scr.stdscr = curses.initscr()
+        scr.infowin = curses.newwin(scr.top_lines - 1, scr.stdscr.getmaxyx()[1], 0, 0)
         scr.active = True
         scr.before_resize = before_resize
         scr.after_resize = after_resize

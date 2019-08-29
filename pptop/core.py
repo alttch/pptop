@@ -587,6 +587,19 @@ def bytes_to_iso(i):
     return '{:.1f} PB'.format(i)
 
 
+_info_col_width = {0: 15, 1: 20, 2: 14, 3: 10}
+_info_col_pos = {0: 0}
+
+
+def recalc_info_col_pos():
+    pos = 0
+    for i in _info_col_width:
+        if i:
+            width = _info_col_width[i - 1]
+            pos += width + 2
+            _info_col_pos[i] = pos
+
+
 @atasker.background_worker(delay=1, daemon=True)
 async def show_process_info(p, **kwargs):
 
@@ -596,78 +609,92 @@ async def show_process_info(p, **kwargs):
         scr.stdscr.refresh()
         return False
 
+    def draw_val(row,
+                 col,
+                 label='',
+                 value=None,
+                 color=palette.DEFAULT,
+                 spacer=True):
+        width = _info_col_width[col]
+        pos = _info_col_pos[col]
+        val = str(value) if value is not None else ''
+        scr.infowin.move(row + 1, pos)
+        if label:
+            scr.infowin.addstr(label)
+            if spacer:
+                scr.infowin.addstr('.' * (width - len(label) - len(val)),
+                                   palette.GREY)
+                scr.infowin.move(row + 1, pos + width - len(val))
+            else:
+                scr.infowin.addstr(' ')
+        scr.infowin.addstr(val, color)
+
     try:
+        width = scr.infowin.getmaxyx()[1]
+        status = _d.status
+        scr.infowin.clear()
+        with p.oneshot():
+            ct = p.cpu_times()
+            memf = p.memory_full_info()
+            mem = p.memory_info()
+            ioc = p.io_counters()
+            scr.infowin.move(0, 0)
+            scr.infowin.addstr('Process: ')
+            cmdline = format_cmdline(p, _d.need_inject_server)
+            scr.infowin.addstr(cmdline[:width - 25], palette.YELLOW)
+            scr.infowin.addstr(' [')
+            scr.infowin.addstr(
+                str(p.pid), palette.GREEN if status == 1 else palette.GREY_BOLD)
+            scr.infowin.addstr(']')
+            if status == -1:
+                xst = 'WAIT'
+                xstc = palette.GREY_BOLD
+            elif status == 0:
+                xst = 'DONE'
+                xstc = palette.GREY_BOLD
+            elif status == -2:
+                xst = 'ERROR'
+                xstc = palette.ERROR
+            else:
+                xst = None
+            if xst:
+                scr.infowin.addstr(' ' + xst, xstc)
+
+            draw_val(0, 0, 'CPU', '{}%'.format(p.cpu_percent()),
+                     palette.BLUE_BOLD)
+            draw_val(1, 0, 'user', ct.user, palette.BOLD)
+            draw_val(2, 0, 'system', ct.system, palette.BOLD)
+            # always hide pptop thread
+            draw_val(3, 0, 'threads', p.num_threads() - 1, palette.MAGENTA)
+
+            draw_val(0, 1, 'Memory uss', bytes_to_iso(memf.uss), palette.BOLD)
+            draw_val(1, 1, 'pss', bytes_to_iso(memf.pss), palette.BOLD)
+            draw_val(2, 1, 'swap', bytes_to_iso(memf.swap),
+                     palette.GREY if memf.swap < 1000000 else palette.YELLOW)
+
+            draw_val(0, 2, 'shd', bytes_to_iso(mem.shared), palette.BOLD)
+            draw_val(1, 2, 'txt', bytes_to_iso(mem.text), palette.BOLD)
+            draw_val(2, 2, 'dat', bytes_to_iso(mem.data), palette.BOLD)
+
+            draw_val(0,
+                     3,
+                     'Files:',
+                     len(p.open_files()),
+                     palette.CYAN,
+                     spacer=False)
+
+            draw_val(1,
+                     3,
+                     value='{} {} ({})'.format(glyph.UPLOAD, ioc.read_count,
+                                               bytes_to_iso(ioc.read_chars)),
+                     color=palette.GREEN)
+            draw_val(2,
+                     3,
+                     value='{} {} ({})'.format(glyph.DOWNLOAD, ioc.write_count,
+                                               bytes_to_iso(ioc.write_chars)),
+                     color=palette.BLUE)
+        scr.infowin.refresh()
         with scr.lock:
-            height, width = scr.stdscr.getmaxyx()
-            status = _d.status
-            with p.oneshot():
-                ct = p.cpu_times()
-                scr.stdscr.move(0, 0)
-                scr.stdscr.addstr('Process: ')
-                cmdline = format_cmdline(p, _d.need_inject_server)
-                scr.stdscr.addstr(cmdline[:width - 25], palette.YELLOW)
-                scr.stdscr.addstr(' [')
-                scr.stdscr.addstr(
-                    str(p.pid),
-                    palette.GREEN if status == 1 else palette.GREY_BOLD)
-                scr.stdscr.addstr(']')
-                if status == -1:
-                    xst = 'WAIT'
-                    xstc = palette.GREY_BOLD
-                elif status == 0:
-                    xst = 'DONE'
-                    xstc = palette.GREY_BOLD
-                elif status == -2:
-                    xst = 'ERROR'
-                    xstc = palette.ERROR
-                else:
-                    xst = None
-                if xst:
-                    scr.stdscr.addstr(' ' + xst, xstc)
-                scr.stdscr.addstr('\nCPU: ')
-                scr.stdscr.addstr('{}%'.format(p.cpu_percent()),
-                                  palette.BLUE_BOLD)
-                scr.stdscr.addstr(' user ')
-                scr.stdscr.addstr(str(ct.user), palette.BOLD)
-                scr.stdscr.addstr(' system ')
-                scr.stdscr.addstr(str(ct.system), palette.BOLD)
-                scr.stdscr.addstr(', threads: ')
-                # always hide pptop thread
-                scr.stdscr.addstr(str(p.num_threads() - 1), palette.MAGENTA)
-                scr.stdscr.addstr('\nMemory')
-                memf = p.memory_full_info()
-                for k in ['uss', 'pss', 'swp']:
-                    scr.stdscr.addstr(' {}: '.format(k))
-                    if k == 'swp':
-                        color = palette.YELLOW if \
-                                memf.swap > 1000000 else palette.GREY
-                    else:
-                        color = palette.CYAN
-                    scr.stdscr.addstr(
-                        bytes_to_iso(getattr(memf,
-                                             'swap' if k == 'swp' else k)),
-                        color)
-                mem = p.memory_info()
-                for k in ['shared', 'text', 'data']:
-                    scr.stdscr.addstr(' {}: '.format(k[0]))
-                    scr.stdscr.addstr(bytes_to_iso(getattr(mem, k)),
-                                      palette.BOLD)
-                scr.stdscr.addstr('\nFiles: ')
-                scr.stdscr.addstr(str(len(p.open_files())), palette.CYAN)
-                ioc = p.io_counters()
-                scr.stdscr.addstr(', I/O:')
-                scr.stdscr.addstr(' {} {}'.format(glyph.UPLOAD, ioc.read_count),
-                                  palette.GREEN)
-                scr.stdscr.addstr(' (')
-                scr.stdscr.addstr(bytes_to_iso(ioc.read_chars), palette.GREEN)
-                scr.stdscr.addstr(')')
-                scr.stdscr.addstr(
-                    ' {} {}'.format(glyph.DOWNLOAD, ioc.write_count),
-                    palette.BLUE)
-                scr.stdscr.addstr(' (')
-                scr.stdscr.addstr(bytes_to_iso(ioc.write_chars), palette.BLUE)
-                scr.stdscr.addstr(')')
-            scr.stdscr.clrtoeol()
             scr.stdscr.refresh()
     except psutil.AccessDenied:
         log_traceback()
@@ -1003,6 +1030,7 @@ def run():
         plugin_process_path.extend(_d.process_path)
         log('process path: {}'.format(_d.process_path))
         switch_plugin(_d.default_plugin)
+        recalc_info_col_pos()
         show_process_info.start(p=p)
         show_bottom_bar.start()
         autostart_plugins()
