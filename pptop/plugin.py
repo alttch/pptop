@@ -13,6 +13,7 @@ import subprocess
 
 from types import SimpleNamespace
 from collections import OrderedDict
+from functools import lru_cache
 
 from atasker import BackgroundIntervalWorker
 from atasker import background_task
@@ -20,6 +21,8 @@ from atasker import background_task
 from pptop.logger import log, log_traceback
 
 from pptop.ui.console import palette, glyph, print_message, scr
+
+process_path = []
 
 
 class GenericPlugin(BackgroundIntervalWorker):
@@ -842,20 +845,21 @@ class GenericPlugin(BackgroundIntervalWorker):
         return raw
 
 
-def format_mod_name(f, path):
+@lru_cache(maxsize=32768)
+def format_mod_name(f):
     '''
     Extract module name from file
 
     Args:
         f: file
-        path: list of path dictionaries
+        process_path: list of path dictionaries
     '''
     from pptop.core import get_child_info
-    f = os.path.abspath(f)
+    f = abspath(f)
     child = get_child_info()
     if child and f == child['c']:
         return '__main__'
-    for p in path:
+    for p in process_path:
         if f.startswith(p):
             f = f[len(p) + 1:]
             break
@@ -866,3 +870,8 @@ def format_mod_name(f, path):
     for i in range(len(mod)):
         if mod[i] != '.': break
     return mod[i:]
+
+
+@lru_cache(maxsize=32768)
+def abspath(f):
+    return os.path.abspath(f)

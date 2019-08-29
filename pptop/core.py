@@ -54,7 +54,7 @@ os.unsetenv('COLUMNS')
 
 from types import SimpleNamespace
 
-from pptop.plugin import GenericPlugin
+from pptop.plugin import GenericPlugin, process_path as plugin_process_path
 
 from pptop.ui.console import init_curses, end_curses, cls
 from pptop.ui.console import resize_term, resize_handler
@@ -995,10 +995,12 @@ def run():
         update_status.start()
 
         _d.process_path.clear()
+        plugin_process_path.clear()
         ppath = []
         for i in command('.path'):
             ppath.append(os.path.abspath(i))
         _d.process_path.extend(sorted(ppath, reverse=True))
+        plugin_process_path.extend(_d.process_path)
         log('process path: {}'.format(_d.process_path))
         switch_plugin(_d.default_plugin)
         show_process_info.start(p=p)

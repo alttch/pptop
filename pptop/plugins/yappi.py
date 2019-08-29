@@ -1,4 +1,4 @@
-from pptop.plugin import GenericPlugin, format_mod_name, palette
+from pptop.plugin import GenericPlugin, format_mod_name, abspath, palette
 
 import os
 
@@ -27,7 +27,7 @@ class Plugin(GenericPlugin):
     def process_data(self, data):
         sess = []
         for s in data:
-            mod = format_mod_name(s[1], self.get_process_path())
+            mod = format_mod_name(s[1])
             if not mod.startswith('pptop.') and \
                     not mod.startswith('pptopcontrib-') and \
                         mod.find('_pptop_injection') == -1:
@@ -38,7 +38,7 @@ class Plugin(GenericPlugin):
                 d['ttot'] = s[6]
                 d['tsub'] = s[7]
                 d['tavg'] = s[11]
-                d['file'] = '{}:{}'.format(os.path.abspath(s[1]), s[2])
+                d['file'] = '{}:{}'.format(abspath(s[1]), s[2])
                 d['builtin'] = 'builtin' if s[5] else ''
                 sess.append(d)
         return sess

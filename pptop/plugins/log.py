@@ -1,4 +1,4 @@
-from pptop.plugin import GenericPlugin, palette
+from pptop.plugin import GenericPlugin, abspath, palette
 
 import os
 
@@ -27,8 +27,7 @@ class Plugin(GenericPlugin):
             r['level'] = record.levelno
             r['module'] = record.module
             r['thread'] = record.threadName
-            r['file'] = '{}:{}'.format(
-                os.path.abspath(record.pathname), record.lineno)
+            r['file'] = '{}:{}'.format(abspath(record.pathname), record.lineno)
             r['message'] = record.getMessage().replace('\n', ' ')
             result.append(r)
         return result
@@ -39,7 +38,7 @@ class Plugin(GenericPlugin):
         for t in dtd:
             z = t.copy()
             z['time'] = datetime.fromtimestamp(
-                z['time']).strftime('%Y-%m-%d %H:%M:%S')
+                    z['time']).strftime('%Y-%m-%d %H:%M:%S,%f')[:-3]
             z['level'] = logging.getLevelName(z['level'])
             yield z
 
