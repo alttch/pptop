@@ -29,7 +29,9 @@ class Plugin(GenericPlugin):
         self.short_name = 'ATaskr'
         self.sorting_rev = False
         self.background_loader = True
+        self.need_status_line = True
         self.mode = 'loops'
+        self.supervisor_status = None
         self.mode_shortcuts = {
             'a': 'loops',
             'w': 'workers',
@@ -55,6 +57,27 @@ class Plugin(GenericPlugin):
             -1: 'CANCELED'
         }
 
+    def render_status_line(self):
+        s = self.supervisor_status
+        if s:
+            if s['active']:
+                self.status_line.addstr('ON ', palette.OK)
+            else:
+                self.status_line.addstr('OFF', palette.GREY_BOLD)
+            self.status_line.addstr(' T: ')
+            self.status_line.addstr(str(s['thread_tasks_count']),
+                                    palette.MAGENTA)
+            self.status_line.addstr(' ({}/+{}/+{})'.format(
+                s['thread_pool_size'], s['thread_reserve_normal'],
+                s['thread_reserve_high']))
+            if 'mp_pool_size' in s:
+                self.status_line.addstr(', MP: ')
+                self.status_line.addstr(str(s['mp_tasks_count']),
+                                        palette.BLUE_BOLD)
+                self.status_line.addstr(' ({}/+{}/+{})'.format(
+                    s['mp_pool_size'], s['mp_reserve_normal'],
+                    s['mp_reserve_high']))
+
     def set_title(self):
         self.title = '{} ({})'.format(self.orig_title,
                                       self.mode.replace('_', ' '))
@@ -74,7 +97,8 @@ class Plugin(GenericPlugin):
 
     def process_data(self, data):
         result = []
-        for d in data:
+        self.supervisor_status = data[0]
+        for d in data[1]:
             v = OrderedDict()
             if self.mode == 'loops':
                 v['loop'] = d[0]
@@ -110,11 +134,11 @@ class Plugin(GenericPlugin):
                 v['status'] = d[2]
                 v['worker'] = d[7] if d[7] else ''
                 v['wclass'] = d[8] if d[8] else ''
-                v['task'] = d[3]
                 v['queued'] = d[4] if d[4] else 0
                 v['started'] = d[5] if d[5] else 0
                 v['qtime'] = (time.time() -
                               v['queued']) if not d[5] else (d[5] - d[4])
+                v['task'] = d[3]
             result.append(v)
         return result
 
@@ -384,4 +408,5 @@ def injection(cmd=None):
             result.append(
                 (task_id, task.priority, task.status, str(task.task),
                  task.time_queued, task.time_started, task.tt, wname, wc))
-    return result
+    return g.task_supervisor.get_info(tt=False, aloops=False,
+                                      schedulers=False).__dict__, result
