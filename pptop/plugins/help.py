@@ -34,9 +34,9 @@ class Plugin(GenericPlugin):
             result.append({'e': e, 'k': ', '.join(sorted(keyhelp[e]))})
         self.data.append({'help': ''})
         self.data.append({'help': 'Global shorcuts'})
-        keys_table = rapidtables.format_table(result,
+        keys_table = tuple(rapidtables.format_table(result,
                                               fmt=1,
-                                              generate_header=False)
+                                              generate_header=False))
         self.data.append({'help': '-' * (len(keys_table[0]) + 4)})
         for d in keys_table:
             self.data.append({'help': ' ' * 4 + d})
