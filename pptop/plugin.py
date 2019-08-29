@@ -845,7 +845,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         return raw
 
 
-@lru_cache(maxsize=32768)
+@lru_cache(maxsize=8192)
 def format_mod_name(f):
     '''
     Extract module name from file
@@ -872,6 +872,6 @@ def format_mod_name(f):
     return mod[i:]
 
 
-@lru_cache(maxsize=32768)
+@lru_cache(maxsize=8192)
 def abspath(f):
     return os.path.abspath(f)
