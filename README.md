@@ -83,8 +83,10 @@ Plugins and keyboard shortcuts are configured by default in
 ## Standard plugins
 
 * **asyncio** asyncio loop monitor
+* **atasker** atasker monitor (https://github.com/alttch/atasker)
 * **env** view process OS environment variables
 * **log** inject into all Python loggers and collect log messages
+* **malloc** trace object memory allocations
 * **open_files** view process open files
 * **script_runner** launch a custom scripts inside process
 * **threads** view process threads
@@ -106,6 +108,12 @@ executing functions and loops etc.
 
 Console has own remote *globals*, which are preserved until ppTOP quit and
 injected server is terminated.
+
+## Grab stdout/stderr
+
+If launched with "-g" option, ppTOP will grab stdout/stderr of injected process
+and print it to local console. You can view local console without entering
+console mode, by pressing *Ctrl+O*.
 
 ## Documentation
 
