@@ -1159,8 +1159,7 @@ def run():
                         try:
                             wait_key()
                         except KeyboardInterrupt:
-                            show_cursor()
-                            return
+                            pass
                         if _d.grab_stdout: print_stdout.stop()
                         init_curses(after_resize=after_resize)
                         resize_term()
