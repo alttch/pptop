@@ -38,6 +38,7 @@ Commands:
     .le              Get last exception
     .x               Exec code
     .exec            Exec command
+    .gs              Grab stdout
     <plugin_id>      Command for plugin
     .bye             End communcation
 
@@ -125,6 +126,39 @@ def safe_serialize(obj):
 
 def loop(cpid, protocol, runner_mode=False):
 
+    class STD:
+        pass
+
+    class ppStdout(object):
+
+        write_through = False
+        mode = 'w'
+
+        def __init__(self, name, real, std):
+            self.name = '<{}>'.format(name)
+            self.real = real
+            self.std = std
+            try:
+                self.encoding = real.encoding
+            except:
+                self.encoding = 'UTF-8'
+            self.flush = real.flush
+            self.isatty = real.isatty
+
+        def writable(self):
+            return True
+
+        def write(self, text):
+            with self.std.lock:
+                self.std.buf += text
+            return self.real.write(text)
+
+        def writelines(self, lines):
+            with self.std.lock:
+                for l in lines:
+                    self.std.buf += l
+            return self.real.writelines(lines)
+
     def send_frame(conn, frame_id, data):
         conn.sendall(
             struct.pack('I', len(data)) + struct.pack('I', frame_id) + data)
@@ -154,6 +188,8 @@ def loop(cpid, protocol, runner_mode=False):
     server.setsockopt(socket.SOL_SOCKET, socket.SO_SNDBUF, socket_buf)
     server.setsockopt(socket.SOL_SOCKET, socket.SO_RCVBUF, socket_buf)
     injections = {}
+    real_stdout = None
+    real_stderr = None
     log('Pickle protocol: {}'.format(protocol))
     log('listening')
     try:
@@ -194,6 +230,24 @@ def loop(cpid, protocol, runner_mode=False):
                         send_ok(connection, frame_id)
                     elif cmd == '.bye':
                         break
+                    elif cmd == '.gs':
+                        if real_stdout is None:
+                            std = STD()
+                            std.lock = threading.Lock()
+                            std.buf = ''
+                            with std.lock:
+                                real_stdout = sys.stdout
+                                real_stderr = sys.stderr
+                                sys.stdout = ppStdout('stdout', real_stdout,
+                                                      std)
+                                sys.stderr = ppStdout('stderr', real_stderr,
+                                                      std)
+                                buf = ''
+                        else:
+                            with std.lock:
+                                buf = std.buf
+                                std.buf = ''
+                        send_serialized(connection, frame_id, buf)
                     elif cmd == '.status':
                         send_serialized(connection, frame_id,
                                         g._runner_status if runner_mode else 1)
@@ -333,6 +387,10 @@ def loop(cpid, protocol, runner_mode=False):
             g.clients -= 1
     except:
         pass
+    if real_stdout is not None:
+        sys.stdout = real_stdout
+    if real_stderr is not None:
+        sys.stderr = real_stderr
     try:
         os.unlink(server_address)
     except:
@@ -409,7 +467,8 @@ def main():
     log('starting main code')
     try:
         code = compile(src, a.file, 'exec')
-        exec(code)
+        launcher_g = {'__file__': a.file}
+        exec(code, launcher_g)
         g._runner_status = 0
         log('main code finished')
     except:

@@ -82,6 +82,7 @@ events_by_key = {
     'CTRL_L': 'ready',
     'CTRL_I': 'reinject',
     '`': 'console',
+    'CTRL_O': 'show-console',
     'KEY_BACKSPACE': 'delete',
     'KEY_DC': 'delete',
     'p': 'pause',
@@ -115,6 +116,8 @@ bottom_bar_help = {10: 'Quit'}
 plugin_shortcuts = {}
 
 plugin_lock = threading.Lock()
+
+stdout_buf_lock = threading.Lock()
 
 socket_timeout = 15
 
@@ -178,6 +181,26 @@ def val_to_boolean(s):
     if val.lower() in ['1', 'true', 'yes', 'on', 'y']: return True
     if val.lower() in ['0', 'false', 'no', 'off', 'n']: return False
     return None
+
+
+def wait_key():
+    result = None
+    import termios
+    fd = sys.stdin.fileno()
+
+    oldterm = termios.tcgetattr(fd)
+    newattr = termios.tcgetattr(fd)
+    newattr[3] = newattr[3] & ~termios.ICANON & ~termios.ECHO
+    termios.tcsetattr(fd, termios.TCSANOW, newattr)
+
+    try:
+        result = sys.stdin.read(1)
+    except IOError:
+        pass
+    finally:
+        termios.tcsetattr(fd, termios.TCSAFLUSH, oldterm)
+
+    return result
 
 
 key_names = {
@@ -340,7 +363,7 @@ def cli_mode():
             return None
 
     if _d.cli_first_time:
-        os.system('clear')
+        # os.system('clear')
         print(
             colored('Console mode, process {} connected'.format(_d.process.pid),
                     color='green',
@@ -353,6 +376,8 @@ def cli_mode():
                 'Enter any Python command, press Ctrl-D or type "exit" to quit')
         )
         print(colored('To toggle between JSON and normal mode, type ".j"'))
+        if _d.grab_stdout:
+            print(colored('To toggle stdout/stderr output, type ".p"'))
         print(
             colored(
                 'To execute multiple commands from file, type "< filename"'))
@@ -381,6 +406,11 @@ def cli_mode():
                 if cmd == '': continue
                 elif cmd == 'exit':
                     raise EOFError
+                elif _d.grab_stdout and cmd == '.p':
+                    if print_stdout.is_active():
+                        print_stdout.stop()
+                    else:
+                        print_stdout.start()
                 elif cmd == '.j':
                     _d.console_json_mode = not _d.console_json_mode
                     print('JSON mode ' +
@@ -792,6 +822,27 @@ def update_status(**kwargs):
         time.sleep(1)
 
 
+@atasker.background_worker(daemon=True)
+def grab_stdout(**kwargs):
+    try:
+        result = command('.gs')
+        with stdout_buf_lock:
+            _d.stdout_buf += result
+    except:
+        log_traceback()
+    finally:
+        time.sleep(0.5)
+
+
+@atasker.background_worker(daemon=True)
+def print_stdout(**kwargs):
+    with stdout_buf_lock:
+        if _d.stdout_buf != '':
+            print(_d.stdout_buf, end='')
+            _d.stdout_buf = ''
+    time.sleep(0.1)
+
+
 @atasker.background_worker(interval=1, daemon=True)
 async def calc_bw(**kwargs):
     with ifoctets_lock:
@@ -804,6 +855,8 @@ async def calc_bw(**kwargs):
 
 _d = SimpleNamespace(
     cli_first_time=True,
+    grab_stdout=False,
+    stdout_buf='',
     current_plugin=None,
     process_path=[],
     default_plugin=None,
@@ -1035,9 +1088,16 @@ def run():
 
         calc_bw.start()
         update_status.start()
+        if _d.grab_stdout:
+            grab_stdout.start()
 
         _d.process_path.clear()
         plugin_process_path.clear()
+        if _d.grab_stdout:
+            try:
+                command('.gs')
+            except:
+                raise RuntimeError('Unable to set stdout grabber')
         ppath = []
         for i in command('.path'):
             ppath.append(os.path.abspath(i))
@@ -1095,7 +1155,22 @@ def run():
                 elif event == 'console':
                     with scr.lock:
                         end_curses()
+                        if _d.grab_stdout: print_stdout.start()
                         cli_mode()
+                        if _d.grab_stdout: print_stdout.stop()
+                        init_curses(after_resize=after_resize)
+                        resize_term()
+                elif event == 'show-console':
+                    with scr.lock:
+                        end_curses()
+                        hide_cursor()
+                        if _d.grab_stdout: print_stdout.start()
+                        try:
+                            wait_key()
+                        except KeyboardInterrupt:
+                            show_cursor()
+                            return
+                        if _d.grab_stdout: print_stdout.stop()
                         init_curses(after_resize=after_resize)
                         resize_term()
                 elif event == 'filter':
@@ -1185,6 +1260,10 @@ def start():
     ap.add_argument('--inject-method',
                     choices=['auto', 'native', 'loadcffi', 'unsafe'],
                     help='Inject method')
+    ap.add_argument('-g',
+                    '--grab-stdout',
+                    help='Grab stdout/stderr of injected process',
+                    action='store_true')
     ap.add_argument(
         '-w',
         '--wait',
@@ -1301,6 +1380,9 @@ def start():
 
     if a.raw:
         config['display']['colors'] = False
+
+    if a.grab_stdout:
+        _d.grab_stdout = True
 
     if a.raw or a.disable_glyphs:
         config['display']['glyphs'] = False

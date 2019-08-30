@@ -149,7 +149,8 @@ def init_curses(initial=False,
                 glyphs=False):
     if not scr.active:
         scr.stdscr = curses.initscr()
-        scr.infowin = curses.newwin(scr.top_lines - 1, scr.stdscr.getmaxyx()[1], 0, 0)
+        scr.infowin = curses.newwin(scr.top_lines - 1,
+                                    scr.stdscr.getmaxyx()[1], 0, 0)
         scr.active = True
         scr.before_resize = before_resize
         scr.after_resize = after_resize
@@ -183,9 +184,9 @@ def end_curses():
 
 
 def set_cursor(mode):
-    if term.startswith('screen') and tput:
+    if (term.startswith('screen') or not scr.active) and tput:
         try:
-            code = os.system('tput ' + ('civis' if not mode else 'cnorm'))
+            code = os.system(tput + ' ' + ('civis' if not mode else 'cnorm'))
             if code:
                 raise RuntimeError('tput error code: {}'.format(code))
             return

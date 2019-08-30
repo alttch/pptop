@@ -16,6 +16,7 @@ keys:
   reinject: J
   interval: I
   console: "`"
+  show-console: CTRL_O
   delete:
     - KEY_BACKSPACE
     - KEY_DC
