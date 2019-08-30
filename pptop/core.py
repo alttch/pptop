@@ -590,13 +590,15 @@ def bytes_to_iso(i):
 _info_col_width = {0: 15, 1: 20, 2: 14, 3: 10}
 _info_col_pos = {0: 0}
 
+# _vblks='▁▂▃▅▆▇'
+
 
 def recalc_info_col_pos():
     pos = 0
     for i in _info_col_width:
         if i:
-            width = _info_col_width[i - 1]
-            pos += width + 2
+            pos += _info_col_width[i - 1] + 2 #(
+                # 5 if config['display'].get('glyphs') and i == 1 else 2)
             _info_col_pos[i] = pos
 
 
@@ -660,12 +662,24 @@ async def show_process_info(p, **kwargs):
             if xst:
                 scr.infowin.addstr(' ' + xst, xstc)
 
-            draw_val(0, 0, 'CPU', '{}%'.format(p.cpu_percent()),
-                     palette.BLUE_BOLD)
+            cpup = p.cpu_percent()
+
+            draw_val(0, 0, 'CPU', '{}%'.format(cpup), palette.BLUE_BOLD)
             draw_val(1, 0, 'user', ct.user, palette.BOLD)
             draw_val(2, 0, 'system', ct.system, palette.BOLD)
             # always hide pptop thread
             draw_val(3, 0, 'threads', p.num_threads() - 1, palette.MAGENTA)
+
+            # if config['display'].get('glyphs'):
+                # gauge = _vblks[-1] * int(cpup // 25)
+                # i = int(cpup % 25 / 25 * len(_vblks))
+                # if i:
+                    # gauge += _vblks[i - 1]
+                # x = _info_col_width[0] + 1
+                # for i, g in enumerate(gauge):
+                    # scr.stdscr.addstr(4 - i, x, g * 2,
+                                      # (palette.GREEN, palette.YELLOW,
+                                       # palette.RED, palette.RED)[i])
 
             draw_val(0, 1, 'Memory uss', bytes_to_iso(memf.uss), palette.BOLD)
             draw_val(1, 1, 'pss', bytes_to_iso(memf.pss), palette.BOLD)
@@ -693,8 +707,8 @@ async def show_process_info(p, **kwargs):
                      value='{} {} ({})'.format(glyph.DOWNLOAD, ioc.write_count,
                                                bytes_to_iso(ioc.write_chars)),
                      color=palette.BLUE)
-        scr.infowin.refresh()
         with scr.lock:
+            scr.infowin.refresh()
             scr.stdscr.refresh()
     except psutil.AccessDenied:
         log_traceback()
