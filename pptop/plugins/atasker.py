@@ -89,11 +89,17 @@ class Plugin(GenericPlugin):
     def handle_key_event(self, event, key, dtd):
         if event in self.mode_shortcuts:
             self.mode_sorting[self.mode] = (self.sorting_col, self.sorting_rev)
+            self.save_cursor(self.mode)
             self.mode = self.mode_shortcuts[event]
+            self.restore_cursor(self.mode)
             self.sorting_col, self.sorting_rev = self.mode_sorting.get(
                 self.mode, (None, False))
             self.resume()
             self.trigger(force=True)
+
+    def handle_pager_event(self, dtd):
+        if self.key_event not in self.mode_shortcuts:
+            super().handle_pager_event(dtd)
 
     def process_data(self, data):
         result = []

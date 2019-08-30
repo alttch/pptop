@@ -28,15 +28,9 @@ class Plugin(GenericPlugin):
 
     def load_remote_data(self):
         if self.thread_stack_info is None:
-            self.sorting_enabled = True
-            self.selectable = True
-            self.enable_cursor()
             self.title = 'Threads'
             return super().load_remote_data()
         else:
-            self.sorting_enabled = False
-            self.selectable = False
-            self.disable_cursor()
             self.title = 'Thread {name} [{ident}] stack trace'.format(
                 ident=self.thread_stack_info[0], name=self.thread_stack_info[1])
             return self.injection_command(
@@ -69,13 +63,25 @@ class Plugin(GenericPlugin):
         if event == 'select' and not self.thread_stack_info:
             row = self.get_selected_row()
             if row:
+                self.save_cursor()
+                self.sorting_enabled = False
+                self.selectable = False
+                self.disable_cursor()
                 self.thread_stack_info = (row['ident'], row['name'])
         elif event == 'back':
+            self.sorting_enabled = True
+            self.selectable = True
+            self.enable_cursor()
+            self.restore_cursor()
             self.thread_stack_info = None
         else:
             return
         self.resume()
         self.trigger(force=True)
+
+    def handle_pager_event(self, dtd):
+        if self.key_event != 'back':
+            super().handle_pager_event(dtd)
 
     def format_dtd(self, dtd):
         if self.thread_stack_info is None:

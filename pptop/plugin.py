@@ -36,6 +36,8 @@ class GenericPlugin(BackgroundIntervalWorker):
         self._error = False
         self._loader_active = False
         self._cursor_enabled_by_user = True
+        self._cursors = []
+        self._cursors_by_label = {}
         mod = sys.modules[self.__module__]
         self.name = mod.__name__.rsplit('.', 1)[-1]  # plugin name(id)
         if self.name.startswith('pptopcontrib-'):
@@ -154,6 +156,21 @@ class GenericPlugin(BackgroundIntervalWorker):
         Is plugin currently paused
         '''
         return self._paused
+
+    def save_cursor(self, label=None):
+        if label:
+            self._cursors_by_label[label] = ((self.cursor, self.shift))
+        else:
+            self._cursors.append((self.cursor, self.shift))
+
+    def restore_cursor(self, label=None):
+        try:
+            if label:
+                self.cursor, self.shift = self._cursors_by_label[label]
+            else:
+                self.cursor, self.shift = self._cursors.pop()
+        except:
+            pass
 
     def handle_pager_event(self, dtd):
         '''

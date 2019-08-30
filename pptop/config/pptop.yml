@@ -74,7 +74,6 @@ plugins:
     shortcut: KEY_F(6)
   threads:
     shortcut: KEY_F(7)
-    cursor: false
   asyncio:
     shortcut: KEY_F(8)
     config:
