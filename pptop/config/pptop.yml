@@ -83,6 +83,9 @@ plugins:
     shortcut: KEY_F(9)
     autostart: true
     cursor: false
+  malloc:
+    shortcut: KEY_F(11)
+    cursor: false
   atasker:
     shortcut: KEY_F(12)
   env:

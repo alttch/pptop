@@ -8,7 +8,7 @@ https://github.com/alttch/pptop
 __author__ = 'Altertech, https://www.altertech.com/'
 __copyright__ = 'Copyright (C) 2019 Altertech'
 __license__ = 'MIT'
-__version__ = '0.3.36'
+__version__ = '0.3.37'
 
 try:
     __doc__ = __doc__.format(version=__version__, license=__license__)
@@ -55,6 +55,8 @@ os.unsetenv('COLUMNS')
 from types import SimpleNamespace
 
 from pptop.plugin import GenericPlugin, process_path as plugin_process_path
+
+from pptop.plugin import bytes_to_iso
 
 from pptop.ui.console import init_curses, end_curses, cls
 from pptop.ui.console import resize_term, resize_handler
@@ -604,17 +606,6 @@ def get_process():
 
 def get_process_path():
     return _d.process_path
-
-
-def bytes_to_iso(i):
-    numbers = [(1000, 'k'), (1000000, 'M'), (1000000000, 'G'),
-               (1000000000000, 'T')]
-    if i < 1000:
-        return '{} B'.format(i)
-    for n in numbers:
-        if i < n[0] * 1000:
-            return '{:.1f} {}B'.format(i / n[0], n[1])
-    return '{:.1f} PB'.format(i)
 
 
 _info_col_width = {0: 15, 1: 20, 2: 14, 3: 10}

@@ -1,7 +1,7 @@
 __author__ = 'Altertech, https://www.altertech.com/'
 __copyright__ = 'Copyright (C) 2019 Altertech'
 __license__ = 'MIT'
-__version__ = '0.3.36'
+__version__ = '0.3.37'
 
 import curses
 import sys
@@ -773,7 +773,6 @@ class GenericPlugin(BackgroundIntervalWorker):
                     s = glyph.ARROW_UP
                 else:
                     s = glyph.ARROW_DOWN
-                # TODO - without str.replace
                 if header.startswith(sorting_col + ' '):
                     header = header.replace(sorting_col + ' ', s + sorting_col,
                                             1)
@@ -892,3 +891,14 @@ def format_mod_name(f):
 @lru_cache(maxsize=8192)
 def abspath(f):
     return os.path.abspath(f)
+
+
+def bytes_to_iso(i):
+    numbers = [(1000, 'k'), (1000000, 'M'), (1000000000, 'G'),
+               (1000000000000, 'T')]
+    if i < 1000:
+        return '{} B'.format(i)
+    for n in numbers:
+        if i < n[0] * 1000:
+            return '{:.1f} {}B'.format(i / n[0], n[1])
+    return '{:.1f} PB'.format(i)

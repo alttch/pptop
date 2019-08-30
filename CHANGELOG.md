@@ -23,6 +23,8 @@ First change log entry
 ### Plugins
 
 * asyncio plugin
+* atasker plugin (https://github.com/alttch/atasker)
+* malloc plugin
 * stack trace in threads
 * plugin development docs
 

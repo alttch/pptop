@@ -1,7 +1,5 @@
 from pptop.plugin import GenericPlugin, format_mod_name, abspath, palette
 
-import os
-
 from collections import OrderedDict
 
 
