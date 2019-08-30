@@ -6,7 +6,7 @@ The main idea is to inject a custom code inside Python process (already running
 or going to be launched) and analyze its behavior with no any code
 modifications.
 
-<img src="https://img.shields.io/pypi/v/pptop.svg" /> <img src="https://img.shields.io/badge/license-MIT-green" /> <img src="https://img.shields.io/badge/python-3.5%20%7C%203.6%20%7C%203.7-blue.svg" /> <img src="https://img.shields.io/badge/-alpha-red.svg" />
+<img src="https://img.shields.io/pypi/v/pptop.svg" /> <img src="https://img.shields.io/badge/license-MIT-green" /> <img src="https://img.shields.io/badge/python-3.5%20%7C%203.6%20%7C%203.7-blue.svg" /> <img src="https://img.shields.io/badge/-beta-orange.svg" />
 
 Say no to "prints" and garbage in debug logs - now you have ppTOP. A modern MRI
 scanner for Python.
