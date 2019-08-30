@@ -84,6 +84,7 @@ plugins:
     cursor: false
   malloc:
     shortcut: KEY_F(11)
+    cursor: false
   atasker:
     shortcut: KEY_F(12)
   env:
