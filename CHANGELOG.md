@@ -10,6 +10,7 @@ First change log entry
 * support for Python 2 (injection only)
 * more invisible for profiling and connected process
 * plugin re-injection
+* stdout/stderr grabber
 
 ### UI
 
