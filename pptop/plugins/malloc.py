@@ -48,8 +48,12 @@ class Plugin(GenericPlugin):
             mod = format_mod_name(s[0])
             if not mod.startswith('pptop.') and \
                     not mod.startswith('pptopcontrib-') and \
-                        mod.find('_pptop_injection') == -1:
+                        mod.find('_pptop_injection') == -1 and \
+                        not mod == 'tracemalloc' and \
+                        not mod == 'linecache' and \
+                        not mod == 'yappi':
                 d = OrderedDict()
+                d['mod'] = mod
                 d['file'] = '{}:{}'.format(abspath(
                     s[0]), s[1]) if self.current_grouping != 1 else abspath(
                         s[0])
@@ -68,11 +72,13 @@ class Plugin(GenericPlugin):
             yield z
 
     def get_table_col_color(self, element, key, value):
-        if key in ['size', 'avg']:
+        if key == 'size':
             return palette.CYAN
+        elif key == 'avg':
+            return palette.BLUE
         elif key == 'cmd':
             return palette.YELLOW
-        elif key == 'count':
+        elif key == 'count' or key == 'mod':
             return palette.BOLD
 
     async def run(self, *args, **kwargs):
