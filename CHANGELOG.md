@@ -14,7 +14,7 @@ First change log entry
 
 ### UI
 
-* 256-color palette
+* 256-color mode
 * fixed ui bugs in tmux and screen
 * key remapping in config
 * exec mode: execute single script and exit
