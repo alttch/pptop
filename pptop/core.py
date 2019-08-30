@@ -8,7 +8,7 @@ https://github.com/alttch/pptop
 __author__ = 'Altertech, https://www.altertech.com/'
 __copyright__ = 'Copyright (C) 2019 Altertech'
 __license__ = 'MIT'
-__version__ = '0.3.34'
+__version__ = '0.3.35'
 
 try:
     __doc__ = __doc__.format(version=__version__, license=__license__)
