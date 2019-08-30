@@ -24,6 +24,8 @@ palette = SimpleNamespace(DEFAULT=curses.A_NORMAL,
                           BAR_ERROR=curses.A_REVERSE | curses.A_BOLD,
                           GREY=curses.A_NORMAL,
                           GREY_BOLD=curses.A_BOLD,
+                          DARKGREY=curses.A_NORMAL,
+                          DARKGREY_BOLD=curses.A_BOLD,
                           GREEN=curses.A_NORMAL,
                           GREEN_BOLD=curses.A_BOLD,
                           OK=curses.A_BOLD,
@@ -67,6 +69,8 @@ if not term: term = ''
 
 
 def init_color_palette():
+    palette.DARKGREY = curses.color_pair(1)
+    palette.DARKGREY_BOLD = curses.color_pair(1) | curses.A_BOLD
     if term.endswith('256color'):
         palette.DEBUG = curses.color_pair(244)
         palette.WARNING = curses.color_pair(187) | curses.A_BOLD

@@ -8,7 +8,7 @@ https://github.com/alttch/pptop
 __author__ = 'Altertech, https://www.altertech.com/'
 __copyright__ = 'Copyright (C) 2019 Altertech'
 __license__ = 'MIT'
-__version__ = '0.3.35'
+__version__ = '0.3.36'
 
 try:
     __doc__ = __doc__.format(version=__version__, license=__license__)
@@ -597,8 +597,8 @@ def recalc_info_col_pos():
     pos = 0
     for i in _info_col_width:
         if i:
-            pos += _info_col_width[i - 1] + 2 #(
-                # 5 if config['display'].get('glyphs') and i == 1 else 2)
+            pos += _info_col_width[i - 1] + 2  #(
+            # 5 if config['display'].get('glyphs') and i == 1 else 2)
             _info_col_pos[i] = pos
 
 
@@ -624,8 +624,9 @@ async def show_process_info(p, **kwargs):
         if label:
             scr.infowin.addstr(label)
             if spacer:
-                scr.infowin.addstr('.' * (width - len(label) - len(val)),
-                                   palette.GREY)
+                scr.infowin.addstr(
+                    ('.' if config['display']['colors'] else ' ') *
+                    (width - len(label) - len(val)), palette.DARKGREY)
                 scr.infowin.move(row + 1, pos + width - len(val))
             else:
                 scr.infowin.addstr(' ')
@@ -671,15 +672,15 @@ async def show_process_info(p, **kwargs):
             draw_val(3, 0, 'threads', p.num_threads() - 1, palette.MAGENTA)
 
             # if config['display'].get('glyphs'):
-                # gauge = _vblks[-1] * int(cpup // 25)
-                # i = int(cpup % 25 / 25 * len(_vblks))
-                # if i:
-                    # gauge += _vblks[i - 1]
-                # x = _info_col_width[0] + 1
-                # for i, g in enumerate(gauge):
-                    # scr.stdscr.addstr(4 - i, x, g * 2,
-                                      # (palette.GREEN, palette.YELLOW,
-                                       # palette.RED, palette.RED)[i])
+            # gauge = _vblks[-1] * int(cpup // 25)
+            # i = int(cpup % 25 / 25 * len(_vblks))
+            # if i:
+            # gauge += _vblks[i - 1]
+            # x = _info_col_width[0] + 1
+            # for i, g in enumerate(gauge):
+            # scr.stdscr.addstr(4 - i, x, g * 2,
+            # (palette.GREEN, palette.YELLOW,
+            # palette.RED, palette.RED)[i])
 
             draw_val(0, 1, 'Memory uss', bytes_to_iso(memf.uss), palette.BOLD)
             draw_val(1, 1, 'pss', bytes_to_iso(memf.pss), palette.BOLD)
