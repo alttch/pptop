@@ -293,8 +293,8 @@ There are several important rules about this part:
   object is fine, but for the complex object it's better to serialize it to
   dict (use built-in object *__dict__* function or do it by yourself)
 
-* *injetion* should not perform too much module calls as it could affect
-  function profiling statistic. The best way is to implement most of the
+* *injection* should not perform too much module calls as it could affect
+  function profiling statistics. The best way is to implement most of the
   functions locally, rather than import them.
 
 * on the other hand, *injection* should not perform any heavy calculations or
