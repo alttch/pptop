@@ -28,7 +28,9 @@ class Plugin(GenericPlugin):
             mod = format_mod_name(s[1])
             if not mod.startswith('pptop.') and \
                     not mod.startswith('pptopcontrib-') and \
-                        mod.find('_pptop_injection') == -1:
+                        mod.find('_pptop_injection') == -1 and \
+                        not mod == 'tracemalloc' and \
+                        not mod == 'linecache':
                 d = OrderedDict()
                 d['function'] = '{}.{}'.format(mod, s[0])
                 d['ncall'] = s[3]
