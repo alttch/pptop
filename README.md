@@ -29,11 +29,11 @@ scanner for Python.
 
 ppTOP can be injected into any running Python process
 
-[![asciicast](https://asciinema.org/a/262581.svg)](https://asciinema.org/a/262581)
+[![asciicast](https://asciinema.org/a/265309)](https://asciinema.org/a/265309)
 
 or you can load Python program manually and profile its launch
 
-[![asciicast](https://asciinema.org/a/262585.svg)](https://asciinema.org/a/262585)
+[![asciicast](https://asciinema.org/a/265310)](https://asciinema.org/a/265310)
 
 To launch a program, press *Ctrl+L* or specify *-w sec* param in command line
 args to start it automatically after the specified delay.
@@ -104,7 +104,7 @@ functionality like a standard Python console, but supports all frequently used
 features, like importing modules, defining functions and variables,
 executing functions and loops etc.
 
-[![asciicast](https://asciinema.org/a/262587.svg)](https://asciinema.org/a/262587)
+[![asciicast](https://asciinema.org/a/265307)](https://asciinema.org/a/265307)
 
 Console has own remote *globals*, which are preserved until ppTOP quit and
 injected server is terminated.
