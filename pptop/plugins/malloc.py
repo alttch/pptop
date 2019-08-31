@@ -1,4 +1,4 @@
-from pptop.plugin import GenericPlugin, format_mod_name, palette
+from pptop.plugin import GenericPlugin, format_mod_name, not_my_mod, palette
 from pptop.plugin import abspath, bytes_to_iso
 
 from collections import OrderedDict
@@ -39,19 +39,13 @@ class Plugin(GenericPlugin):
             self.trigger(force=True)
         elif event == 'reset':
             self.injection_command(key_type='reset')
-            self.print_message('Malloc stats were reset',
-                               color=palette.WARNING)
+            self.print_message('Malloc stats were reset', color=palette.WARNING)
 
     def process_data(self, data):
         sess = []
         for s in data:
             mod = format_mod_name(s[0])
-            if not mod.startswith('pptop.') and \
-                    not mod.startswith('pptopcontrib-') and \
-                        mod.find('_pptop_injection') == -1 and \
-                        not mod == 'tracemalloc' and \
-                        not mod == 'linecache' and \
-                        not mod == 'yappi':
+            if not_my_mod(mod):
                 d = OrderedDict()
                 d['mod'] = mod
                 d['file'] = '{}:{}'.format(abspath(

@@ -862,6 +862,16 @@ class GenericPlugin(BackgroundIntervalWorker):
 
 
 @lru_cache(maxsize=8192)
+def not_my_mod(mod):
+    return not mod.startswith('pptop.') and \
+            not mod.startswith('pptopcontrib-') and \
+                mod.find('_pptop_injection') == -1 and \
+                not mod == 'tracemalloc' and \
+                not mod == 'linecache' and \
+                not mod == 'yappi'
+
+
+@lru_cache(maxsize=8192)
 def format_mod_name(f):
     '''
     Extract module name from file
