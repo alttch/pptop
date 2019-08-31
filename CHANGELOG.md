@@ -1,8 +1,8 @@
 # ppTOP CHANGELOG
 
-## 0.4 (TBA)
+## 0.5 (Aug 31 2019)
 
-First change log entry
+First public beta
 
 ### Common
 
