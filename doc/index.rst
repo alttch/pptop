@@ -11,6 +11,8 @@ The main idea is to inject a custom code inside Python process (already running
 or going to be launched) and analyze its behavior with no any code
 modifications.
 
+Project home: https://pptop.io/
+
 Source and basic guide: https://github.com/alttch/pptop
 
 .. toctree::
