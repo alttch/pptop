@@ -1,4 +1,4 @@
-__version__ = '0.5.1'
+__version__ = '0.5.2'
 
 import setuptools
 
@@ -16,7 +16,7 @@ setuptools.setup(
     description='Open, extensible Python injector/profiler/analyzer',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://github.com/alttch/pptop',
+    url='https://pptop.io/',
     packages=setuptools.find_packages(),
     license='MIT',
     scripts=['bin/pptop'],
