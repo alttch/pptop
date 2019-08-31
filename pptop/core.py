@@ -873,13 +873,6 @@ _d = SimpleNamespace(
     exec_code=None,
     output_as_json=False)
 
-_cursors = SimpleNamespace(files_cursor=0,
-                           files_shift=0,
-                           threads_cursor=0,
-                           threads_shift=0,
-                           profiler_cursor=0,
-                           profiler_shift=0)
-
 
 def sigwinch_handler(signum=None, frame=None):
     resize_handler.trigger(force=True)
