@@ -377,7 +377,7 @@ def loop(cpid, protocol, runner_mode=False):
                 exec(code, v['g'])
                 log('injection removed: {}'.format(i))
             except:
-                pass
+                log_traceback()
     try:
         server.close()
     except:
