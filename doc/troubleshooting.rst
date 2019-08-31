@@ -39,7 +39,7 @@ Plugin doesn't work in launch mode
 
 Some plugins, e.g. log viewer, inject themselves to system objects. After the
 launch, program can create new objects (e.g. own logger) and log there. Press
-Ctrl+I to re-inject plugin after the main code is started.
+Shift+J to re-inject plugin after the main code is started.
 
 Console UI is broken
 ====================
