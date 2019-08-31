@@ -8,7 +8,7 @@ https://github.com/alttch/pptop
 __author__ = 'Altertech, https://www.altertech.com/'
 __copyright__ = 'Copyright (C) 2019 Altertech'
 __license__ = 'MIT'
-__version__ = '0.5.2'
+__version__ = '0.5.3'
 
 try:
     __doc__ = __doc__.format(version=__version__, license=__license__)
@@ -593,7 +593,7 @@ def command(cmd, params=None):
         with ifoctets_lock:
             _d.ifoctets += len(data) + 8
             if _d.ifoctets > 1000000000:
-                _d.ifoctets = d.ifoctets - 1000000000
+                _d.ifoctets = _d.ifoctets - 1000000000
         if data[0] != 0:
             log('injector command error, code: {}'.format(data[0]))
             raise RuntimeError('Injector command error')
@@ -840,7 +840,7 @@ async def calc_bw(**kwargs):
         if _d.ifoctets >= _d.ifoctets_prev:
             _d.ifbw = _d.ifoctets - _d.ifoctets_prev
         else:
-            _d.ifbw = 1000000000 - d_.ifoctets_prev + _d.ifoctets
+            _d.ifbw = 1000000000 - _d.ifoctets_prev + _d.ifoctets
         _d.ifoctets_prev = _d.ifoctets
 
 
