@@ -25,6 +25,7 @@ class Plugin(GenericPlugin):
         self.description = 'Process active threads'
         self.background_loader = True
         self.thread_stack_info = None
+        self.selectable = True
 
     def load_remote_data(self):
         if self.thread_stack_info is None:
