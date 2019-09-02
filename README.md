@@ -120,7 +120,7 @@ console mode, by pressing *Ctrl+O*.
 ## Documentation
 
 Configuration, troubleshooting, advanced usage, plugin development:
-https://pptop.readthedocs.io/
+https://pptop.io/doc/
 
 ## TODO
 
