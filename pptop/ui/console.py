@@ -69,9 +69,9 @@ if not term: term = ''
 
 
 def init_color_palette():
-    palette.DARKGREY = curses.color_pair(1)
-    palette.DARKGREY_BOLD = curses.color_pair(1) | curses.A_BOLD
     if term.endswith('256color'):
+        palette.DARKGREY = curses.color_pair(238)
+        palette.DARKGREY_BOLD = curses.color_pair(238) | curses.A_BOLD
         palette.DEBUG = curses.color_pair(244)
         palette.WARNING = curses.color_pair(187) | curses.A_BOLD
         palette.ERROR = curses.color_pair(198) | curses.A_BOLD
@@ -100,6 +100,8 @@ def init_color_palette():
         palette.WHITE_BOLD = curses.color_pair(231) | curses.A_BOLD
         palette.PROMPT = curses.color_pair(76) | curses.A_BOLD
     else:
+        palette.DARKGREY = curses.color_pair(1)
+        palette.DARKGREY_BOLD = curses.color_pair(1) | curses.A_BOLD
         palette.DEBUG = curses.color_pair(1) | curses.A_BOLD
         palette.WARNING = curses.color_pair(4) | curses.A_BOLD
         palette.ERROR = curses.color_pair(2) | curses.A_BOLD
