@@ -68,6 +68,7 @@ class Plugin(GenericPlugin):
                 self.sorting_enabled = False
                 self.selectable = False
                 self.disable_cursor()
+                self.hshift = 0
                 self.thread_stack_info = (row['ident'], row['name'])
         elif event == 'back':
             self.sorting_enabled = True

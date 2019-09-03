@@ -1,7 +1,7 @@
 __author__ = 'Altertech, https://www.altertech.com/'
 __copyright__ = 'Copyright (C) 2019 Altertech'
 __license__ = 'MIT'
-__version__ = '0.5.8'
+__version__ = '0.5.9'
 
 import curses
 import sys
@@ -159,16 +159,18 @@ class GenericPlugin(BackgroundIntervalWorker):
 
     def save_cursor(self, label=None):
         if label:
-            self._cursors_by_label[label] = ((self.cursor, self.shift))
+            self._cursors_by_label[label] = ((self.cursor, self.shift,
+                                              self.hshift))
         else:
-            self._cursors.append((self.cursor, self.shift))
+            self._cursors.append((self.cursor, self.shift, self.hshift))
 
     def restore_cursor(self, label=None):
         try:
             if label:
-                self.cursor, self.shift = self._cursors_by_label[label]
+                self.cursor, self.shift, self.hshift = self._cursors_by_label[
+                    label]
             else:
-                self.cursor, self.shift = self._cursors.pop()
+                self.cursor, self.shift, self.hshift = self._cursors.pop()
         except:
             pass
 
