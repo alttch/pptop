@@ -2,7 +2,7 @@
 
 Project home: https://pptop.io/
 
-<img src="https://github.com/alttch/pptop/blob/master/doc/images/pptop.png?raw=true" align="right" width="200" /> ppTOP is open, extensible Python injector/profiler/analyzer.
+<img src="https://github.com/alttch/pptop/blob/master/media/logo.png?raw=true" align="right" width="200" /> ppTOP is open, extensible Python injector/profiler/analyzer.
 
 The main idea is to inject a custom code inside Python process (already running
 or going to be launched) and analyze its behavior with no any code
@@ -25,7 +25,7 @@ scanner for Python.
   all Linux distributions)
 * Only Linux systems are currently supported
 
-<img src="https://github.com/alttch/pptop/blob/master/vid/pptop.gif?raw=true" width="750" />
+<img src="https://github.com/alttch/pptop/blob/master/media/demo.gif?raw=true" width="750" />
 
 ## Features
 
