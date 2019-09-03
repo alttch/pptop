@@ -68,8 +68,9 @@ term = os.getenv('TERM')
 if not term: term = ''
 
 
-def init_color_palette():
-    if term.endswith('256color'):
+def init_color_palette(force256=False):
+    if term.endswith('256color') or force256:
+        log('initializing terminal palette with 256 colors')
         palette.DARKGREY = curses.color_pair(238)
         palette.DARKGREY_BOLD = curses.color_pair(238) | curses.A_BOLD
         palette.DEBUG = curses.color_pair(244)
@@ -100,6 +101,7 @@ def init_color_palette():
         palette.WHITE_BOLD = curses.color_pair(231) | curses.A_BOLD
         palette.PROMPT = curses.color_pair(76) | curses.A_BOLD
     else:
+        log('initializing terminal palette with 16 colors')
         palette.DARKGREY = curses.color_pair(1)
         palette.DARKGREY_BOLD = curses.color_pair(1) | curses.A_BOLD
         palette.DEBUG = curses.color_pair(1) | curses.A_BOLD
@@ -164,7 +166,7 @@ def init_curses(initial=False,
                     curses.use_default_colors()
                     for i in range(0, curses.COLORS):
                         curses.init_pair(i + 1, i, -1)
-                    init_color_palette()
+                    init_color_palette(force256=colors == 256)
             if glyphs:
                 init_glyphs()
         curses.noecho()

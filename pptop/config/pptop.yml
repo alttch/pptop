@@ -2,7 +2,7 @@ inject-method: native
 console:
   json-mode: true
 display:
-  colors: true
+  colors: true # 256 - force 256 colors
   glyphs: true
 keys:
   filter:
