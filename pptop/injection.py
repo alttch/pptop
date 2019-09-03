@@ -330,7 +330,7 @@ def loop(cpid, protocol, runner_mode=False):
                                     log('injection removed: {}'.format(
                                         injection_id))
                                 except:
-                                    pass
+                                    log_traceback()
                         injections[injection_id] = {
                             'g': {
                                 'g': SimpleNamespace(),
