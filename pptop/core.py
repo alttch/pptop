@@ -2,13 +2,13 @@
 ppTOP v{version} (c) Altertech
 The product is available under {license} license.
 
-https://github.com/alttch/pptop
+https://pptop.io/
 '''
 
 __author__ = 'Altertech, https://www.altertech.com/'
 __copyright__ = 'Copyright (C) 2019 Altertech'
 __license__ = 'MIT'
-__version__ = '0.5.9'
+__version__ = '0.5.10'
 
 try:
     __doc__ = __doc__.format(version=__version__, license=__license__)
