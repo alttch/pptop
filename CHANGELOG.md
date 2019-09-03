@@ -1,5 +1,9 @@
 # ppTOP CHANGELOG
 
+## 0.6 (TBA)
+
+* force 256-color mode
+
 ## 0.5 (Aug 31 2019)
 
 First public beta
