@@ -85,7 +85,7 @@ Plugins and keyboard shortcuts are configured by default in
 ## Standard plugins
 
 * **asyncio** asyncio loop monitor
-* **atasker** atasker monitor (https://github.com/alttch/atasker)
+* **atasker** [atasker](https://github.com/alttch/atasker) monitor
 * **env** view process OS environment variables
 * **log** inject into all Python loggers and collect log messages
 * **malloc** trace object memory allocations
