@@ -835,7 +835,7 @@ class GenericPlugin(BackgroundIntervalWorker):
 
     def render_table_col(self, raw, color, element, key, value):
         '''
-        Render table column if custom colors uses
+        Render table column if custom colors are used
         '''
         self.window.addstr(raw, color if color else curses.A_NORMAL)
 
