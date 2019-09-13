@@ -8,7 +8,7 @@ https://pptop.io/
 __author__ = 'Altertech, https://www.altertech.com/'
 __copyright__ = 'Copyright (C) 2019 Altertech'
 __license__ = 'MIT'
-__version__ = '0.5.10'
+__version__ = '0.5.11'
 
 try:
     __doc__ = __doc__.format(version=__version__, license=__license__)
@@ -920,7 +920,7 @@ def inject_server(gdb, p):
     pid = p.pid
     libpath = os.path.abspath(os.path.dirname(__file__) + '/..')
     if _d.inject_method in ['native', 'loadcffi']:
-        cmds.append('call (void)__libc_dlopen_mode("{}", 2)'.format(
+        cmds.append('call (void)dlopen("{}", 2)'.format(
             _d.inject_lib))
     if _d.inject_method == 'native':
         cmds.append('call (int)__pptop_start_injection("{}",{},{},"{}")'.format(
