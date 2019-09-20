@@ -8,7 +8,7 @@ https://pptop.io/
 __author__ = 'Altertech, https://www.altertech.com/'
 __copyright__ = 'Copyright (C) 2019 Altertech'
 __license__ = 'MIT'
-__version__ = '0.5.11'
+__version__ = '0.5.13'
 
 try:
     __doc__ = __doc__.format(version=__version__, license=__license__)
@@ -39,7 +39,7 @@ import collections
 import readline
 import textwrap
 
-import termcolor
+import neotermcolor as termcolor
 
 from collections import OrderedDict
 from functools import partial
@@ -313,7 +313,7 @@ def dict_merge(dct, merge_dct, add_keys=True):
 
 def colored(text, color=None, on_color=None, attrs=None):
     try:
-        if not config['display'].get('colors') or not sys.stdout.isatty():
+        if not config['display'].get('colors'):
             return str(text)
         else:
             return termcolor.colored(str(text),

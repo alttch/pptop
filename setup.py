@@ -1,4 +1,4 @@
-__version__ = '0.5.11'
+__version__ = '0.5.13'
 
 import setuptools
 
@@ -24,7 +24,7 @@ setuptools.setup(
     ext_modules=[pptop_injector],
     install_requires=[
         'wheel', 'unipath', 'psutil', 'rapidtables', 'atasker>=0.3.28',
-        'pyyaml', 'yappi', 'termcolor', 'pygments'
+        'pyyaml', 'yappi', 'neotermcolor', 'pygments'
     ],
     classifiers=('Programming Language :: Python :: 3',
                  'License :: OSI Approved :: MIT License',
