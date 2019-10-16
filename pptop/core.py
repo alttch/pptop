@@ -920,8 +920,7 @@ def inject_server(gdb, p):
     pid = p.pid
     libpath = os.path.abspath(os.path.dirname(__file__) + '/..')
     if _d.inject_method in ['native', 'loadcffi']:
-        cmds.append('call (void)dlopen("{}", 2)'.format(
-            _d.inject_lib))
+        cmds.append('call (void)dlopen("{}", 2)'.format(_d.inject_lib))
     if _d.inject_method == 'native':
         cmds.append('call (int)__pptop_start_injection("{}",{},{},"{}")'.format(
             libpath, os.getpid(), _d.protocol,
@@ -1528,8 +1527,8 @@ def start():
                 _d.gdb = a.gdb
             else:
                 _d.gdb = shutil.which('gdb')
-            if not os.path.isfile(_d.gdb):
-                raise RuntimeError('gdb not found, please specify')
+            if not _d.gdb or not os.path.isfile(_d.gdb):
+                raise RuntimeError('gdb not found')
             # check yama ptrace scope
             try:
                 with open('/proc/sys/kernel/yama/ptrace_scope') as fd:
