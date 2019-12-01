@@ -44,6 +44,10 @@ import neotermcolor as termcolor
 from collections import OrderedDict
 from functools import partial
 
+from pyaltt2.converters import merge_dict
+from pyaltt2.parsers import val_to_boolean
+from pyaltt2.json import jprint
+
 try:
     yaml.warnings({'YAMLLoadWarning': False})
 except:
@@ -176,15 +180,6 @@ def apply_interval(plugin):
         return
 
 
-def val_to_boolean(s):
-    if isinstance(s, bool): return s
-    if s is None: return None
-    val = str(s)
-    if val.lower() in ['1', 'true', 'yes', 'on', 'y']: return True
-    if val.lower() in ['0', 'false', 'no', 'off', 'n']: return False
-    return None
-
-
 def wait_key():
     result = None
     import termios
@@ -291,26 +286,6 @@ def get_key_event(k):
     return event
 
 
-def dict_merge(dct, merge_dct, add_keys=True):
-    dct = dct.copy()
-    if not add_keys:
-        merge_dct = {
-            k: merge_dct[k] for k in set(dct).intersection(set(merge_dct))
-        }
-
-    for k, v in merge_dct.items():
-        if isinstance(dct.get(k), dict) and isinstance(v, collections.Mapping):
-            dct[k] = dict_merge(dct[k], v, add_keys=add_keys)
-        else:
-            if v is None:
-                if not k in dct:
-                    dct[k] = None
-            else:
-                dct[k] = v
-
-    return dct
-
-
 def colored(text, color=None, on_color=None, attrs=None):
     try:
         if not config['display'].get('colors'):
@@ -334,17 +309,8 @@ def format_cmdline(p, injected):
     return cmdline
 
 
-def format_json(obj):
-    import json
-    return json.dumps(obj, indent=4, sort_keys=True)
-
-
 def print_json(obj):
-    j = format_json(obj)
-    if config['display'].get('colors') and sys.stdout.isatty():
-        from pygments import highlight, lexers, formatters
-        j = highlight(j, lexers.JsonLexer(), formatters.TerminalFormatter())
-    print(j)
+    jprint(obj, colored=config['display'].get('colors'))
 
 
 def cli_mode():
@@ -1398,7 +1364,7 @@ def start():
             format_plugin_option(plugin_options, o, v)
 
         if plugin_options:
-            config.update(dict_merge(config, {'plugins': plugin_options}))
+            config.update(merge_dict(config, {'plugins': plugin_options}))
 
         log('loading plugins')
 
