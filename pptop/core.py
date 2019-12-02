@@ -8,7 +8,7 @@ https://pptop.io/
 __author__ = 'Altertech, https://www.altertech.com/'
 __copyright__ = 'Copyright (C) 2019 Altertech'
 __license__ = 'MIT'
-__version__ = '0.5.14'
+__version__ = '0.5.15'
 
 try:
     __doc__ = __doc__.format(version=__version__, license=__license__)
@@ -44,8 +44,7 @@ import neotermcolor as termcolor
 from collections import OrderedDict
 from functools import partial
 
-from pyaltt2.converters import merge_dict
-from pyaltt2.parsers import val_to_boolean
+from pyaltt2.converters import merge_dict, val_to_boolean
 from pyaltt2.json import jprint
 
 try:
