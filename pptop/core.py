@@ -952,7 +952,7 @@ def switch_plugin(new_plugin):
 def run():
 
     @atasker.background_task
-    async def autostart_plugins():
+    def autostart_plugins():
         for plugin in plugins_autostart:
             if plugin['p'] is not _d.current_plugin.get('p'):
                 log('autostarting {}'.format(plugin['m']))
