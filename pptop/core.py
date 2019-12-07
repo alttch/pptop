@@ -329,6 +329,7 @@ def cli_mode():
         except IndexError:
             return None
 
+    log('cli mode started')
     if _d.cli_first_time:
         # os.system('clear')
         print(
@@ -411,6 +412,7 @@ def cli_mode():
                 log_traceback()
                 print(err(e))
     finally:
+        log('cli mode completed')
         try:
             readline.write_history_file('{}/console.history'.format(
                 _d.pptop_dir))
