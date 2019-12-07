@@ -70,7 +70,7 @@ class Plugin(GenericPlugin):
         if var in ['i', 'e']:
             if value != prev_value or var == 'i':
                 if self.add_variable(value):
-                    self.trigger(force=True)
+                    self.trigger_threadsafe(force=True)
                     if var == 'e' and value != prev_value:
                         self.key_event = 'delete'
                     self.inputs[var] = None
@@ -128,7 +128,7 @@ class Plugin(GenericPlugin):
             el = self.get_selected_row()
             if el:
                 self.add_variable(el['name'])
-                self.trigger(force=True)
+                self.trigger_threadsafe(force=True)
         elif event == 'reset':
             self.injection_command(cmd='clear')
             self.print_message('Variable list cleared', color=palette.WARNING)

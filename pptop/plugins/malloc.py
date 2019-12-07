@@ -36,7 +36,7 @@ class Plugin(GenericPlugin):
                 self.current_grouping = 0
             self.set_title()
             self.resume()
-            self.trigger(force=True)
+            self.trigger_threadsafe(force=True)
         elif event == 'reset':
             self.injection_command(key_type='reset')
             self.print_message('Malloc stats were reset', color=palette.WARNING)

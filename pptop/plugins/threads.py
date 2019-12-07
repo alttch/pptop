@@ -79,7 +79,7 @@ class Plugin(GenericPlugin):
         else:
             return
         self.resume()
-        self.trigger(force=True)
+        self.trigger_threadsafe(force=True)
 
     def handle_pager_event(self, dtd):
         if self.key_event != 'back':

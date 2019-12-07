@@ -95,7 +95,7 @@ class Plugin(GenericPlugin):
             self.sorting_col, self.sorting_rev = self.mode_sorting.get(
                 self.mode, (None, False))
             self.resume()
-            self.trigger(force=True)
+            self.trigger_threadsafe(force=True)
 
     def handle_pager_event(self, dtd):
         if self.key_event not in self.mode_shortcuts:

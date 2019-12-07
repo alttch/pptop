@@ -8,7 +8,7 @@ https://pptop.io/
 __author__ = 'Altertech, https://www.altertech.com/'
 __copyright__ = 'Copyright (C) 2019 Altertech'
 __license__ = 'MIT'
-__version__ = '0.5.19'
+__version__ = '0.5.20'
 
 try:
     __doc__ = __doc__.format(version=__version__, license=__license__)
@@ -132,7 +132,7 @@ socket_buf = 8192
 
 def after_resize():
     _d.current_plugin['p'].resize()
-    show_process_info.trigger(force=True)
+    show_process_info.trigger_threadsafe(force=True)
 
 
 def get_plugins():
@@ -154,7 +154,7 @@ def get_child_info():
 def apply_filter(plugin):
     with scr.lock:
         plugin.filter = prompt(ps='f: ', value=plugin.filter).lower()
-        plugin.trigger()
+        plugin.trigger_threadsafe()
 
 
 def apply_interval(plugin):
@@ -490,7 +490,7 @@ def select_process():
             except KeyboardInterrupt:
                 return
             except curses.error:
-                resize_handler.trigger(force=True)
+                resize_handler.trigger_threadsafe(force=True)
                 continue
             if event == 'back':
                 selector.stop(wait=False)
@@ -509,7 +509,7 @@ def select_process():
                 with scr.lock:
                     selector.key_code = k
                     selector.key_event = event
-                    selector.trigger()
+                    selector.trigger_threadsafe()
         except:
             log_traceback()
             raise
@@ -841,7 +841,7 @@ _d = SimpleNamespace(
 
 
 def sigwinch_handler(signum=None, frame=None):
-    resize_handler.trigger(force=True)
+    resize_handler.trigger_threadsafe(force=True)
 
 
 def find_lib(name):
@@ -1067,7 +1067,7 @@ def run():
                 except KeyboardInterrupt:
                     return
                 except curses.error:
-                    resize_handler.trigger(force=True)
+                    resize_handler.trigger_threadsafe(force=True)
                     continue
                 if show_process_info.is_stopped():
                     return
@@ -1152,7 +1152,7 @@ def run():
                     with scr.lock:
                         _d.current_plugin['p'].key_code = k
                         _d.current_plugin['p'].key_event = event
-                        _d.current_plugin['p'].trigger()
+                        _d.current_plugin['p'].trigger_threadsafe()
             except:
                 log_traceback()
                 return

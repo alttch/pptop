@@ -69,7 +69,7 @@ class Plugin(GenericPlugin):
             return
         if var == 'i':
             if self.add_loop(value):
-                self.trigger(force=True)
+                self.trigger_threadsafe(force=True)
                 self.inputs[var] = None
         elif var == 'o':
             try:
