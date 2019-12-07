@@ -414,5 +414,6 @@ def injection(cmd=None):
             result.append(
                 (task_id, task.priority, task.status, str(task.task),
                  task.time_queued, task.time_started, task.tt, wname, wc))
-    return g.task_supervisor.get_info(tt=False, aloops=False,
-                                      schedulers=False).__dict__, result
+    return g.task_supervisor.get_info(
+        tt=False, aloops=False, schedulers=False,
+        async_job_schedulers=False).__dict__, result
