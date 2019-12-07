@@ -71,8 +71,8 @@ from pptop.logger import config as log_config, log, log_traceback, init_logging
 from pptop.exceptions import CriticalException
 
 logging.getLogger('asyncio').setLevel(logging.CRITICAL)
-logging.getLogger('atasker/supervisor').setLevel(100)
-logging.getLogger('atasker/workers').setLevel(100)
+logging.getLogger('atasker').setLevel(100)
+logging.getLogger('atasker').setLevel(100)
 
 dir_me = os.path.dirname(os.path.realpath(__file__))
 
@@ -1530,5 +1530,5 @@ def start():
             client.close()
         except:
             pass
-        atasker.task_supervisor.stop(wait=False)
+        atasker.task_supervisor.stop(wait=False, cancel_tasks=True)
     return 0
