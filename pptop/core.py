@@ -72,7 +72,6 @@ from pptop.exceptions import CriticalException
 
 logging.getLogger('asyncio').setLevel(logging.CRITICAL)
 logging.getLogger('atasker').setLevel(100)
-logging.getLogger('atasker').setLevel(100)
 
 dir_me = os.path.dirname(os.path.realpath(__file__))
 
