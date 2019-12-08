@@ -1446,8 +1446,8 @@ def start():
                     if 'filter' in v:
                         p.filter = str(v['filter'])
                     if 'cursor' in v:
-                        p._cursor_enabled_by_user = v['cursor']
-                    if v.get('autostart'):
+                        p._cursor_enabled_by_user = val_to_boolean(v['cursor'])
+                    if val_to_boolean(v.get('autostart')):
                         plugins_autostart.append(plugin)
                 except Exception as e:
                     raise RuntimeError('plugin {}: {}'.format(i, e))
