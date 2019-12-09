@@ -130,6 +130,12 @@ injection_timeout = 3
 socket_buf = 8192
 
 
+class ppLoghandler(logging.Handler):
+
+    def emit(self, record):
+        log(super().format(record))
+
+
 def after_resize():
     _d.current_plugin['p'].resize()
     show_process_info.trigger_threadsafe(force=True)
@@ -1261,10 +1267,10 @@ def start():
         log_config.fname = a.log
         log_config.name = 'client:{}'.format(os.getpid())
         logging.getLogger('asyncio').setLevel(logging.DEBUG)
-        logging.getLogger('atasker/supervisor').setLevel(logging.DEBUG)
-        logging.getLogger('atasker/workers').setLevel(logging.DEBUG)
+        logging.getLogger('atasker').setLevel(logging.DEBUG)
         logging.basicConfig(level=logging.DEBUG)
         le = logging.getLogger()
+        le.addHandler(ppLoghandler())
         list(map(le.removeHandler, le.handlers))
         from atasker import set_debug
         set_debug()
@@ -1454,9 +1460,7 @@ def start():
         except:
             log_traceback()
             raise
-    atasker.task_supervisor.set_thread_pool(pool_size=100,
-                                            reserve_normal=100,
-                                            reserve_high=50)
+    atasker.task_supervisor.set_thread_pool(pool_size=0)
     atasker.task_supervisor.daemon = True
     atasker.task_supervisor.start()
     atasker.task_supervisor.create_aloop('pptop', default=True, daemon=True)
