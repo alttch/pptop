@@ -589,7 +589,7 @@ def recalc_info_col_pos():
             _info_col_pos[i] = pos
 
 
-@atasker.background_worker(delay=1, daemon=True)
+@atasker.background_worker(delay=1)
 async def show_process_info(p, **kwargs):
 
     def error(txt):
@@ -720,7 +720,7 @@ async def show_process_info(p, **kwargs):
         return error(e)
 
 
-@atasker.background_worker(delay=0.1, daemon=True)
+@atasker.background_worker(delay=0.1)
 async def show_bottom_bar(**kwargs):
     try:
         with scr.lock:
@@ -768,7 +768,7 @@ async def show_bottom_bar(**kwargs):
 
 
 # don't make this async, it should always work in own thread
-@atasker.background_worker(daemon=True)
+@atasker.background_worker
 def update_status(**kwargs):
     try:
         _d.status = command('.status')
@@ -779,7 +779,7 @@ def update_status(**kwargs):
         time.sleep(1)
 
 
-@atasker.background_worker(daemon=True)
+@atasker.background_worker
 def grab_stdout(**kwargs):
     try:
         result = command('.gs')
@@ -791,7 +791,7 @@ def grab_stdout(**kwargs):
         time.sleep(0.5)
 
 
-@atasker.background_worker(daemon=True)
+@atasker.background_worker
 def print_stdout(**kwargs):
     with stdout_buf_lock:
         if _d.stdout_buf != '':
@@ -800,7 +800,7 @@ def print_stdout(**kwargs):
     time.sleep(0.1)
 
 
-@atasker.background_worker(interval=1, daemon=True)
+@atasker.background_worker(interval=1)
 async def calc_bw(**kwargs):
     with ifoctets_lock:
         if _d.ifoctets >= _d.ifoctets_prev:

@@ -273,7 +273,7 @@ def after_resize():
     pass
 
 
-@atasker.background_worker(event=True, daemon=True)
+@atasker.background_worker(event=True)
 def resize_handler(**kwargs):
     log('resize event')
     with scr.lock:
