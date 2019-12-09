@@ -8,7 +8,7 @@ https://pptop.io/
 __author__ = 'Altertech, https://www.altertech.com/'
 __copyright__ = 'Copyright (C) 2019 Altertech'
 __license__ = 'MIT'
-__version__ = '0.5.25'
+__version__ = '0.5.26'
 
 try:
     __doc__ = __doc__.format(version=__version__, license=__license__)
