@@ -24,7 +24,8 @@ setuptools.setup(
     ext_modules=[pptop_injector],
     install_requires=[
         'wheel', 'unipath', 'psutil', 'rapidtables', 'atasker>=0.6.4',
-        'pyyaml', 'yappi', 'neotermcolor', 'pygments', 'pyaltt2>=0.0.10'
+        'jsonpickle', 'pyyaml', 'yappi', 'neotermcolor', 'pygments',
+        'pyaltt2>=0.0.10'
     ],
     classifiers=('Programming Language :: Python :: 3',
                  'License :: OSI Approved :: MIT License',
