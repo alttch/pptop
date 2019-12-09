@@ -411,9 +411,13 @@ def injection(cmd=None):
             else:
                 wc = None
                 wname = None
+            try:
+                target = str(task.target)
+            except:
+                target = str(task.task)
             result.append(
-                (task_id, task.priority, task.status, str(task.task),
-                 task.time_queued, task.time_started, task.tt, wname, wc))
+                (task_id, task.priority, task.status, target, task.time_queued,
+                 task.time_started, task.tt, wname, wc))
     return g.task_supervisor.get_info(
         tt=False, aloops=False, schedulers=False,
         async_job_schedulers=False).__dict__, result
