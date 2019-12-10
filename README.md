@@ -89,6 +89,7 @@ Plugins and keyboard shortcuts are configured by default in
 * **env** view process OS environment variables
 * **log** inject into all Python loggers and collect log messages
 * **malloc** trace object memory allocations
+* **neotasker** [neotasker](https://github.com/alttch/neotasker) monitor
 * **open_files** view process open files
 * **script_runner** launch a custom scripts inside process
 * **threads** view process threads
