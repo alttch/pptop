@@ -8,7 +8,7 @@ from collections import OrderedDict
 
 class Plugin(GenericPlugin):
     '''
-    atasker plugin: monitor atasker supervisor (alpha)
+    atasker plugin: monitor atasker supervisor
 
     config.task_supervisor: task supervisor object (default:
     atasker::task_supervisor)
