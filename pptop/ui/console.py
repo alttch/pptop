@@ -1,7 +1,7 @@
 import os
 import shutil
 import curses
-import atasker
+import neotasker
 import threading
 
 from types import SimpleNamespace
@@ -273,7 +273,7 @@ def after_resize():
     pass
 
 
-@atasker.background_worker(event=True)
+@neotasker.background_worker(event=True, loop='service')
 def resize_handler(**kwargs):
     log('resize event')
     with scr.lock:

@@ -1,6 +1,6 @@
 from pptop.plugin import GenericPlugin
 from pptop.ui.console import scr
-from atasker import background_task
+from neotasker import spawn
 import pptop.core as core
 import textwrap
 import rapidtables
@@ -47,7 +47,7 @@ class Plugin(GenericPlugin):
 
     def handle_key_event(self, event, key, dtd):
         if event == 'back' and self._previous_plugin:
-            background_task(self.switch_plugin)(self._previous_plugin)
+            spawn(self.switch_plugin, self._previous_plugin)
 
     async def run(self, *args, **kwargs):
         super().run(*args, **kwargs)

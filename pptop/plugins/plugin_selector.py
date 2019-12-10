@@ -2,7 +2,7 @@ from pptop.plugin import GenericPlugin, palette
 
 from pptop.core import format_shortcut
 
-from atasker import background_task
+from neotasker import spawn
 from collections import OrderedDict
 
 
@@ -38,7 +38,7 @@ class Plugin(GenericPlugin):
         if event == 'select':
             row = self.get_selected_row()
             if row:
-                background_task(self.switch_plugin)(self.get_plugin(
+                spawn(self.switch_plugin, self.get_plugin(
                     self.get_selected_row()['id']))
 
     def get_table_col_color(self, element, key, value):
