@@ -3,6 +3,7 @@
 ## 0.6 (TBA)
 
 * force 256-color mode
+* migrate concurrent to **neotasker**
 
 ## 0.5 (Aug 31 2019)
 
