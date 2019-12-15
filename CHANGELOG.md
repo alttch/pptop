@@ -1,8 +1,7 @@
 # ppTOP CHANGELOG
 
-## 0.6 (TBA)
+## 0.6 (Dec 15 2019)
 
-* force 256-color mode
 * migrate concurrent to **neotasker**
 
 ## 0.5 (Aug 31 2019)
