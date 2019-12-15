@@ -34,7 +34,10 @@ class Plugin(GenericPlugin):
                 d['nacall'] = s[4]
                 d['ttot'] = s[6]
                 d['tsub'] = s[7]
-                d['tavg'] = s[11]
+                try:
+                    d['tavg'] = s[13]
+                except:
+                    d['tavg'] = s[11]
                 d['file'] = '{}:{}'.format(abspath(s[1]), s[2])
                 d['builtin'] = 'builtin' if s[5] else ''
                 sess.append(d)
