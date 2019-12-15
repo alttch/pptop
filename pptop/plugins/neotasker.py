@@ -230,7 +230,7 @@ def injection(cmd=None):
                             pfx = ''
                         if not w._is_worker:
                             raise ValueError
-                        n = w.name
+                        n = w._name
                         worker = pfx + (n[19:] if n.startswith(
                             '_background_worker_') else n)
                     except:
