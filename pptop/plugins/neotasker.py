@@ -95,7 +95,7 @@ class Plugin(GenericPlugin):
                     v['aloop'] = d[5]
                 else:
                     v['aloop'] = ''
-                v['executor'] = d[6]
+                v['ttype'] = d[6]
             result.append(v)
         return result
 
@@ -105,7 +105,7 @@ class Plugin(GenericPlugin):
                 yield d
             elif self.mode == 'workers':
                 z = d.copy()
-                z['executor'] = self.task_types.get(z['executor'])
+                z['ttype'] = self.task_types.get(z['ttype'])
                 if z.get('int') == 0:
                     z['int'] = ''
                 else:
@@ -157,7 +157,7 @@ class Plugin(GenericPlugin):
                     return palette.GREY_BOLD
                 else:
                     return
-            elif key == 'executor':
+            elif key == 'ttype':
                 if value == 'CORO':
                     return palette.GREEN
                 elif value == 'THREAD':
@@ -271,7 +271,7 @@ def injection(cmd=None):
                 interval = 0
                 iflags = None
             try:
-                etype = 0 if worker._executor_is_async else 1
+                etype = 0 if worker._target_is_async else 1
             except:
                 etype = None
             try:
@@ -280,7 +280,7 @@ def injection(cmd=None):
                 elif worker.aloop:
                     aloop = worker.aloop.name
                 else:
-                    aloop = '<' + worker.executor_loop.__class__.__name__ + '>'
+                    aloop = '<' + worker.worker_loop.__class__.__name__ + '>'
             except:
                 aloop = None
             result.append((name, wc, active, interval, iflags, aloop, etype))
