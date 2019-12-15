@@ -17,7 +17,7 @@ except:
 
 import sys
 import curses
-import atasker
+import neotasker
 import socket
 import struct
 import yaml
@@ -71,7 +71,7 @@ from pptop.logger import config as log_config, log, log_traceback, init_logging
 from pptop.exceptions import CriticalException
 
 logging.getLogger('asyncio').setLevel(logging.CRITICAL)
-logging.getLogger('atasker').setLevel(100)
+logging.getLogger('neotasker').setLevel(100)
 
 dir_me = os.path.dirname(os.path.realpath(__file__))
 
@@ -595,7 +595,7 @@ def recalc_info_col_pos():
             _info_col_pos[i] = pos
 
 
-@atasker.background_worker(delay=1)
+@neotasker.background_worker(delay=1)
 async def show_process_info(p, **kwargs):
 
     def error(txt):
@@ -726,7 +726,7 @@ async def show_process_info(p, **kwargs):
         return error(e)
 
 
-@atasker.background_worker(delay=0.1)
+@neotasker.background_worker(delay=0.1)
 async def show_bottom_bar(**kwargs):
     try:
         with scr.lock:
@@ -774,7 +774,7 @@ async def show_bottom_bar(**kwargs):
 
 
 # don't make this async, it should always work in own thread
-@atasker.background_worker
+@neotasker.background_worker
 def update_status(**kwargs):
     try:
         _d.status = command('.status')
@@ -785,7 +785,7 @@ def update_status(**kwargs):
         time.sleep(1)
 
 
-@atasker.background_worker
+@neotasker.background_worker
 def grab_stdout(**kwargs):
     try:
         result = command('.gs')
@@ -797,7 +797,7 @@ def grab_stdout(**kwargs):
         time.sleep(0.5)
 
 
-@atasker.background_worker
+@neotasker.background_worker
 def print_stdout(**kwargs):
     with stdout_buf_lock:
         if _d.stdout_buf != '':
@@ -806,7 +806,7 @@ def print_stdout(**kwargs):
     time.sleep(0.1)
 
 
-@atasker.background_worker(interval=1)
+@neotasker.background_worker(interval=1)
 async def calc_bw(**kwargs):
     with ifoctets_lock:
         if _d.ifoctets >= _d.ifoctets_prev:
@@ -958,7 +958,6 @@ def switch_plugin(new_plugin):
 
 def run():
 
-    @atasker.background_task
     def autostart_plugins():
         for plugin in plugins_autostart:
             if plugin['p'] is not _d.current_plugin.get('p'):
@@ -1063,7 +1062,7 @@ def run():
         recalc_info_col_pos()
         show_process_info.start(p=p)
         show_bottom_bar.start()
-        autostart_plugins()
+        neotasker.spawn(autostart_plugins)
         log('main loop started')
         while True:
             try:
@@ -1267,13 +1266,12 @@ def start():
         log_config.fname = a.log
         log_config.name = 'client:{}'.format(os.getpid())
         logging.getLogger('asyncio').setLevel(logging.DEBUG)
-        logging.getLogger('atasker').setLevel(logging.DEBUG)
+        logging.getLogger('neotasker').setLevel(logging.DEBUG)
         logging.basicConfig(level=logging.DEBUG)
         le = logging.getLogger()
         le.addHandler(ppLoghandler())
         list(map(le.removeHandler, le.handlers))
-        from atasker import set_debug
-        set_debug()
+        neotasker.set_debug(True)
         init_logging()
 
     if a.version:
@@ -1460,10 +1458,9 @@ def start():
         except:
             log_traceback()
             raise
-    atasker.task_supervisor.set_thread_pool(pool_size=0)
-    atasker.task_supervisor.daemon = True
-    atasker.task_supervisor.start()
-    atasker.task_supervisor.create_aloop('pptop', default=True, daemon=True)
+    neotasker.task_supervisor.start()
+    neotasker.task_supervisor.create_aloop('pptop', default=True, daemon=True)
+    neotasker.task_supervisor.create_aloop('service', daemon=True)
     try:
         if a.file and not _d.work_pid:
             # launch file
@@ -1533,5 +1530,5 @@ def start():
             client.close()
         except:
             pass
-        atasker.task_supervisor.stop(wait=False, cancel_tasks=True)
+        neotasker.task_supervisor.stop(wait=False, cancel_tasks=True)
     return 0

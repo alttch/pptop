@@ -15,8 +15,8 @@ from types import SimpleNamespace
 from collections import OrderedDict
 from functools import lru_cache
 
-from atasker import BackgroundIntervalWorker
-from atasker import background_task
+from neotasker import BackgroundIntervalWorker
+from neotasker import spawn
 
 from pptop.logger import log, log_traceback
 
@@ -628,7 +628,7 @@ class GenericPlugin(BackgroundIntervalWorker):
                ) and not self._paused and not self._loader_active:
                 self._loader_active = True
                 if self.background_loader:
-                    background_task(self._load_data)()
+                    spawn(self._load_data)
                     return
                 else:
                     if self._load_data() is False:

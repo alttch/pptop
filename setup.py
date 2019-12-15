@@ -23,7 +23,7 @@ setuptools.setup(
     include_package_data=True,
     ext_modules=[pptop_injector],
     install_requires=[
-        'wheel', 'unipath', 'psutil', 'rapidtables', 'atasker>=0.6.4',
+        'wheel', 'unipath', 'psutil', 'rapidtables', 'neotasker>=0.0.8',
         'jsonpickle', 'pyyaml', 'yappi', 'neotermcolor', 'pygments',
         'pyaltt2>=0.0.10'
     ],
