@@ -45,7 +45,10 @@ class Plugin(GenericPlugin):
         for s in dtd:
             z = s.copy()
             for k in ks:
-                z[k] = '{:.3f}'.format(z[k])
+                try:
+                    z[k] = '{:.3f}'.format(float(z[k]))
+                except:
+                    pass
             yield z
 
     def get_table_col_color(self, element, key, value):
