@@ -13,9 +13,6 @@ class Plugin(GenericPlugin):
     Note: Yappi 1.2.1 may produce "Internal Error 15" message when started with
     ppTOP, however seems to work fine. If this is annoying for you - downgrade
     to Yappi 1.0.
-
-    Yappi 1.0 and 1.2.1 get_func_stats() has slightly different output, this
-    plugin supports both.
     '''
 
     def on_load(self):
@@ -33,20 +30,17 @@ class Plugin(GenericPlugin):
     def process_data(self, data):
         sess = []
         for s in data:
-            mod = format_mod_name(s[1])
+            mod = format_mod_name(s[6])
             if not_my_mod(mod):
                 d = OrderedDict()
                 d['function'] = '{}.{}'.format(mod, s[0])
-                d['ncall'] = s[3]
-                d['nacall'] = s[4]
-                d['ttot'] = s[6]
-                d['tsub'] = s[7]
-                try:
-                    d['tavg'] = s[13]
-                except:
-                    d['tavg'] = s[11]
-                d['file'] = '{}:{}'.format(abspath(s[1]), s[2])
-                d['builtin'] = 'builtin' if s[5] else ''
+                d['ncall'] = s[1]
+                d['nacall'] = s[2]
+                d['ttot'] = s[3]
+                d['tsub'] = s[4]
+                d['tavg'] = s[5]
+                d['file'] = '{}:{}'.format(abspath(s[6]), s[7])
+                d['builtin'] = 'builtin' if s[8] else ''
                 sess.append(d)
         return sess
 
@@ -95,7 +89,8 @@ def injection(cmd=None, **kwargs):
     else:
         if not yappi.is_running():
             yappi.start()
-        d = list(yappi.get_func_stats())
-        for v in d:
-            del v[9]
-        return d
+        result = []
+        for f in yappi.get_func_stats():
+            result.append((f.name, f.ncall, f.nactualcall, f.ttot, f.tsub,
+                           f.tavg, f.module, f.lineno, f.builtin))
+        return result
