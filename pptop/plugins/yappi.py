@@ -9,6 +9,13 @@ class Plugin(GenericPlugin):
     yappi plugin: function profiler
 
     requires yappi profiler module https://github.com/sumerc/yappi
+
+    Note: Yappi 1.2.1 may produce "Internal Error 15" message when started with
+    ppTOP, however seems to work fine. If this is annoying for you - downgrade
+    to Yappi 1.0.
+
+    Yappi 1.0 and 1.2.1 get_func_stats() has slightly different output, this
+    plugin supports both.
     '''
 
     def on_load(self):
