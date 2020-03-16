@@ -1382,7 +1382,7 @@ def start():
                         mod = importlib.import_module('pptop.plugins.' + i)
                         mod.__version__ = 'built-in'
                     except ModuleNotFoundError:
-                        mod = importlib.import_module('pptopcontrib-' + i)
+                        mod = importlib.import_module('pptopcontrib.' + i)
                         try:
                             mod.__version__
                         except:

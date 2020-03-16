@@ -40,7 +40,7 @@ class GenericPlugin(BackgroundIntervalWorker):
         self._cursors_by_label = {}
         mod = sys.modules[self.__module__]
         self.name = mod.__name__.rsplit('.', 1)[-1]  # plugin name(id)
-        if self.name.startswith('pptopcontrib-'):
+        if self.name.startswith('pptopcontrib.'):
             self.name = self.name[13:]
         self.title = self.name.capitalize().replace('_', ' ')  # title
         self.short_name = self.name[:6].capitalize()  # short name (bottom bar)
@@ -866,7 +866,7 @@ class GenericPlugin(BackgroundIntervalWorker):
 @lru_cache(maxsize=8192)
 def not_my_mod(mod):
     return not mod.startswith('pptop.') and \
-            not mod.startswith('pptopcontrib-') and \
+            not mod.startswith('pptopcontrib.') and \
                 mod.find('_pptop_injection') == -1 and \
                 not mod == 'tracemalloc' and \
                 not mod == 'linecache' and \
