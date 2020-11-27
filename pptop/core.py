@@ -391,7 +391,8 @@ def cli_mode():
                 else:
                     if cmd.startswith('<'):
                         with open(os.path.expanduser(cmd[1:].strip())) as fh:
-                            cmds = [x.strip() for x in fh.readlines()]
+                            cmds = filter(None,
+                                    [x.strip() for x in fh.readlines()])
                     elif cmd.endswith('?'):
                         cmds = ['dir({})'.format(cmd[:-1]).strip()]
                     else:
