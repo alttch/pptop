@@ -1246,8 +1246,8 @@ def start():
     ap.add_argument(
         '-x',
         '--exec',
-        help='Exec code from the specified file and exit ' + \
-                ' (code may put result to "out" var)',
+        help='Exec code from a file ("-" for stdin) and exit '
+            ' (the code can put result to "out" var)',
         metavar='FILE',
         dest='_exec')
     ap.add_argument('-J',
@@ -1341,8 +1341,11 @@ def start():
         config['display']['glyphs'] = False
 
     if a._exec:
-        with open(a._exec) as fd:
-            _d.exec_code = fd.read()
+        if a._exec == '-':
+            _d.exec_code = sys.stdin.read()
+        else:
+            with open(a._exec) as fd:
+                _d.exec_code = fd.read()
         _d.output_as_json = a.json
 
     else:
