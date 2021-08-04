@@ -149,6 +149,12 @@ def injection_load(l=None, **kwargs):
 
 def injection(cmd=None, loop=None):
 
+    import asyncio
+    if hasattr(asyncio, 'all_tasks'):
+        all_tasks_fn = 'asyncio.all_tasks'
+    else:
+        all_tasks_fn = 'asyncio.Task.all_tasks'
+
     def parse_loop(loop):
         try:
             if loop[loop.find(':') + 1] == ':':
@@ -176,14 +182,9 @@ def injection(cmd=None, loop=None):
             loop = v[1]
             loop_name = '{}::{}'.format(mod, loop)
             try:
-                import asyncio
-                if hasattr(asyncio, 'all_tasks'):
-                    fn = 'asyncio.all_tasks'
-                else:
-                    fn = 'asyncio.Task.all_tasks'
                 ge = {}
                 src = ('import {mod}; import asyncio;' +
-                       'out=list({fn}(loop={mod}.{loop}))').format(fn=fn,
+                       'out=list({fn}(loop={mod}.{loop}))').format(fn=all_tasks_fn,
                                                                    mod=mod,
                                                                    loop=loop)
                 exec(src, ge)

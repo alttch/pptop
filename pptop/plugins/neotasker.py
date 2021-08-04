@@ -191,6 +191,11 @@ def injection_load(task_supervisor=None, **kwargs):
 
 def injection(cmd=None):
     result = []
+    import asyncio
+    try:
+        all_tasks = asyncio.Task.all_tasks
+    except:
+        all_tasks = asyncio.all_tasks
     if cmd == 'loops':
         import linecache
         import asyncio
@@ -201,7 +206,7 @@ def injection(cmd=None):
                 loops.add((i, l))
         for loop_name, loop in loops:
             try:
-                for l in asyncio.Task.all_tasks(loop=loop):
+                for l in all_tasks(loop=loop):
                     coro = ''
                     fname = ''
                     isl = str(l).split()
