@@ -176,10 +176,16 @@ def injection(cmd=None, loop=None):
             loop = v[1]
             loop_name = '{}::{}'.format(mod, loop)
             try:
+                import asyncio
+                if hasattr(asyncio, 'all_tasks'):
+                    fn = 'asyncio.all_tasks'
+                else:
+                    fn = 'asyncio.Task.all_tasks'
                 ge = {}
                 src = ('import {mod}; import asyncio;' +
-                       'out=list(asyncio.Task.all_tasks(loop={mod}.{loop}))'
-                      ).format(mod=mod, loop=loop)
+                       'out=list({fn}(loop={mod}.{loop}))').format(fn=fn,
+                                                                   mod=mod,
+                                                                   loop=loop)
                 exec(src, ge)
                 for l in ge['out']:
                     coro = ''
@@ -190,7 +196,8 @@ def injection(cmd=None, loop=None):
                     for i, z in enumerate(isl):
                         if z.startswith('coro='):
                             coro = z.split('=', 1)[-1].strip()
-                            if coro.startswith('<'): coro = coro[1:]
+                            if coro.startswith('<'):
+                                coro = coro[1:]
                         elif z == 'at' and isl[
                                 i - 1] == 'running' and i + 1 < len(isl):
                             fname = isl[i + 1].strip()
