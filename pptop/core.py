@@ -1318,7 +1318,7 @@ def start():
         if not os.path.isdir(_d.pptop_dir + '/lib'):
             os.mkdir(_d.pptop_dir + '/lib')
     with open(config_file) as fh:
-        config.update(yaml.load(fh.read()))
+        config.update(yaml.safe_load(fh.read()))
 
     console = config.get('console')
     if console is None: console = {}
