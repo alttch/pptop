@@ -2,7 +2,7 @@
 ppTOP v{version} (c) Altertech
 The product is available under {license} license.
 
-https://pptop.io/
+https://pptop.bma.ai/
 '''
 
 __author__ = 'Altertech, https://www.altertech.com/'

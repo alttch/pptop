@@ -1,6 +1,6 @@
 # ppTOP
 
-Project home: https://pptop.io/
+Project home: https://pptop.bma.ai/
 
 <img src="https://github.com/alttch/pptop/blob/master/media/logo.png?raw=true" align="right" width="200" /> ppTOP is open, extensible Python injector/profiler/analyzer.
 
@@ -121,7 +121,7 @@ console mode, by pressing *Ctrl+O*.
 ## Documentation
 
 Configuration, troubleshooting, advanced usage, plugin development:
-https://pptop.io/doc/
+https://pptop.bma.ai/doc/
 
 ## TODO
 

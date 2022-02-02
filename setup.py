@@ -16,7 +16,7 @@ setuptools.setup(
     description='Open, extensible Python injector/profiler/analyzer',
     long_description=long_description,
     long_description_content_type='text/markdown',
-    url='https://pptop.io/',
+    url='https://pptop.bma.ai/',
     packages=setuptools.find_packages(),
     license='MIT',
     scripts=['bin/pptop'],
